@@ -729,7 +729,7 @@ function syncBeneficiaryClients(silent){
     };
     if (client) {
       Object.assign(client, common);
-      if (!client.days || !client.days.length) client.days = src.days || [1,2,3,4,5];
+      client.days = src.days || client.days || [1,2,3,4,5];
       if (!client.pickupTime) client.pickupTime = src.pickupTime || '09:00';
       if (!client.dropoffTime) client.dropoffTime = src.dropoffTime || '17:00';
       updated++;

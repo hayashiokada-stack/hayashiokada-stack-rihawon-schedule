@@ -1,5 +1,5 @@
 // 2026년 06월_수급자 목록.xlsx에서 변환한 앱용 이용자 데이터입니다.
-window.BENEFICIARY_SOURCE_VERSION = "2026-06-수급자목록";
+window.BENEFICIARY_SOURCE_VERSION = "2026-06-수급자목록-토요일반영";
 window.BENEFICIARY_CLIENTS = [
   {
     "sourceRow": 5,
@@ -153,11 +153,7 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "high",
     "status": "active",
     "days": [
-      1,
-      2,
-      3,
-      4,
-      5
+      6
     ],
     "pickupTime": "09:00",
     "dropoffTime": "17:00"
@@ -180,7 +176,8 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
     "pickupTime": "09:00",
     "dropoffTime": "17:00"
@@ -545,10 +542,8 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
-      5
+      6
     ],
     "pickupTime": "09:00",
     "dropoffTime": "17:00"
@@ -1349,11 +1344,9 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "normal",
     "status": "active",
     "days": [
-      1,
       2,
-      3,
       4,
-      5
+      6
     ],
     "pickupTime": "09:00",
     "dropoffTime": "17:00"
