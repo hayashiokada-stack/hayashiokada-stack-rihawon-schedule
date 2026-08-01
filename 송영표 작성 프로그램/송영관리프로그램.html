@@ -340,8 +340,8 @@
     <div>
       <div id="mapContainer" style="background:#f1f5f9;border-radius:10px;height:480px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;border:2px dashed #e2e8f0">
         <div style="font-size:48px">🗺️</div>
-        <div style="font-weight:700;color:#94a3b8">카카오 지도</div>
-        <div style="font-size:13px;color:#94a3b8">"지도 보기" 버튼을 눌러 로드하세요</div>
+        <div style="font-weight:700;color:#94a3b8">노선 지도</div>
+        <div style="font-size:13px;color:#94a3b8">불러오는 중… (OpenStreetMap)</div>
       </div>
     </div>
     <div>
@@ -3530,9 +3530,14 @@ function renderMapList(){
     h = '<div style="text-align:center;padding:30px;color:#94a3b8">해당 날짜 일정이 없습니다.</div>';
   }
   document.getElementById('mapList').innerHTML = h || '<div style="text-align:center;padding:30px;color:#94a3b8">표시할 경로가 없습니다.</div>';
+  // 지도 자동 로드/갱신 (API 키 불필요)
+  if (window.L && _leafletMap) drawKakaoMap();
+  else if (!_kakaoMapLoaded && !_leafletLoading) loadKakaoMap();
 }
 
-let _kakaoMapLoaded = false;
+let _kakaoMapLoaded = false;   // 지도 라이브러리(Leaflet) 로드 여부
+let _leafletMap = null;
+let _leafletLoading = false;
 
 function saveKakaoJsKey() {
   const k = document.getElementById('kakaoJsKeyInput').value.trim();
@@ -3544,34 +3549,35 @@ function saveKakaoJsKey() {
   loadKakaoMap();
 }
 
+// 노선 지도: API 키가 필요 없는 Leaflet + OpenStreetMap
 function loadKakaoMap() {
-  const jsKey = (DB.settings && DB.settings.kakaoJsKey) || '';
-  if (!jsKey) {
-    document.getElementById('kakaoJsKeyBanner').style.display = 'block';
-    return;
+  const banner = document.getElementById('kakaoJsKeyBanner');
+  if (banner) banner.style.display = 'none';
+  if (_kakaoMapLoaded && window.L) { drawKakaoMap(); return; }
+  if (_leafletLoading) return;
+  _leafletLoading = true;
+  if (!document.getElementById('leafletCss')) {
+    const css = document.createElement('link');
+    css.id = 'leafletCss'; css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
   }
-  document.getElementById('kakaoJsKeyBanner').style.display = 'none';
-
-  if (_kakaoMapLoaded && window.kakao && window.kakao.maps) {
-    drawKakaoMap();
-    return;
+  if (!document.getElementById('routeMapStyle')) {
+    const st = document.createElement('style'); st.id = 'routeMapStyle';
+    st.textContent = '.leaflet-div-icon.route-marker{background:transparent;border:none;}';
+    document.head.appendChild(st);
   }
+  const mc = document.getElementById('mapContainer');
+  if (mc) mc.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:40px">지도를 불러오는 중…</div>';
   const s = document.createElement('script');
-  s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${jsKey}&autoload=false`;
-  s.onload = () => {
-    kakao.maps.load(() => {
-      _kakaoMapLoaded = true;
-      drawKakaoMap();
-    });
-  };
-  s.onerror = () => {
-    toast('카카오 지도 로드 실패 — JavaScript 키를 확인하세요.','error');
-    document.getElementById('kakaoJsKeyBanner').style.display = 'block';
-  };
+  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload = () => { _leafletLoading = false; _kakaoMapLoaded = true; drawKakaoMap(); };
+  s.onerror = () => { _leafletLoading = false; toast('지도 라이브러리 로드 실패 — 인터넷 연결을 확인하세요.','error'); };
   document.head.appendChild(s);
 }
 
 function drawKakaoMap() {
+  if (!window.L) { loadKakaoMap(); return; }
   const dstr = (document.getElementById('mapDate')&&document.getElementById('mapDate').value) || ds();
   const vid = document.getElementById('mapVehicle').value;
   const dir = document.getElementById('mapDir').value;
@@ -3579,75 +3585,54 @@ function drawKakaoMap() {
   const section = dir==='pickup' ? (sch&&sch.morning||[]) : (sch&&sch.afternoon||[]);
 
   const mc = document.getElementById('mapContainer');
-  mc.innerHTML = '<div id="kakaoMapDiv" style="width:100%;height:480px;border-radius:10px"></div>';
+  mc.innerHTML = '<div id="routeMapDiv" style="width:100%;height:480px;border-radius:10px"></div>';
 
-  const orgLat = DB.settings&&DB.settings.orgLat || 37.5665;
-  const orgLng = DB.settings&&DB.settings.orgLng || 126.9780;
-  const map = new kakao.maps.Map(document.getElementById('kakaoMapDiv'), {
-    center: new kakao.maps.LatLng(orgLat, orgLng), level: 5
-  });
+  const orgLat = (DB.settings&&DB.settings.orgLat) || 37.5665;
+  const orgLng = (DB.settings&&DB.settings.orgLng) || 126.9780;
+  if (_leafletMap) { try { _leafletMap.remove(); } catch(e){} _leafletMap = null; }
+  const map = L.map('routeMapDiv').setView([orgLat, orgLng], 13);
+  _leafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
 
   // 기관 마커
-  const orgMarker = new kakao.maps.Marker({
-    position: new kakao.maps.LatLng(orgLat, orgLng), map,
-    title: DB.settings&&DB.settings.orgName||'주간보호센터'
-  });
-  const orgInfo = new kakao.maps.InfoWindow({ content:`<div style="padding:5px 8px;font-size:12px;font-weight:700">🏢 ${DB.settings&&DB.settings.orgName||'기관'}</div>` });
-  orgInfo.open(map, orgMarker);
+  L.marker([orgLat, orgLng]).addTo(map)
+    .bindTooltip('🏢 ' + ((DB.settings&&DB.settings.orgName)||'기관'), { permanent:true, direction:'top' });
 
-  const bounds = new kakao.maps.LatLngBounds();
-  bounds.extend(new kakao.maps.LatLng(orgLat, orgLng));
-
+  const pts = [[orgLat, orgLng]];
   const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+  let noCoord = 0;
 
   filtered.forEach(vdata => {
     const col = vColor(vdata.vehicle);
-    const path = [new kakao.maps.LatLng(orgLat, orgLng)];
+    const path = [[orgLat, orgLng]];
     let seq = 1;
-
     vdata.stops.forEach(stop => {
       stop.clients.forEach(name => {
         const c = (DB.clients||[]).find(x=>x.name===name);
-        if (!c || !c.lat || !c.lng) return;
-        const pos = new kakao.maps.LatLng(+c.lat, +c.lng);
-        path.push(pos);
-        bounds.extend(pos);
-
-        // 마커 (번호 + 이름)
-        const markerContent = `<div style="background:${col};color:#fff;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.2)">${seq}. ${name}</div>`;
-        const marker = new kakao.maps.Marker({ position:pos, map, title:name,
-          image: new kakao.maps.MarkerImage(
-            `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><circle cx='5' cy='5' r='5' fill='${col}'/></svg>`)}`,
-            new kakao.maps.Size(10,10)
-          )
-        });
-        const overlay = new kakao.maps.CustomOverlay({ position:pos, content:markerContent, yAnchor:2.2 });
-        overlay.setMap(map);
-
-        // 클릭 시 팝업
-        const infoContent = `<div style="padding:8px 12px;min-width:160px;font-size:12px">
-          <div style="font-weight:700;margin-bottom:4px">${name}</div>
-          <div style="color:#64748b">${c.addr||'주소 없음'}</div>
-          <div style="color:${col};margin-top:2px">⏰ ${stop.time}</div>
-        </div>`;
-        const info = new kakao.maps.InfoWindow({ content:infoContent, removable:true });
-        kakao.maps.event.addListener(marker,'click',()=>info.open(map,marker));
+        if (!c || !c.lat || !c.lng) { noCoord++; return; }
+        const pos = [+c.lat, +c.lng];
+        path.push(pos); pts.push(pos);
+        // 번호 원 + 송영시간(상시 표시) + 이름
+        const html = `<div style="display:flex;align-items:center;gap:3px;white-space:nowrap">`
+          + `<span style="width:20px;height:20px;border-radius:50%;background:${col};color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4);flex-shrink:0">${seq}</span>`
+          + `<span style="background:#fff;border:1px solid ${col};border-radius:4px;padding:0 4px;font-size:10px;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.25)"><span style="color:${col}">${stop.time}</span> ${name}</span>`
+          + `</div>`;
+        const icon = L.divIcon({ className:'route-marker', html, iconSize:null, iconAnchor:[10,10] });
+        L.marker(pos, { icon }).addTo(map)
+          .bindPopup(`<b>${seq}. ${name}</b><br>⏰ ${stop.time}<br><span style="color:#64748b">${c.addr||''}</span>`);
         seq++;
       });
     });
-
-    // 경로 폴리라인 (기관→정류장→기관)
+    // 경로 폴리라인 (기관→정거장→기관)
     if (path.length > 1) {
-      path.push(new kakao.maps.LatLng(orgLat, orgLng));
-      new kakao.maps.Polyline({ path, map,
-        strokeWeight:3, strokeColor:col, strokeOpacity:0.8, strokeStyle:'solid'
-      });
+      path.push([orgLat, orgLng]);
+      L.polyline(path, { color:col, weight:3, opacity:0.85 }).addTo(map);
     }
   });
 
-  if (!bounds.isEmpty()) map.setBounds(bounds, 60);
-  renderMapList();
-  toast('카카오 지도 로드 완료');
+  if (pts.length > 1) map.fitBounds(pts, { padding:[40,40] });
+  setTimeout(() => { if (_leafletMap) _leafletMap.invalidateSize(); }, 150);
+  if (noCoord > 0) toast(`좌표 없는 ${noCoord}명은 지도에 표시되지 않았습니다 (이용자 관리에서 좌표 변환).`, 'warn');
 }
 
 // ============================================================
