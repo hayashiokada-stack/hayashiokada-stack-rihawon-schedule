@@ -887,6 +887,27 @@ function reconcileVehicleRoster(){
   save();
 }
 
+// 송영일정표 템플릿·일정에서 현재 차량 명부에 없는(퇴역) 차량의 빈 항목 제거
+// (템플릿은 차량을 이름으로 참조 → 마스터에서 지워도 남음. 이용자가 있는 항목은 안전하게 보존)
+function cleanRetiredVehiclesFromSchedules(){
+  const valid = new Set((DB.vehicles||[]).map(v=>v.name));
+  let changed = false;
+  const clean = sch => {
+    if(!sch) return;
+    ['morning','afternoon'].forEach(t=>{
+      if(!Array.isArray(sch[t])) return;
+      const kept = sch[t].filter(v=>{
+        const hasClients = (v.stops||[]).some(s=>(s.clients||[]).length>0);
+        return valid.has(v.vehicle) || hasClients;
+      });
+      if(kept.length !== sch[t].length){ sch[t]=kept; changed = true; }
+    });
+  };
+  Object.values(DB.scheduleTemplates||{}).forEach(clean);
+  Object.values(DB.scheduleData||{}).forEach(clean);
+  if(changed) save();
+}
+
 // 특이사항에 휠체어 언급이 있는 이용자를 최초 1회 자동 표시(서류·대여 등 오탐 제외)
 function autoTagWheelchair(){
   if(!DB.settings) DB.settings={};
@@ -936,6 +957,7 @@ function load(){
     {id:'d-seokhyuk',name:'석혁준', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''}
   ];
   reconcileVehicleRoster();
+  cleanRetiredVehiclesFromSchedules();
   importRihawonBridge();
   if ((window.BENEFICIARY_CLIENTS||[]).length && DB.settings?.beneficiarySourceVersion !== window.BENEFICIARY_SOURCE_VERSION) {
     syncBeneficiaryClients(true);
@@ -1749,10 +1771,7 @@ function buildDefaultWedTemplate() {
         { time:'09:20', clients:['홍화선'] },
         { time:'09:50', clients:['송광석'] },
         { time:'10:10', clients:['한계심'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
     afternoon: [
       { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
@@ -1782,10 +1801,7 @@ function buildDefaultWedTemplate() {
         { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
         { time:'16:50', clients:['김말례','한정자','서영희','심영흠'] },
         { time:'17:40', clients:['송영재','송광석','김대근'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivAfternoon:['구자종','박영임','박순연','이율자','최분묵']
   };
 }
@@ -1822,10 +1838,7 @@ function buildDefaultThuTemplate() {
         { time:'09:20', clients:['홍화선'] },
         { time:'09:50', clients:['송광석'] },
         { time:'10:10', clients:['한계심'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
     afternoon: [
       { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
@@ -1858,10 +1871,7 @@ function buildDefaultThuTemplate() {
         { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
         { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
         { time:'17:40', clients:['송영재','송광석','김대근'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivAfternoon:['구자종','박영임','박순연','이율자','최분묵']
   };
 }
@@ -1899,10 +1909,7 @@ function buildDefaultFriTemplate() {
         { time:'09:20', clients:['홍화선'] },
         { time:'09:50', clients:['송광석'] },
         { time:'10:10', clients:['한계심'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
     afternoon: [
       { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
@@ -1936,10 +1943,7 @@ function buildDefaultFriTemplate() {
         { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
         { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
         { time:'17:40', clients:['송영재','송광석','김대근'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivAfternoon:['구자종','김태윤','박영임','박순연','이율자','최분묵']
   };
 }
@@ -1968,10 +1972,7 @@ function buildDefaultSatTemplate() {
         { time:'07:00', clients:['최돈자','유경옥','김막례','전완표'] },
         { time:'08:50', clients:['유무산','박삼분','김동주','홍화선'] },
         { time:'09:40', clients:['오분탁'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivMorning:['구자종','김대근','박영임','이화자'],
     afternoon: [
       { vehicle:'4호차 레이 8449', driver:'조현정', stops:[
@@ -1989,10 +1990,7 @@ function buildDefaultSatTemplate() {
         { time:'15:50', clients:['반장환','오분탁'] },
         { time:'17:00', clients:['김말례','서영희','진점례','한정자'] },
         { time:'17:40', clients:['송광석','김태윤','구자종','김대근'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivAfternoon:['박영임','이율자']
   };
 }
@@ -2029,10 +2027,7 @@ function buildDefaultMonTemplate() {
         { time:'09:20', clients:['홍화선'] },
         { time:'09:50', clients:['송광석'] },
         { time:'10:10', clients:['한계심'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
     afternoon: [
       { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
@@ -2066,10 +2061,7 @@ function buildDefaultMonTemplate() {
         { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
         { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
         { time:'17:40', clients:['송영재','송광석','김대근'] }
-      ]},
-      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
-      { vehicle:'카니발 6925', driver:'', stops:[] }
-    ],
+      ]},    ],
     indivAfternoon:['구자종','김태윤','박영임','박순연','이율자','최분묵']
   };
 }
@@ -2097,10 +2089,8 @@ const VEHICLE_COLORS = {
   '2호차 레이 7733':'#dc2626',
   '3호차 카니발 6005':'#7c3aed',
   '4호차 레이 8449':'#d97706',
-  '7호차 레이 9725':'#0891b2',
   '8호차 레이 8978':'#2563eb',
-  '스타리아 2857':'#059669',
-  '카니발 6925':'#db2777'
+  '스타리아 2857':'#059669'
 };
 function vColor(name) {
   return VEHICLE_COLORS[name] || '#64748b';
