@@ -2096,22 +2096,23 @@ function vColor(name) {
   return VEHICLE_COLORS[name] || '#64748b';
 }
 
-function renderScheduleVehicleCard(vdata, type, dstr) {
+function renderScheduleVehicleCard(vdata, type, dstr, vIdx, runNo, runTotal) {
   const col = vColor(vdata.vehicle);
   const totalClients = vdata.stops.reduce((a,s)=>a+s.clients.length,0);
   const icon = type==='morning' ? '🌅' : '🌇';
   const isEditable = !!(DB.scheduleData && DB.scheduleData[dstr]);
+  const runLabel = (runTotal>1) ? ` <span title="복귀 후 다시 나가는 회차" style="font-size:10px;background:${col}22;color:${col};border-radius:4px;padding:1px 5px;font-weight:800">${runNo}회차</span>` : '';
   let stopsHtml = '';
   vdata.stops.forEach((stop, si) => {
     const timeEdit = isEditable
-      ? `<span onclick="editSchTime('${dstr}','${type}','${vdata.vehicle}',${si})" title="시간 수정" style="cursor:pointer;opacity:.55;font-size:10px;margin-left:3px">✏️</span>`
+      ? `<span onclick="editSchTime('${dstr}','${type}',${vIdx},${si})" title="시간 수정" style="cursor:pointer;opacity:.55;font-size:10px;margin-left:3px">✏️</span>`
       : '';
     const tags = stop.clients.map((c, ci) => {
       const del = isEditable
-        ? `<span onclick="removeSchClient('${dstr}','${type}','${vdata.vehicle}',${si},${ci})" title="제거" style="cursor:pointer;color:#ef4444;font-size:10px;margin-left:2px;font-weight:400">×</span>`
+        ? `<span onclick="removeSchClient('${dstr}','${type}',${vIdx},${si},${ci})" title="제거" style="cursor:pointer;color:#ef4444;font-size:10px;margin-left:2px;font-weight:400">×</span>`
         : '';
       const mv = isEditable
-        ? `<span onclick="openMoveClient('${dstr}','${type}','${vdata.vehicle}',${si},${ci},'${c}')" title="이동" style="cursor:pointer;color:#2563eb;font-size:10px;margin-left:1px;font-weight:400">↗</span>`
+        ? `<span onclick="openMoveClient('${dstr}','${type}',${vIdx},${si},${ci},'${c}')" title="이동" style="cursor:pointer;color:#2563eb;font-size:10px;margin-left:1px;font-weight:400">↗</span>`
         : '';
       const wheel = cIsWheel(c);
       const wIcon = wheel ? '<span title="휠체어 이용" style="margin-right:2px">♿️</span>' : '';
@@ -2123,32 +2124,46 @@ function renderScheduleVehicleCard(vdata, type, dstr) {
       <div style="flex:1;line-height:1.8">${tags}</div>
     </div>`;
   });
-  // 색상 변경 버튼
+  // 색상 변경 버튼 (색상은 차량 이름 기준 — 회차 공통)
   const colorPicker = `<input type="color" value="${col}" title="차량 색상 변경"
     onchange="changeVehicleColor('${vdata.vehicle}',this.value)"
     style="width:18px;height:18px;border:none;background:none;padding:0;cursor:pointer;border-radius:50%;flex-shrink:0;opacity:.7">`;
-  const navBtn = `<span onclick="openVehicleNav('${dstr}','${type}','${vdata.vehicle}')" title="기사용 내비 링크(카카오맵)" style="cursor:pointer;font-size:15px;flex-shrink:0;opacity:.85">🧭</span>`;
-  // 휠체어 연계: 이 차량의 휠체어 이용자 수 / 차량 휠체어 지원 여부
+  const navBtn = `<span onclick="openVehicleNav('${dstr}','${type}',${vIdx})" title="기사용 내비 링크(카카오맵)" style="cursor:pointer;font-size:15px;flex-shrink:0;opacity:.85">🧭</span>`;
+  // 휠체어 연계
   const wcCount = vdata.stops.reduce((a,s)=>a+s.clients.filter(cIsWheel).length,0);
   const vehWheel = vIsWheel(vdata.vehicle);
   const wcBadge = vehWheel ? ' <span title="휠체어 차량" style="font-size:11px;color:#15803d">♿️</span>' : '';
   const wcWarn = (wcCount>0 && !vehWheel)
     ? `<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:11px;padding:6px 9px;margin-bottom:6px;border-radius:6px;line-height:1.4">♿️ 휠체어 이용자 ${wcCount}명 — 이 차량은 휠체어 미지원. 휠체어 차량(레이 8449·카니발 6005)으로 재배치가 필요합니다.</div>`
     : '';
+  // 출발(센터 출발)·복귀(센터 도착) 시각 — 항상 출발점·도착점은 센터
+  const departRow = isEditable
+    ? `<div style="display:flex;align-items:center;gap:5px;padding:7px 14px 0;font-size:11px;color:#475569;flex-wrap:wrap">
+        <span style="font-weight:600">🏢 출발</span><input type="time" value="${vdata.departTime||''}" onchange="setSchDepart('${dstr}','${type}',${vIdx},this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:1px 3px">
+        <span style="color:#94a3b8">→ 복귀</span><input type="time" value="${vdata.returnTime||''}" onchange="setSchReturn('${dstr}','${type}',${vIdx},this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:1px 3px">
+      </div>`
+    : ((vdata.departTime||vdata.returnTime) ? `<div style="padding:7px 14px 0;font-size:11px;color:#475569;font-weight:600">🏢 출발 ${vdata.departTime||'-'} → 복귀 ${vdata.returnTime||'-'}</div>` : '');
+  const actionRow = isEditable
+    ? `<div style="display:flex;gap:6px;padding:8px 14px 10px;flex-wrap:wrap;border-top:1px solid #f1f5f9;margin-top:2px">
+        <button onclick="addClientToRun('${dstr}','${type}',${vIdx})" style="font-size:11px;padding:3px 9px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:5px;cursor:pointer;font-weight:600">+ 이용자</button>
+        <button onclick="addSchRun('${dstr}','${type}',${vIdx})" style="font-size:11px;padding:3px 9px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:5px;cursor:pointer;font-weight:600" title="복귀 후 다시 나가는 회차 추가">+ 회차</button>
+        ${runTotal>1?`<button onclick="removeSchRun('${dstr}','${type}',${vIdx})" style="font-size:11px;padding:3px 9px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:5px;cursor:pointer;font-weight:600">회차 삭제</button>`:''}
+      </div>`
+    : '';
   return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);flex:1;min-width:260px;max-width:380px">
     <div style="background:${col}18;border-bottom:2px solid ${col}40;padding:10px 14px;display:flex;align-items:center;gap:8px">
       <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${vdata.vehicle}${wcBadge}</div>
+        <div style="font-weight:700;font-size:14px">${vdata.vehicle}${runLabel}${wcBadge}</div>
         <div style="font-size:11px;color:#64748b;margin-top:1px;display:flex;align-items:center;gap:4px">
           ${icon}
-          <select onchange="changeSchDriver('${dstr}','${type}','${vdata.vehicle}',this.value)"
+          <select onchange="changeSchDriver('${dstr}','${type}',${vIdx},this.value)"
             style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:90px">
             <option value="">미배정</option>
             ${(DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false).map(d=>`<option value="${d.name}" ${d.name===vdata.driver?'selected':''}>${d.name}</option>`).join('')}
           </select>
           <span title="동승자" style="color:#94a3b8">🧑‍🤝‍🧑</span>
-          <select onchange="changeSchEscort('${dstr}','${type}','${vdata.vehicle}',this.value)" title="동승자(보조 탑승)"
+          <select onchange="changeSchEscort('${dstr}','${type}',${vIdx},this.value)" title="동승자(보조 탑승)"
             style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:84px">
             <option value="">동승 −</option>
             ${(DB.drivers||[]).filter(d=>d.active!==false&&d.name!==vdata.driver).map(d=>`<option value="${d.name}" ${d.name===vdata.escort?'selected':''}>${d.name}</option>`).join('')}
@@ -2159,7 +2174,9 @@ function renderScheduleVehicleCard(vdata, type, dstr) {
       ${navBtn}
       ${colorPicker}
     </div>
+    ${departRow}
     <div style="padding:6px 14px 10px">${wcWarn}${stopsHtml}</div>
+    ${actionRow}
   </div>`;
 }
 
@@ -2275,7 +2292,7 @@ function renderDriverSchedule() {
     <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${morningTotal}명</span>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">`;
-  (sch.morning||[]).forEach(v => { h += renderScheduleVehicleCard(v, 'morning', dstr); });
+  (function(){ const tot={},seen={}; (sch.morning||[]).forEach(v=>{tot[v.vehicle]=(tot[v.vehicle]||0)+1;}); (sch.morning||[]).forEach((v,vi)=>{ seen[v.vehicle]=(seen[v.vehicle]||0)+1; h += renderScheduleVehicleCard(v,'morning',dstr,vi,seen[v.vehicle],tot[v.vehicle]); }); })();
   h += `</div>`;
 
   if ((sch.indivMorning||[]).length) {
@@ -2295,7 +2312,7 @@ function renderDriverSchedule() {
     <span style="background:#fed7aa;color:#c2410c;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${afternoonTotal}명</span>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">`;
-  (sch.afternoon||[]).forEach(v => { h += renderScheduleVehicleCard(v, 'afternoon', dstr); });
+  (function(){ const tot={},seen={}; (sch.afternoon||[]).forEach(v=>{tot[v.vehicle]=(tot[v.vehicle]||0)+1;}); (sch.afternoon||[]).forEach((v,vi)=>{ seen[v.vehicle]=(seen[v.vehicle]||0)+1; h += renderScheduleVehicleCard(v,'afternoon',dstr,vi,seen[v.vehicle],tot[v.vehicle]); }); })();
   h += `</div>`;
 
   if ((sch.indivAfternoon||[]).length) {
@@ -2326,6 +2343,7 @@ function saveScheduleAsTemplate() {
 }
 
 function openAddScheduleClient() {
+  _addRunCtx = null;   // 일반 추가는 회차 지정 없음
   const dstr = document.getElementById('transportDate').value || ds();
   document.getElementById('addSchDate').textContent = dstr;
   // 기존 차량 목록 채우기
@@ -2341,6 +2359,24 @@ function openAddScheduleClient() {
   cSel.innerHTML = '<option value="">-- 직접 입력 --</option>' + clientNames.map(n=>`<option value="${n}">${n}</option>`).join('');
   cSel.onchange = ()=>{ if(cSel.value) document.getElementById('addSchClientName').value=cSel.value; };
   openModal('addScheduleModal');
+}
+
+// 특정 회차(vIdx)에 이용자 추가 — 추가 모달을 열고 대상 회차를 지정
+let _addRunCtx = null;
+function addClientToRun(dstr, type, vIdx) {
+  openAddScheduleClient();
+  _addRunCtx = { dstr, type, vIdx };
+  const dirSel = document.getElementById('addSchDir'); if (dirSel) dirSel.value = type;
+  toggleSchVehicleFields();
+  const section = schSectionOf(dstr, type);
+  if (section && section[vIdx]) {
+    const vSel = document.getElementById('addSchVehicle');
+    if (vSel && ![...vSel.options].some(o=>o.value===section[vIdx].vehicle)) {
+      const o=document.createElement('option'); o.value=section[vIdx].vehicle; o.textContent=section[vIdx].vehicle; vSel.appendChild(o);
+    }
+    if (vSel) vSel.value = section[vIdx].vehicle;
+    const total = section[vIdx].stops.reduce((a,s)=>a+s.clients.length,0);
+  }
 }
 
 function saveScheduleClient() {
@@ -2369,11 +2405,13 @@ function saveScheduleClient() {
   } else {
     const section = dir === 'morning' ? sch.morning : sch.afternoon;
     if (!Array.isArray(section)) { toast('섹션 오류','error'); return; }
-    // 해당 차량 찾기
-    let vEntry = section.find(v=>v.vehicle===vehicle);
-    if (!vEntry) {
-      vEntry = { vehicle, driver: driver||'미배정', stops:[] };
-      section.push(vEntry);
+    // 특정 회차(vIdx)로 지정된 경우 그 회차에, 아니면 차량명으로 찾기(없으면 새로 생성)
+    let vEntry;
+    if (_addRunCtx && _addRunCtx.type === dir && section[_addRunCtx.vIdx]) {
+      vEntry = section[_addRunCtx.vIdx];
+    } else {
+      vEntry = section.find(v=>v.vehicle===vehicle);
+      if (!vEntry) { vEntry = { vehicle, driver: driver||'미배정', stops:[] }; section.push(vEntry); }
     }
     if (driver) vEntry.driver = driver;
     // 해당 시간 슬롯 찾기
@@ -2387,6 +2425,7 @@ function saveScheduleClient() {
   closeModal('addScheduleModal');
   renderDriverSchedule();
   toast(`${clientName} 추가 완료`);
+  _addRunCtx = null;
 }
 
 // ─── 송영일정표 편집 함수들 ────────────────────────────────────────────
@@ -2411,32 +2450,61 @@ function getEditableSchedule(dstr) {
   return DB.scheduleData[dstr];
 }
 
-function changeSchDriver(dstr, type, vehicleName, newDriver) {
-  // 템플릿 상태이면 먼저 날짜 전용 복사본 생성
-  const sch = getEditableSchedule(dstr);
-  const section = type === 'morning' ? sch.morning : sch.afternoon;
-  const vEntry = (section || []).find(v => v.vehicle === vehicleName);
+// 차량 항목은 인덱스(vIdx)로 지정 — 같은 차량의 여러 회차를 구분하기 위함
+function schSectionOf(dstr, type){ const s=getEditableSchedule(dstr); return type==='morning'?s.morning:s.afternoon; }
+
+function changeSchDriver(dstr, type, vIdx, newDriver) {
+  const section = schSectionOf(dstr, type);
+  const vEntry = (section || [])[vIdx];
   if (vEntry) { vEntry.driver = newDriver; save(); renderDriverSchedule(); }
 }
 
 // 동승자(添乗): 운전원 외 보조 탑승 직원 지정
-function changeSchEscort(dstr, type, vehicleName, name) {
-  const sch = getEditableSchedule(dstr);
-  const section = type === 'morning' ? sch.morning : sch.afternoon;
-  const vEntry = (section || []).find(v => v.vehicle === vehicleName);
+function changeSchEscort(dstr, type, vIdx, name) {
+  const section = schSectionOf(dstr, type);
+  const vEntry = (section || [])[vIdx];
   if (vEntry) { vEntry.escort = name; save(); renderDriverSchedule(); }
 }
 
-function removeSchClient(dstr, type, vehicleName, stopIdx, clientIdx) {
-  const sch = getEditableSchedule(dstr);
-  const section = type === 'morning' ? sch.morning : sch.afternoon;
-  const vEntry = section.find(v => v.vehicle === vehicleName);
+// 회차별 출발(센터 출발)·복귀(센터 도착) 시각 기록
+function setSchDepart(dstr, type, vIdx, val) {
+  const section = schSectionOf(dstr, type);
+  if (section && section[vIdx]) { section[vIdx].departTime = val; save(); }
+}
+function setSchReturn(dstr, type, vIdx, val) {
+  const section = schSectionOf(dstr, type);
+  if (section && section[vIdx]) { section[vIdx].returnTime = val; save(); }
+}
+
+// 같은 차량 회차 추가 (복귀 후 다시 나가는 경우)
+function addSchRun(dstr, type, vIdx) {
+  const section = schSectionOf(dstr, type);
+  const base = section && section[vIdx];
+  if (!base) return;
+  section.splice(vIdx + 1, 0, { vehicle: base.vehicle, driver: base.driver || '', escort: base.escort || '', departTime: '', returnTime: '', stops: [] });
+  save(); renderDriverSchedule();
+  toast(`${base.vehicle} 회차 추가 — "+ 이용자"로 이 회차 이용자를 넣으세요`);
+}
+
+// 회차 삭제
+function removeSchRun(dstr, type, vIdx) {
+  const section = schSectionOf(dstr, type);
+  const v = section && section[vIdx];
+  if (!v) return;
+  const n = (v.stops || []).reduce((a, s) => a + s.clients.length, 0);
+  if (n > 0 && !confirm(`${v.vehicle} 이 회차에 이용자 ${n}명이 있습니다. 회차를 삭제할까요?`)) return;
+  section.splice(vIdx, 1); save(); renderDriverSchedule();
+}
+
+function removeSchClient(dstr, type, vIdx, stopIdx, clientIdx) {
+  const section = schSectionOf(dstr, type);
+  const vEntry = section[vIdx];
   if (!vEntry) return;
   vEntry.stops[stopIdx].clients.splice(clientIdx, 1);
   // 이용자 없는 슬롯 제거
   vEntry.stops = vEntry.stops.filter(s => s.clients.length > 0);
-  // 이용자 없는 차량 제거
-  if (vEntry.stops.length === 0) section.splice(section.indexOf(vEntry), 1);
+  // 이용자 없는 회차 제거 (단, 출발/복귀 기록이 있으면 빈 회차로 보존)
+  if (vEntry.stops.length === 0 && !vEntry.departTime && !vEntry.returnTime) section.splice(vIdx, 1);
   save(); renderDriverSchedule();
 }
 
@@ -2447,10 +2515,9 @@ function removeSchIndiv(dstr, field, idx) {
   save(); renderDriverSchedule();
 }
 
-function editSchTime(dstr, type, vehicleName, stopIdx) {
-  const sch = getEditableSchedule(dstr);
-  const section = type === 'morning' ? sch.morning : sch.afternoon;
-  const vEntry = section.find(v => v.vehicle === vehicleName);
+function editSchTime(dstr, type, vIdx, stopIdx) {
+  const section = schSectionOf(dstr, type);
+  const vEntry = section[vIdx];
   if (!vEntry || !vEntry.stops[stopIdx]) return;
   const cur = vEntry.stops[stopIdx].time;
   const newTime = prompt(`시간 수정 (현재: ${cur})`, cur);
@@ -2574,10 +2641,10 @@ function vehicleNavSmsLines(vEntry){
   return lines;
 }
 // 온스크린: 차량 카드의 🧭 버튼 → 정거장 순서 링크 목록 오버레이
-function openVehicleNav(dstr,type,vehicleName){
+function openVehicleNav(dstr,type,vIdx){
   const sch=getScheduleForDate(dstr); if(!sch){toast('일정이 없습니다','error');return;}
   const section=type==='morning'?sch.morning:sch.afternoon;
-  const v=(section||[]).find(x=>x.vehicle===vehicleName);
+  const v=(section||[])[vIdx];
   if(!v){toast('차량 일정을 찾지 못했습니다','error');return;}
   const {stops,noInfo}=vehicleNavStops(v);
   const dirLabel=type==='morning'?'🌅 등원':'🌇 하원';
@@ -2723,8 +2790,8 @@ function shareVehicleNative() {
 }
 
 
-function openMoveClient(dstr, type, vehicleName, stopIdx, clientIdx, clientName) {
-  _moveCtx = { dstr, type, vehicleName, stopIdx, clientIdx, clientName };
+function openMoveClient(dstr, type, vIdx, stopIdx, clientIdx, clientName) {
+  _moveCtx = { dstr, type, vIdx, stopIdx, clientIdx, clientName };
   document.getElementById('moveClientName').textContent = clientName;
 
   const sch = getEditableSchedule(dstr);
@@ -2765,18 +2832,18 @@ function updateMvTimeSlots() {
 }
 
 function execMoveClient() {
-  const { dstr, type, vehicleName, stopIdx, clientIdx, clientName } = _moveCtx;
+  const { dstr, type, vIdx, stopIdx, clientIdx, clientName } = _moveCtx;
   const dir = document.getElementById('mvDir').value;
   const sch = getEditableSchedule(dstr);
 
   // 원래 위치에서 제거
   if (type === 'morning' || type === 'afternoon') {
     const section = type === 'morning' ? sch.morning : sch.afternoon;
-    const vEntry = section.find(v=>v.vehicle===vehicleName);
+    const vEntry = section[vIdx];
     if (vEntry) {
       vEntry.stops[stopIdx].clients.splice(clientIdx, 1);
       vEntry.stops = vEntry.stops.filter(s=>s.clients.length>0);
-      if (!vEntry.stops.length) section.splice(section.indexOf(vEntry),1);
+      if (!vEntry.stops.length && !vEntry.departTime && !vEntry.returnTime) section.splice(vIdx,1);
     }
   } else if (type === 'indiv_morning') {
     sch.indivMorning = (sch.indivMorning||[]).filter(n=>n!==clientName);
@@ -3496,16 +3563,21 @@ function renderMapList(){
   }
 
   const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+  const runTot = {}; filtered.forEach(v=>{runTot[v.vehicle]=(runTot[v.vehicle]||0)+1;}); const runSeen = {};
 
   let h = '';
   filtered.forEach(vdata => {
     const col = vColor(vdata.vehicle);
     const icon = dir==='pickup' ? '🌅' : '🌇';
+    runSeen[vdata.vehicle] = (runSeen[vdata.vehicle]||0)+1;
+    const runLabel = runTot[vdata.vehicle]>1 ? ` <span style="font-size:10px;background:${col}22;color:${col};border-radius:4px;padding:0 5px;font-weight:800">${runSeen[vdata.vehicle]}회차</span>` : '';
+    const dr = (vdata.departTime||vdata.returnTime) ? `<span style="font-size:10px;color:#475569;margin-left:auto;white-space:nowrap">🏢 ${vdata.departTime||'-'}→${vdata.returnTime||'-'}</span>` : '';
     h += `<div style="margin-bottom:14px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
       <div style="background:${col}18;border-bottom:2px solid ${col}40;padding:8px 12px;display:flex;align-items:center;gap:8px">
         <div style="width:10px;height:10px;border-radius:50%;background:${col}"></div>
-        <div style="font-weight:700;font-size:13px">${vdata.vehicle}</div>
+        <div style="font-weight:700;font-size:13px">${vdata.vehicle}${runLabel}</div>
         <div style="font-size:11px;color:#64748b">${icon} ${vdata.driver||'미배정'}</div>
+        ${dr}
       </div>`;
     let seq = 1;
     vdata.stops.forEach(stop => {
