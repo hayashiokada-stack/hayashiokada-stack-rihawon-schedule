@@ -853,6 +853,38 @@ let editCid=null, editVid=null, importRows=[];
 const DAYS=['일','월','화','수','목','금','토'];
 
 function save(){localStorage.setItem('sy2_db',JSON.stringify(DB));}
+
+// ── 차량 명부 표준화 (2026-08 기준 5대) ──
+// 기본 차량 배열은 빈 DB에만 적용되므로, 기존 localStorage도 이 버전으로 일회성 정리
+const VEHICLE_ROSTER_VERSION = '2026-08-차량5대';
+const CANONICAL_VEHICLES = [
+  {plate:'201러7733', name:'2호차 레이 7733',   note:'레이'},
+  {plate:'25마6005',  name:'3호차 카니발 6005', note:'카니발'},
+  {plate:'288보8449', name:'4호차 레이 8449',   note:'레이'},
+  {plate:'177허8978', name:'8호차 레이 8978',   note:'레이'},
+  {plate:'177허2857', name:'스타리아 2857',     note:'스타리아'}
+];
+function reconcileVehicleRoster(){
+  if(!DB.settings) DB.settings={};
+  if(DB.settings.vehicleRosterVersion === VEHICLE_ROSTER_VERSION) return;
+  if(!Array.isArray(DB.vehicles)) DB.vehicles=[];
+  const keep = CANONICAL_VEHICLES.map(c=>c.plate);
+  // 퇴역 차량을 참조하는 이용자 배정 해제
+  DB.vehicles.filter(v=>!keep.includes(v.plate)).forEach(rv=>{
+    (DB.clients||[]).forEach(c=>{ if(c.vehicleId===rv.id) c.vehicleId=''; });
+  });
+  // 표준 5대로 재구성 (기존 id/cap/color 보존, name·note·driver 갱신)
+  DB.vehicles = CANONICAL_VEHICLES.map(cv=>{
+    const ex = DB.vehicles.find(v=>v.plate===cv.plate);
+    // 운전원은 고정 배정하지 않음(사용자가 목록에서 선택) → 기존 선택값만 보존
+    if(ex) return {...ex, name:cv.name, note:cv.note};
+    return {id:uid(), name:cv.name, plate:cv.plate, note:cv.note, driver:'',
+      cap: cv.note==='카니발'?7:(cv.note==='스타리아'?9:5), color:'#2563eb'};
+  });
+  DB.settings.vehicleRosterVersion = VEHICLE_ROSTER_VERSION;
+  save();
+}
+
 function load(){
   const s=localStorage.getItem('sy2_db');
   if(s){try{DB=JSON.parse(s);}catch(e){}}
@@ -873,10 +905,8 @@ function load(){
     {id:'v-ray7733',  name:'2호차 레이 7733',   plate:'201러7733', cap:5, color:'#dc2626', note:'레이'},
     {id:'v-car6005',  name:'3호차 카니발 6005', plate:'25마6005',  cap:7, color:'#7c3aed', note:'카니발'},
     {id:'v-ray8449',  name:'4호차 레이 8449',   plate:'288보8449', cap:5, color:'#d97706', note:'레이'},
-    {id:'v-ray9725',  name:'7호차 레이 9725',   plate:'160허9725', cap:4, color:'#0891b2', note:'레이'},
     {id:'v-ray8978',  name:'8호차 레이 8978',   plate:'177허8978', cap:5, color:'#2563eb', note:'레이'},
-    {id:'v-sta2857',  name:'스타리아 2857',     plate:'177허2857', cap:9, color:'#059669', note:'스타리아'},
-    {id:'v-car6925',  name:'카니발 6925',       plate:'177호6925', cap:9, color:'#db2777', note:'카니발'}
+    {id:'v-sta2857',  name:'스타리아 2857',     plate:'177허2857', cap:9, color:'#059669', note:'스타리아'}
   ];
   if(!DB.drivers || !DB.drivers.length) DB.drivers = [
     {id:'d-imisuk',  name:'이미숙', role:'운전원', phone:'', color:'#2563eb', hasLicense:true, active:true, note:''},
@@ -889,6 +919,7 @@ function load(){
     {id:'d-hwangjeo',name:'황정자', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''},
     {id:'d-seokhyuk',name:'석혁준', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''}
   ];
+  reconcileVehicleRoster();
   importRihawonBridge();
   if ((window.BENEFICIARY_CLIENTS||[]).length && DB.settings?.beneficiarySourceVersion !== window.BENEFICIARY_SOURCE_VERSION) {
     syncBeneficiaryClients(true);
@@ -1315,6 +1346,13 @@ function renderVehicles(){
         </div>
       </div>
       <div class="card-body">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <span class="text-muted text-sm" style="white-space:nowrap">운전원</span>
+          <select onchange="setVehicleDriver('${v.id}',this.value)" style="flex:1;font-size:13px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:#fff">
+            <option value="">미지정</option>
+            ${(DB.drivers||[]).filter(d=>d.active!==false).map(d=>`<option value="${d.name}" ${d.name===v.driver?'selected':''}>${d.name}</option>`).join('')}
+          </select>
+        </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:10px">
           <div><div class="text-muted text-sm">오늘 운전원</div><div style="font-weight:700">${getTodayAssignment(v.id,ds()).name}</div></div>
           <div><div class="text-muted text-sm">연락처</div><div style="font-size:12px">${getTodayAssignment(v.id,ds()).phone||'-'}</div></div>
@@ -1356,6 +1394,12 @@ function saveVehicle(){
   if(editVid){const i=DB.vehicles.findIndex(v=>v.id===editVid);DB.vehicles[i]={...DB.vehicles[i],...data};toast('수정 완료');}
   else{DB.vehicles.push({id:uid(),...data});toast(`${name} 추가 완료`);}
   save();closeModal('vehicleModal');renderVehicles();
+}
+
+// 차량 운전원 선택(운전원 목록에서) — 고정 배정 없이 사용자가 지정
+function setVehicleDriver(id, name){
+  const v=vc(id); if(!v) return;
+  v.driver=name; save();
 }
 
 function delVehicle(id){
