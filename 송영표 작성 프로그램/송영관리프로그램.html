@@ -498,6 +498,7 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">특이사항 / 배려 사항</label><textarea class="form-control" id="cSpecial" rows="2" placeholder="예: 휠체어, 보호자 동행, 낙상 위험 등"></textarea></div>
+      <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none"><input type="checkbox" id="cWheelchair" style="width:16px;height:16px;cursor:pointer"> ♿️ 휠체어 이용 (휠체어 탑승 가능 차량 필요)</label></div>
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">이동 우선순위</label>
@@ -540,6 +541,7 @@
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:10px 12px;font-size:12px;color:#0369a1;margin-bottom:13px">💡 운전원은 아래 <strong>운전원 관리</strong>에서 등록하고, <strong>오늘 송영</strong> 탭에서 날짜별로 배정합니다.</div>
       <div class="form-group"><label class="form-label">색상 (지도 표시)</label><input type="color" class="form-control" id="vColor" value="#2563eb" style="height:38px;padding:4px"></div>
       <div class="form-group"><label class="form-label">비고</label><input type="text" class="form-control" id="vNote" placeholder="예: 휠체어 리프트 장착"></div>
+      <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none"><input type="checkbox" id="vWheelchair" style="width:16px;height:16px;cursor:pointer"> ♿️ 휠체어 탑승 가능 (리프트/경사판)</label></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('vehicleModal')">취소</button>
@@ -856,11 +858,11 @@ function save(){localStorage.setItem('sy2_db',JSON.stringify(DB));}
 
 // ── 차량 명부 표준화 (2026-08 기준 5대) ──
 // 기본 차량 배열은 빈 DB에만 적용되므로, 기존 localStorage도 이 버전으로 일회성 정리
-const VEHICLE_ROSTER_VERSION = '2026-08-차량5대';
+const VEHICLE_ROSTER_VERSION = '2026-08-차량5대-wc';
 const CANONICAL_VEHICLES = [
   {plate:'201러7733', name:'2호차 레이 7733',   note:'레이'},
-  {plate:'25마6005',  name:'3호차 카니발 6005', note:'카니발'},
-  {plate:'288보8449', name:'4호차 레이 8449',   note:'레이'},
+  {plate:'25마6005',  name:'3호차 카니발 6005', note:'카니발',  wheelchair:true},
+  {plate:'288보8449', name:'4호차 레이 8449',   note:'레이',    wheelchair:true},
   {plate:'177허8978', name:'8호차 레이 8978',   note:'레이'},
   {plate:'177허2857', name:'스타리아 2857',     note:'스타리아'}
 ];
@@ -876,12 +878,26 @@ function reconcileVehicleRoster(){
   // 표준 5대로 재구성 (기존 id/cap/color 보존, name·note·driver 갱신)
   DB.vehicles = CANONICAL_VEHICLES.map(cv=>{
     const ex = DB.vehicles.find(v=>v.plate===cv.plate);
-    // 운전원은 고정 배정하지 않음(사용자가 목록에서 선택) → 기존 선택값만 보존
-    if(ex) return {...ex, name:cv.name, note:cv.note};
-    return {id:uid(), name:cv.name, plate:cv.plate, note:cv.note, driver:'',
+    // 운전원은 사용자 선택값 보존, 휠체어 가능 여부는 기존 설정 우선(없으면 표준값)
+    if(ex) return {...ex, name:cv.name, note:cv.note, wheelchairAccessible: ex.wheelchairAccessible ?? !!cv.wheelchair};
+    return {id:uid(), name:cv.name, plate:cv.plate, note:cv.note, driver:'', wheelchairAccessible: !!cv.wheelchair,
       cap: cv.note==='카니발'?7:(cv.note==='스타리아'?9:5), color:'#2563eb'};
   });
   DB.settings.vehicleRosterVersion = VEHICLE_ROSTER_VERSION;
+  save();
+}
+
+// 특이사항에 휠체어 언급이 있는 이용자를 최초 1회 자동 표시(서류·대여 등 오탐 제외)
+function autoTagWheelchair(){
+  if(!DB.settings) DB.settings={};
+  if(DB.settings.wheelchairAutoTagged) return;
+  (DB.clients||[]).forEach(c=>{
+    if(c.needsWheelchair===undefined){
+      const sp=c.special||'';
+      if(sp.includes('휠체어') && !/휠체어\s*(서류|대여|신청|렌탈|반납|보관)/.test(sp)) c.needsWheelchair=true;
+    }
+  });
+  DB.settings.wheelchairAutoTagged=true;
   save();
 }
 
@@ -924,6 +940,7 @@ function load(){
   if ((window.BENEFICIARY_CLIENTS||[]).length && DB.settings?.beneficiarySourceVersion !== window.BENEFICIARY_SOURCE_VERSION) {
     syncBeneficiaryClients(true);
   }
+  autoTagWheelchair();
 }
 
 function importRihawonBridge(){
@@ -1011,6 +1028,9 @@ function fmt(d){return d.toLocaleDateString('ko-KR',{year:'numeric',month:'long'
 function fmtS(d){return `${d.getMonth()+1}/${d.getDate()}`;}
 function vc(id){return DB.vehicles.find(v=>v.id===id);}
 function cc(id){return DB.clients.find(c=>c.id===id);}
+// 휠체어: 이름으로 이용자/차량 휠체어 여부 조회 (스케줄은 이름 기반)
+function cIsWheel(name){const c=(DB.clients||[]).find(x=>(x.name||'').trim()===String(name).trim());return !!(c&&c.needsWheelchair);}
+function vIsWheel(vehicleName){const v=(DB.vehicles||[]).find(x=>x.name===vehicleName);return !!(v&&v.wheelchairAccessible);}
 function toast(msg,type){
   const t=document.getElementById('toast');
   t.textContent=msg;
@@ -1136,7 +1156,7 @@ function renderClients(){
       const sb=c.status==='active'?'<span class="badge badge-green">이용중</span>':c.status==='pause'?'<span class="badge badge-yellow">중단</span>':'<span class="badge badge-gray">퇴소</span>';
       const hc=c.lat&&c.lng?'<span class="badge badge-green" style="font-size:10px">✓좌표</span>':'<span class="badge badge-red" style="font-size:10px">미입력</span>';
       return `<tr>
-        <td><span style="font-weight:700">${c.name}</span></td>
+        <td><span style="font-weight:700">${c.name}</span>${c.needsWheelchair?' <span title="휠체어 이용" style="font-size:13px">♿️</span>':''}</td>
         <td>${c.gender||''}/${c.age||''}세</td>
         <td style="max-width:150px;font-size:11px;color:var(--text-muted)">${c.addr||'-'}</td>
         <td>${hc}</td>
@@ -1184,6 +1204,7 @@ function openClientModal(id){
     document.getElementById('cSpecial').value=c.special||'';
     document.getElementById('cPriority').value=c.priority||'normal';
     document.getElementById('cStatus').value=c.status||'active';
+    document.getElementById('cWheelchair').checked=!!c.needsWheelchair;
     document.querySelectorAll('.c-day').forEach(cb=>cb.checked=(c.days||[]).includes(+cb.value));
   } else {
     ['cName','cAge','cPhone','cAddr','cLat','cLng','cGuardian','cSpecial'].forEach(i=>document.getElementById(i).value='');
@@ -1194,6 +1215,7 @@ function openClientModal(id){
     document.getElementById('cDropoff').value='17:00';
     document.getElementById('cPriority').value='normal';
     document.getElementById('cStatus').value='active';
+    document.getElementById('cWheelchair').checked=false;
     document.querySelectorAll('.c-day').forEach(cb=>cb.checked=false);
   }
   openModal('clientModal');
@@ -1253,6 +1275,7 @@ function saveClient(){
     days:daysFromScheduleType(document.getElementById('cScheduleType').value,days),
     pickupTime:document.getElementById('cPickup').value,dropoffTime:document.getElementById('cDropoff').value,
     special:document.getElementById('cSpecial').value,priority:document.getElementById('cPriority').value,
+    needsWheelchair:document.getElementById('cWheelchair').checked,
     status:document.getElementById('cStatus').value};
   if(editCid){const i=DB.clients.findIndex(c=>c.id===editCid);DB.clients[i]={...DB.clients[i],...data};toast(`${name} 수정 완료`);}
   else{DB.clients.push({id:uid(),...data});toast(`${name} 추가 완료`);}
@@ -1280,7 +1303,7 @@ function delClient(id){
 
 function fillVSelect(eid){
   const el=document.getElementById(eid);if(!el)return;
-  el.innerHTML='<option value="">미배정</option>'+DB.vehicles.map(v=>`<option value="${v.id}">${v.name}${v.driver?' ('+v.driver+')':''}</option>`).join('');
+  el.innerHTML='<option value="">미배정</option>'+DB.vehicles.map(v=>`<option value="${v.id}">${v.name}${v.wheelchairAccessible?' ♿️':''}${v.driver?' ('+v.driver+')':''}</option>`).join('');
 }
 
 // ============================================================
@@ -1339,6 +1362,7 @@ function renderVehicles(){
           <div style="width:14px;height:14px;border-radius:50%;background:${v.color}"></div>
           <span class="card-title">${v.name}</span>
           ${v.plate?`<span class="badge badge-gray">${v.plate}</span>`:''}
+          ${v.wheelchairAccessible?'<span class="badge badge-green" title="휠체어 탑승 가능" style="font-size:12px">♿️ 휠체어</span>':''}
         </div>
         <div style="display:flex;gap:4px">
           <button class="btn btn-sm btn-secondary" onclick="openVehicleModal('${v.id}')">수정</button>
@@ -1379,9 +1403,11 @@ function openVehicleModal(id){
     document.getElementById('vName').value=v.name||'';document.getElementById('vPlate').value=v.plate||'';
     document.getElementById('vCap').value=v.cap||8;document.getElementById('vColor').value=v.color||'#2563eb';
     document.getElementById('vNote').value=v.note||'';
+    document.getElementById('vWheelchair').checked=!!v.wheelchairAccessible;
   } else {
     ['vName','vPlate','vNote'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('vCap').value=8;document.getElementById('vColor').value='#2563eb';
+    document.getElementById('vWheelchair').checked=false;
   }
   openModal('vehicleModal');
 }
@@ -1390,7 +1416,8 @@ function saveVehicle(){
   const name=document.getElementById('vName').value.trim();
   if(!name){toast('차량명을 입력하세요.','error');return;}
   const data={name,plate:document.getElementById('vPlate').value,cap:+document.getElementById('vCap').value||8,
-    color:document.getElementById('vColor').value,note:document.getElementById('vNote').value};
+    color:document.getElementById('vColor').value,note:document.getElementById('vNote').value,
+    wheelchairAccessible:document.getElementById('vWheelchair').checked};
   if(editVid){const i=DB.vehicles.findIndex(v=>v.id===editVid);DB.vehicles[i]={...DB.vehicles[i],...data};toast('수정 완료');}
   else{DB.vehicles.push({id:uid(),...data});toast(`${name} 추가 완료`);}
   save();closeModal('vehicleModal');renderVehicles();
@@ -2093,7 +2120,10 @@ function renderScheduleVehicleCard(vdata, type, dstr) {
       const mv = isEditable
         ? `<span onclick="openMoveClient('${dstr}','${type}','${vdata.vehicle}',${si},${ci},'${c}')" title="이동" style="cursor:pointer;color:#2563eb;font-size:10px;margin-left:1px;font-weight:400">↗</span>`
         : '';
-      return `<span style="display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px 1px 7px;font-size:12px;margin:2px 2px 2px 0;font-weight:600">${c}${mv}${del}</span>`;
+      const wheel = cIsWheel(c);
+      const wIcon = wheel ? '<span title="휠체어 이용" style="margin-right:2px">♿️</span>' : '';
+      const wStyle = wheel ? 'background:#eff6ff;border-color:#93c5fd;' : 'background:#f1f5f9;border-color:#e2e8f0;';
+      return `<span style="display:inline-flex;align-items:center;border:1px solid;border-radius:4px;padding:1px 5px 1px 7px;font-size:12px;margin:2px 2px 2px 0;font-weight:600;${wStyle}">${wIcon}${c}${mv}${del}</span>`;
     }).join('');
     stopsHtml += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
       <div style="min-width:46px;font-size:13px;font-weight:700;color:${col};padding-top:2px;white-space:nowrap">${stop.time}${timeEdit}</div>
@@ -2105,11 +2135,18 @@ function renderScheduleVehicleCard(vdata, type, dstr) {
     onchange="changeVehicleColor('${vdata.vehicle}',this.value)"
     style="width:18px;height:18px;border:none;background:none;padding:0;cursor:pointer;border-radius:50%;flex-shrink:0;opacity:.7">`;
   const navBtn = `<span onclick="openVehicleNav('${dstr}','${type}','${vdata.vehicle}')" title="기사용 내비 링크(카카오맵)" style="cursor:pointer;font-size:15px;flex-shrink:0;opacity:.85">🧭</span>`;
+  // 휠체어 연계: 이 차량의 휠체어 이용자 수 / 차량 휠체어 지원 여부
+  const wcCount = vdata.stops.reduce((a,s)=>a+s.clients.filter(cIsWheel).length,0);
+  const vehWheel = vIsWheel(vdata.vehicle);
+  const wcBadge = vehWheel ? ' <span title="휠체어 차량" style="font-size:11px;color:#15803d">♿️</span>' : '';
+  const wcWarn = (wcCount>0 && !vehWheel)
+    ? `<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:11px;padding:6px 9px;margin-bottom:6px;border-radius:6px;line-height:1.4">♿️ 휠체어 이용자 ${wcCount}명 — 이 차량은 휠체어 미지원. 휠체어 차량(레이 8449·카니발 6005)으로 재배치가 필요합니다.</div>`
+    : '';
   return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);flex:1;min-width:260px;max-width:380px">
     <div style="background:${col}18;border-bottom:2px solid ${col}40;padding:10px 14px;display:flex;align-items:center;gap:8px">
       <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${vdata.vehicle}</div>
+        <div style="font-weight:700;font-size:14px">${vdata.vehicle}${wcBadge}</div>
         <div style="font-size:11px;color:#64748b;margin-top:1px;display:flex;align-items:center;gap:4px">
           ${icon}
           <select onchange="changeSchDriver('${dstr}','${type}','${vdata.vehicle}',this.value)"
@@ -2129,7 +2166,7 @@ function renderScheduleVehicleCard(vdata, type, dstr) {
       ${navBtn}
       ${colorPicker}
     </div>
-    <div style="padding:6px 14px 10px">${stopsHtml}</div>
+    <div style="padding:6px 14px 10px">${wcWarn}${stopsHtml}</div>
   </div>`;
 }
 
@@ -2505,28 +2542,42 @@ function selectVehicleSmsTab(idx) {
 //   카카오맵 단일목적지 링크: 탭하면 앱에서 현재 GPS→해당 자택 길안내
 //   정거장 순서대로 다음 링크를 탭 = 실제 운행 순서와 일치
 // ============================================================
-function navKakaoUrl(name,lat,lng){
-  return `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+// 주소에서 카카오맵 검색용 핵심 주소 추출 (층·호·괄호 제거, '서해구'→'서구' 오타 보정)
+function navCleanAddr(addr){
+  if(!addr) return '';
+  let a=String(addr).replace(/인천\s*서해구/g,'인천 서구').trim();
+  const m=a.match(/^(.*?[로길]\s*\d+(?:-\d+)?)/);   // 도로명+건물번호까지
+  if(m) return m[1].trim();
+  return a.replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim();  // 지번 등: 괄호 제거
 }
-// 차량 한 방향(vEntry)의 정거장 순서대로 좌표 있는 이용자 링크 + 좌표없는 인원수
+// 이용자 좌표가 있으면 정밀 길안내, 없으면 주소 검색 링크로 대체 (탭 시 카카오맵이 주소를 자체 지오코딩)
+function navKakaoUrl(name, c){
+  if(c && c.lat && c.lng)
+    return `https://map.kakao.com/link/to/${encodeURIComponent(name)},${c.lat},${c.lng}`;
+  const addr=navCleanAddr(c && c.addr);
+  if(addr) return `https://map.kakao.com/link/search/${encodeURIComponent(addr)}`;
+  return null;
+}
+// 차량 한 방향(vEntry)의 정거장 순서대로 링크 목록 (좌표 없으면 주소검색) + 주소·좌표 모두 없는 인원수
 function vehicleNavStops(vEntry){
-  const out=[]; let noCoord=0;
+  const out=[]; let noInfo=0;
   (vEntry&&vEntry.stops||[]).forEach(s=>{
     (s.clients||[]).forEach(n=>{
       const c=(DB.clients||[]).find(x=>(x.name||'').trim()===n);
-      if(c&&c.lat&&c.lng) out.push({time:s.time,name:n,url:navKakaoUrl(n,c.lat,c.lng)});
-      else noCoord++;
+      const url=navKakaoUrl(n,c);
+      if(url) out.push({time:s.time,name:n,url,precise:!!(c&&c.lat&&c.lng)});
+      else noInfo++;
     });
   });
-  return {stops:out, noCoord};
+  return {stops:out, noInfo};
 }
 // 문자 본문에 넣을 내비 링크 라인들
 function vehicleNavSmsLines(vEntry){
-  const {stops,noCoord}=vehicleNavStops(vEntry);
+  const {stops,noInfo}=vehicleNavStops(vEntry);
   if(!stops.length) return [];
   const lines=['🧭 길안내(카카오맵·순서대로 탭)'];
-  stops.forEach((s,i)=>lines.push(`${i+1}. ${s.name} ${s.url}`));
-  if(noCoord) lines.push(`(좌표 미등록 ${noCoord}명 제외)`);
+  stops.forEach((s,i)=>lines.push(`${i+1}. ${s.name}${s.precise?'':'(주소검색)'} ${s.url}`));
+  if(noInfo) lines.push(`(주소 미등록 ${noInfo}명 제외)`);
   return lines;
 }
 // 온스크린: 차량 카드의 🧭 버튼 → 정거장 순서 링크 목록 오버레이
@@ -2535,18 +2586,20 @@ function openVehicleNav(dstr,type,vehicleName){
   const section=type==='morning'?sch.morning:sch.afternoon;
   const v=(section||[]).find(x=>x.vehicle===vehicleName);
   if(!v){toast('차량 일정을 찾지 못했습니다','error');return;}
-  const {stops,noCoord}=vehicleNavStops(v);
+  const {stops,noInfo}=vehicleNavStops(v);
   const dirLabel=type==='morning'?'🌅 등원':'🌇 하원';
+  const hasSearch=stops.some(s=>!s.precise);
   let body;
   if(!stops.length){
-    body=`<div style="color:#b91c1c;font-size:13px;line-height:1.6">좌표가 등록된 이용자가 없어 링크를 만들 수 없습니다.<br>📍 노선 지도 탭에서 <strong>주소 일괄 좌표 변환</strong> 후 다시 시도하세요.</div>`;
+    body=`<div style="color:#b91c1c;font-size:13px;line-height:1.6">이 차량 이용자의 주소·좌표 정보가 없어 링크를 만들 수 없습니다.<br>이용자 관리에서 주소를 확인해 주세요.</div>`;
   } else {
     body=stops.map((s,i)=>`<a href="${s.url}" target="_blank" rel="noopener"
         style="display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:7px;text-decoration:none;color:#0f172a;background:#fff">
         <span style="min-width:22px;height:22px;border-radius:50%;background:#2563eb;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
-        <span style="flex:1"><strong>${s.name}</strong> <span style="color:#64748b;font-size:12px">${s.time}</span></span>
+        <span style="flex:1"><strong>${s.name}</strong> <span style="color:#64748b;font-size:12px">${s.time}</span>${s.precise?'':' <span style="font-size:10px;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:0 4px">주소검색</span>'}</span>
         <span style="font-size:12px;color:#2563eb;font-weight:700">길안내 ▶</span></a>`).join('');
-    if(noCoord) body+=`<div style="font-size:11px;color:#d97706;margin-top:4px">⚠ 좌표 미등록 ${noCoord}명은 목록에서 제외됨</div>`;
+    if(hasSearch) body+=`<div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.5">※ <strong>주소검색</strong> 항목은 카카오맵에서 위치 확인 후 <strong>길찾기</strong>를 눌러주세요. 정밀 길안내는 📍 노선 지도 탭에서 주소 좌표를 등록하면 됩니다.</div>`;
+    if(noInfo) body+=`<div style="font-size:11px;color:#d97706;margin-top:4px">⚠ 주소 미등록 ${noInfo}명은 목록에서 제외됨</div>`;
   }
   const ov=document.createElement('div');
   ov.setAttribute('data-navov','1');
@@ -2555,7 +2608,7 @@ function openVehicleNav(dstr,type,vehicleName){
   ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)">
     <div style="padding:14px 16px;border-bottom:1px solid #eef2f7;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
       <div><div style="font-weight:800;font-size:15px">🧭 ${vehicleName}</div>
-      <div style="font-size:12px;color:#64748b;margin-top:2px">${dirLabel} · 순서대로 탭하면 카카오맵 길안내가 열립니다</div></div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px">${dirLabel} · 순서대로 탭하면 카카오맵이 열립니다</div></div>
       <button onclick="this.closest('[data-navov]').remove()" style="border:none;background:#f1f5f9;border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;flex-shrink:0">✕</button>
     </div>
     <div style="padding:14px 16px">${body}</div>
