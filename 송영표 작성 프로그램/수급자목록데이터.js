@@ -1,5 +1,5 @@
-// 2026년 08월_수급자 목록.xlsx에서 변환한 앱용 이용자 데이터입니다.
-window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록";
+// 2026년 08월_수급자 목록.xlsx에서 변환한 앱용 이용자 데이터입니다. (좌표: OSM Nominatim 근사 지오코딩, geoApprox=true)
+window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록-geo";
 window.BENEFICIARY_CLIENTS = [
   {
     "sourceRow": 5,
@@ -22,7 +22,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528934,
+    "lng": 126.628057,
+    "geoApprox": true
   },
   {
     "sourceRow": 6,
@@ -45,7 +48,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 7,
@@ -68,7 +73,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539784,
+    "lng": 126.646869,
+    "geoApprox": true
   },
   {
     "sourceRow": 8,
@@ -91,7 +99,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.501704,
+    "lng": 126.718213,
+    "geoApprox": true
   },
   {
     "sourceRow": 9,
@@ -114,7 +125,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.530445,
+    "lng": 126.641965,
+    "geoApprox": true
   },
   {
     "sourceRow": 10,
@@ -137,7 +151,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.596691,
+    "lng": 126.69613,
+    "geoApprox": true
   },
   {
     "sourceRow": 11,
@@ -160,7 +177,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.535054,
+    "lng": 126.646659,
+    "geoApprox": true
   },
   {
     "sourceRow": 12,
@@ -183,7 +203,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 13,
@@ -206,7 +228,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528875,
+    "lng": 126.627173,
+    "geoApprox": true
   },
   {
     "sourceRow": 14,
@@ -229,7 +254,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.502816,
+    "lng": 126.672057,
+    "geoApprox": true
   },
   {
     "sourceRow": 15,
@@ -252,7 +280,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539024,
+    "lng": 126.640592,
+    "geoApprox": true
   },
   {
     "sourceRow": 16,
@@ -275,7 +306,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.517018,
+    "lng": 126.665474,
+    "geoApprox": true
   },
   {
     "sourceRow": 17,
@@ -298,7 +332,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.518709,
+    "lng": 126.710199,
+    "geoApprox": true
   },
   {
     "sourceRow": 18,
@@ -321,7 +358,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.559073,
+    "lng": 126.652074,
+    "geoApprox": true
   },
   {
     "sourceRow": 19,
@@ -344,7 +384,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.493983,
+    "lng": 126.647993,
+    "geoApprox": true
   },
   {
     "sourceRow": 20,
@@ -367,7 +410,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.493983,
+    "lng": 126.647993,
+    "geoApprox": true
   },
   {
     "sourceRow": 21,
@@ -390,7 +436,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.530302,
+    "lng": 126.647831,
+    "geoApprox": true
   },
   {
     "sourceRow": 22,
@@ -413,7 +462,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539226,
+    "lng": 126.651922,
+    "geoApprox": true
   },
   {
     "sourceRow": 23,
@@ -436,7 +488,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528539,
+    "lng": 126.651661,
+    "geoApprox": true
   },
   {
     "sourceRow": 24,
@@ -459,7 +514,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528539,
+    "lng": 126.651661,
+    "geoApprox": true
   },
   {
     "sourceRow": 25,
@@ -482,7 +540,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.527518,
+    "lng": 126.638808,
+    "geoApprox": true
   },
   {
     "sourceRow": 26,
@@ -505,7 +566,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.537306,
+    "lng": 126.651779,
+    "geoApprox": true
   },
   {
     "sourceRow": 27,
@@ -528,7 +592,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528573,
+    "lng": 126.625627,
+    "geoApprox": true
   },
   {
     "sourceRow": 28,
@@ -551,7 +618,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.537805,
+    "lng": 126.638668,
+    "geoApprox": true
   },
   {
     "sourceRow": 29,
@@ -574,7 +644,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.526666,
+    "lng": 126.621346,
+    "geoApprox": true
   },
   {
     "sourceRow": 30,
@@ -597,7 +670,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528934,
+    "lng": 126.628057,
+    "geoApprox": true
   },
   {
     "sourceRow": 31,
@@ -620,7 +696,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.531096,
+    "lng": 126.643793,
+    "geoApprox": true
   },
   {
     "sourceRow": 32,
@@ -643,7 +722,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525501,
+    "lng": 126.727711,
+    "geoApprox": true
   },
   {
     "sourceRow": 33,
@@ -666,7 +748,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 34,
@@ -689,7 +773,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525978,
+    "lng": 126.628474,
+    "geoApprox": true
   },
   {
     "sourceRow": 35,
@@ -712,7 +799,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.535054,
+    "lng": 126.646659,
+    "geoApprox": true
   },
   {
     "sourceRow": 36,
@@ -735,7 +825,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525978,
+    "lng": 126.628474,
+    "geoApprox": true
   },
   {
     "sourceRow": 37,
@@ -758,7 +851,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 38,
@@ -781,7 +876,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.535054,
+    "lng": 126.646659,
+    "geoApprox": true
   },
   {
     "sourceRow": 39,
@@ -804,7 +902,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528573,
+    "lng": 126.646599,
+    "geoApprox": true
   },
   {
     "sourceRow": 40,
@@ -827,7 +928,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.530302,
+    "lng": 126.647831,
+    "geoApprox": true
   },
   {
     "sourceRow": 41,
@@ -850,7 +954,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 42,
@@ -873,7 +979,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.52635,
+    "lng": 126.67424,
+    "geoApprox": true
   },
   {
     "sourceRow": 43,
@@ -896,7 +1005,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528539,
+    "lng": 126.651661,
+    "geoApprox": true
   },
   {
     "sourceRow": 44,
@@ -919,7 +1031,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528573,
+    "lng": 126.646599,
+    "geoApprox": true
   },
   {
     "sourceRow": 45,
@@ -942,7 +1057,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.520678,
+    "lng": 126.67852,
+    "geoApprox": true
   },
   {
     "sourceRow": 46,
@@ -965,7 +1083,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528442,
+    "lng": 126.659097,
+    "geoApprox": true
   },
   {
     "sourceRow": 47,
@@ -988,7 +1109,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.530302,
+    "lng": 126.647831,
+    "geoApprox": true
   },
   {
     "sourceRow": 48,
@@ -1011,7 +1135,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539024,
+    "lng": 126.640592,
+    "geoApprox": true
   },
   {
     "sourceRow": 49,
@@ -1034,7 +1161,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.528442,
+    "lng": 126.659097,
+    "geoApprox": true
   },
   {
     "sourceRow": 50,
@@ -1057,7 +1187,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.530445,
+    "lng": 126.641965,
+    "geoApprox": true
   },
   {
     "sourceRow": 51,
@@ -1080,7 +1213,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.527893,
+    "lng": 126.636799,
+    "geoApprox": true
   },
   {
     "sourceRow": 52,
@@ -1103,7 +1239,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.527518,
+    "lng": 126.638808,
+    "geoApprox": true
   },
   {
     "sourceRow": 53,
@@ -1126,7 +1265,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.512594,
+    "lng": 126.665217,
+    "geoApprox": true
   },
   {
     "sourceRow": 54,
@@ -1149,7 +1291,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.537805,
+    "lng": 126.638668,
+    "geoApprox": true
   },
   {
     "sourceRow": 55,
@@ -1172,7 +1317,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.524656,
+    "lng": 126.622229,
+    "geoApprox": true
   },
   {
     "sourceRow": 56,
@@ -1195,7 +1343,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525983,
+    "lng": 126.630816,
+    "geoApprox": true
   },
   {
     "sourceRow": 57,
@@ -1218,7 +1369,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539784,
+    "lng": 126.646869,
+    "geoApprox": true
   },
   {
     "sourceRow": 58,
@@ -1241,7 +1395,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": "",
+    "lng": ""
   },
   {
     "sourceRow": 59,
@@ -1264,7 +1420,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.539894,
+    "lng": 126.646994,
+    "geoApprox": true
   },
   {
     "sourceRow": 60,
@@ -1287,7 +1446,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.526666,
+    "lng": 126.621346,
+    "geoApprox": true
   },
   {
     "sourceRow": 61,
@@ -1310,7 +1472,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.491271,
+    "lng": 126.679883,
+    "geoApprox": true
   },
   {
     "sourceRow": 62,
@@ -1333,7 +1498,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.491078,
+    "lng": 126.735801,
+    "geoApprox": true
   },
   {
     "sourceRow": 63,
@@ -1356,7 +1524,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.537805,
+    "lng": 126.638668,
+    "geoApprox": true
   },
   {
     "sourceRow": 64,
@@ -1379,7 +1550,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.506422,
+    "lng": 126.668191,
+    "geoApprox": true
   },
   {
     "sourceRow": 65,
@@ -1402,7 +1576,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.508616,
+    "lng": 126.669994,
+    "geoApprox": true
   },
   {
     "sourceRow": 66,
@@ -1425,7 +1602,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.535888,
+    "lng": 126.711174,
+    "geoApprox": true
   },
   {
     "sourceRow": 67,
@@ -1448,7 +1628,10 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525983,
+    "lng": 126.630816,
+    "geoApprox": true
   },
   {
     "sourceRow": 68,
@@ -1471,6 +1654,9 @@ window.BENEFICIARY_CLIENTS = [
       5
     ],
     "pickupTime": "09:00",
-    "dropoffTime": "17:00"
+    "dropoffTime": "17:00",
+    "lat": 37.525754,
+    "lng": 126.638956,
+    "geoApprox": true
   }
 ];

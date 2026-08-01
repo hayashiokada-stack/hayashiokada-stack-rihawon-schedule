@@ -991,14 +991,17 @@ function syncBeneficiaryClients(silent){
       if (!client.days || !client.days.length) client.days = src.days || [1,2,3,4,5];
       if (!client.pickupTime) client.pickupTime = src.pickupTime || '09:00';
       if (!client.dropoffTime) client.dropoffTime = src.dropoffTime || '17:00';
+      // 좌표는 사용자 입력값 우선, 없을 때만 소스(지오코딩) 좌표 채움
+      if ((!client.lat || !client.lng) && src.lat && src.lng) { client.lat = src.lat; client.lng = src.lng; client.geoApprox = !!src.geoApprox; }
       updated++;
     } else {
       DB.clients.push({
         id: uid(),
         ...common,
         vehicleId: '',
-        lat: '',
-        lng: '',
+        lat: src.lat || '',
+        lng: src.lng || '',
+        geoApprox: !!src.geoApprox,
         days: src.days || [1,2,3,4,5],
         pickupTime: src.pickupTime || '09:00',
         dropoffTime: src.dropoffTime || '17:00'
@@ -4205,7 +4208,7 @@ function renderStats() {
 // BULK GEOCODING
 // ============================================================
 function openBulkGeoModal() {
-  const noCoord = DB.clients.filter(c => c.status === 'active' && (!c.lat || !c.lng));
+  const noCoord = DB.clients.filter(c => c.status === 'active' && (!c.lat || !c.lng || c.geoApprox) && c.addr);
   const list = document.getElementById('bulkGeoList');
   document.getElementById('bulkGeoProgress').style.display = 'none';
   document.getElementById('bulkGeoStartBtn').style.display = 'inline-flex';
@@ -4218,7 +4221,7 @@ function openBulkGeoModal() {
   } else {
     list.innerHTML = `
       <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:#64748b">
-        좌표 미입력 이용자 ${noCoord.length}명
+        좌표 미입력·근사 이용자 ${noCoord.length}명 <span style="font-weight:400;color:#94a3b8">(근사 좌표는 정밀 재변환됩니다)</span>
       </div>
       ${noCoord.map(c => `
         <div id="geo_${c.id}" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
@@ -4236,27 +4239,40 @@ async function startBulkGeo() {
   const key = DB.settings.kakaoKey;
   if (!key) { toast('설정에서 Kakao REST API 키를 먼저 입력하세요.', 'error'); return; }
 
-  const noCoord = DB.clients.filter(c => c.status === 'active' && (!c.lat || !c.lng) && c.addr);
+  const noCoord = DB.clients.filter(c => c.status === 'active' && (!c.lat || !c.lng || c.geoApprox) && c.addr);
   if (noCoord.length === 0) { toast('변환할 주소가 없습니다.', 'warn'); return; }
 
   document.getElementById('bulkGeoStartBtn').style.display = 'none';
   document.getElementById('bulkGeoProgress').style.display = 'block';
 
-  let done = 0, success = 0, fail = 0;
+  let done = 0, success = 0, fail = 0, authFailed = false;
   for (const c of noCoord) {
     const statusEl = document.getElementById(`geo_status_${c.id}`);
     if (statusEl) statusEl.textContent = '검색 중...';
+    const q = navCleanAddr(c.addr) || c.addr;   // 정제 주소(도로명+번호, 층/호/괄호 제거)로 검색
     try {
-      const res = await fetch(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(c.addr)}&size=1`,
+      let res = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(q)}&size=1`,
         { headers: { Authorization: `KakaoAK ${key}` } }
       );
-      const data = await res.json();
-      const doc = data.documents && data.documents[0];
+      let data = await res.json();
+      if (res.status === 401 || data.errorType === 'NotAuthorizedError') { authFailed = true; break; }
+      let doc = data.documents && data.documents[0];
+      if (!doc) {
+        // 주소 검색 실패 → 장소(키워드) 검색 폴백 (아파트명 등)
+        res = await fetch(
+          `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(q)}&size=1`,
+          { headers: { Authorization: `KakaoAK ${key}` } }
+        );
+        data = await res.json();
+        if (res.status === 401 || data.errorType === 'NotAuthorizedError') { authFailed = true; break; }
+        doc = data.documents && data.documents[0];
+      }
       if (doc) {
         const idx = DB.clients.findIndex(x => x.id === c.id);
         DB.clients[idx].lat = parseFloat(doc.y);
         DB.clients[idx].lng = parseFloat(doc.x);
+        delete DB.clients[idx].geoApprox;   // 카카오 정밀 좌표로 확정
         if (statusEl) {
           statusEl.textContent = `✅ ${parseFloat(doc.y).toFixed(4)}, ${parseFloat(doc.x).toFixed(4)}`;
           statusEl.style.color = '#16a34a';
@@ -4279,6 +4295,14 @@ async function startBulkGeo() {
   }
 
   save();
+  if (authFailed) {
+    document.getElementById('bulkGeoStatus').innerHTML = `⚠️ <strong>Kakao API 키 인증 실패</strong> — 키가 잘못되었거나 카카오 개발자 콘솔에서 <strong>카카오맵(로컬) API</strong>가 비활성화/도메인·IP 제한 상태입니다. 설정에서 유효한 REST API 키를 확인하세요.<br>※ 좌표가 없어도 기사용 내비는 주소검색으로 작동합니다.`;
+    document.getElementById('bulkGeoBar').style.background = '#dc2626';
+    document.getElementById('bulkGeoCloseBtn').textContent = '닫기';
+    toast('Kakao API 키 인증 실패 — 설정의 REST 키를 확인하세요.', 'error');
+    renderClients();
+    return;
+  }
   document.getElementById('bulkGeoStatus').textContent = `✅ 완료! 성공 ${success}건 / 실패 ${fail}건`;
   document.getElementById('bulkGeoBar').style.background = '#16a34a';
   document.getElementById('bulkGeoCloseBtn').textContent = '닫기 (저장됨)';
