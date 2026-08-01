@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>송영관리</title>
+<title>송영일정표</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="수급자목록데이터.js"></script>
 <style>
@@ -126,16 +126,13 @@
 <body>
 
 <div class="header">
-  <div class="header-title">📋 송영관리</div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <a href="/" style="color:#fff;text-decoration:none;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.45);border-radius:7px;padding:6px 10px">근무표로 돌아가기</a>
-    <div style="font-size:12px;opacity:.85;text-align:right" id="headerInfo"></div>
-  </div>
+  <div class="header-title">📋 송영일정표</div>
+  <div style="font-size:12px;opacity:.85;text-align:right" id="headerInfo"></div>
 </div>
 
 <div class="nav-tabs">
-  <div class="nav-tab active" data-tab="driverschedule">📋 근무표</div>
-  <div class="nav-tab" data-tab="dashboard">📊 대시보드</div>
+  <div class="nav-tab active" data-tab="dashboard">📊 대시보드</div>
+  <div class="nav-tab" data-tab="driverschedule">📋 송영일정표</div>
   <div class="nav-tab" data-tab="clients">👥 이용자 관리</div>
   <div class="nav-tab" data-tab="vehicles">🚐 차량/운전원</div>
   <div class="nav-tab" data-tab="schedule">📅 월간 일정</div>
@@ -148,7 +145,7 @@
 <div class="main">
 
 <!-- DASHBOARD -->
-<div id="tab-dashboard" class="tab-content">
+<div id="tab-dashboard" class="tab-content active">
   <div class="section-title">📊 오늘의 현황 <span id="todayBadge" class="badge badge-blue" style="font-size:12px"></span></div>
   <div class="grid-4 mb-4" id="statsGrid" style="grid-template-columns:repeat(5,1fr)"></div>
   <div class="grid-2">
@@ -188,12 +185,22 @@
       <button class="btn btn-secondary" onclick="downloadTemplate()">📋 템플릿 다운로드</button>
       <button class="btn btn-warning" onclick="openImportModal()" style="color:#fff">📥 엑셀 일괄 입력</button>
       <button class="btn btn-success" onclick="openBulkGeoModal()" style="color:#fff">🗺️ 일괄 좌표 변환</button>
+      <button class="btn btn-secondary" onclick="openPlacementAudit()">🔍 배치 현황 확인</button>
       <button class="btn btn-primary" onclick="openClientModal()">+ 이용자 추가</button>
+    </div>
+  </div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:13px;color:#1d4ed8;font-weight:600">💡 등원유형 일괄 설정</span>
+    <span style="font-size:12px;color:#3b82f6">아래 표의 <strong>등원유형</strong> 열을 클릭하면 바로 변경됩니다.</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('daily')">전체 매일</button>
+      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('mwf')">전체 주3일</button>
+      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('saturday')">전체 토요일</button>
     </div>
   </div>
   <div class="table-wrapper">
     <table><thead><tr>
-      <th>이름</th><th>성별/나이</th><th>주소</th><th>좌표</th><th>담당 차량</th><th>등원 요일</th><th>희망시간</th><th>특이사항</th><th>상태</th><th>관리</th>
+      <th>이름</th><th>성별/나이</th><th>주소</th><th>좌표</th><th>담당 차량</th><th>등원유형</th><th>희망시간</th><th>특이사항</th><th>상태</th><th>관리</th>
     </tr></thead><tbody id="clientsTable"></tbody></table>
   </div>
 </div>
@@ -314,66 +321,67 @@
 
 <!-- MAP -->
 <div id="tab-map" class="tab-content">
-  <div class="subpage-bar">
-    <div>
-      <div class="subpage-title">📍 노선 지도 서브페이지</div>
-      <div class="subpage-desc">작성된 송영표의 차량별 노선을 지도와 목록으로 확인합니다.</div>
-    </div>
-    <button class="btn btn-secondary" onclick="returnToMainSchedule()">← 근무표로 돌아가기</button>
-  </div>
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap;gap:10px">
     <div class="section-title" style="margin:0">📍 노선 지도</div>
-    <div class="flex gap-2">
+    <div class="flex gap-2" style="flex-wrap:wrap;align-items:center">
+      <input type="date" class="form-control" id="mapDate" style="width:150px" onchange="renderMapList()">
       <select class="form-control" id="mapVehicle" style="width:130px" onchange="renderMapList()"><option value="">전체 차량</option></select>
       <select class="form-control" id="mapDir" style="width:90px" onchange="renderMapList()"><option value="pickup">등원</option><option value="dropoff">하원</option></select>
+      <button class="btn btn-primary" onclick="loadKakaoMap()">🗺️ 지도 보기</button>
+      <button class="btn btn-secondary" onclick="gotoTab('driverschedule')">← 송영일정표</button>
     </div>
   </div>
-  <div class="card mb-3">
-    <div class="card-body" style="padding:12px">
-      <div class="flex gap-2 items-center" style="flex-wrap:wrap">
-        <span class="text-sm text-muted">🔑 Naver Maps API (Client ID):</span>
-        <input type="text" class="form-control" id="naverKey" style="width:240px" placeholder="네이버 클라우드 Client ID">
-        <button class="btn btn-primary btn-sm" onclick="loadNaverMap()">지도 불러오기</button>
+  <div id="kakaoJsKeyBanner" style="display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">
+    ⚠️ 카카오 지도를 표시하려면 <strong>JavaScript 키</strong>가 필요합니다.
+    <input type="text" id="kakaoJsKeyInput" class="form-control" placeholder="JavaScript 키 입력" style="display:inline-block;width:280px;margin:0 8px">
+    <button class="btn btn-primary btn-sm" onclick="saveKakaoJsKey()">저장 후 지도 보기</button>
+  </div>
+  <div class="grid-2" style="gap:14px">
+    <div>
+      <div id="mapContainer" style="background:#f1f5f9;border-radius:10px;height:480px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;border:2px dashed #e2e8f0">
+        <div style="font-size:48px">🗺️</div>
+        <div style="font-weight:700;color:#94a3b8">카카오 지도</div>
+        <div style="font-size:13px;color:#94a3b8">"지도 보기" 버튼을 눌러 로드하세요</div>
       </div>
     </div>
-  </div>
-  <div class="grid-2">
-    <div id="mapContainer" style="background:#e8f4f8;border-radius:var(--radius);height:460px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;border:2px dashed var(--border)">
-      <div style="font-size:48px">🗺️</div>
-      <div style="font-weight:700;color:var(--text-muted)">Naver Maps</div>
-      <div class="text-sm text-muted">API 키 입력 후 지도 불러오기</div>
+    <div>
+      <div class="section-title" style="font-size:14px;margin-bottom:10px">📋 차량별 경로 목록</div>
+      <div id="mapList" style="max-height:480px;overflow-y:auto"></div>
     </div>
-    <div><div class="section-title" style="font-size:14px">📋 차량별 경로</div><div id="mapList"></div></div>
   </div>
 </div>
 
 <!-- TRANSPORT SCHEDULE -->
-<div id="tab-driverschedule" class="tab-content active">
+<div id="tab-driverschedule" class="tab-content">
   <div class="flex items-center justify-between mb-4">
     <div>
-      <div class="section-title" style="margin:0">📋 근무표</div>
-      <div class="text-sm text-muted" style="margin-top:4px">근무표를 메인으로 보고, 송영표는 하위 링크에서 작성합니다.</div>
+      <div class="section-title" style="margin:0">📋 송영일정표</div>
+      <div class="text-sm text-muted" style="margin-top:4px">날짜별 차량·시간·이용자 배정 현황입니다.</div>
     </div>
     <div class="flex gap-2 items-center" style="flex-wrap:wrap;justify-content:flex-end">
       <input type="date" class="form-control" id="transportDate" style="width:155px" onchange="renderDriverSchedule()">
-      <button class="btn btn-primary" onclick="gotoTab('today')">⏰ 송영표 하위 페이지</button>
-      <button class="btn btn-secondary" onclick="gotoTab('route')">🗺️ 동선 작성</button>
-      <select class="form-control" id="dsYear" style="width:85px;display:none" onchange="renderDriverSchedule()"></select>
-      <select class="form-control" id="dsMonth" style="width:75px;display:none" onchange="renderDriverSchedule()">
-        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
-        <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
-        <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
-        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-      </select>
-      <button class="btn btn-success" onclick="exportAssignmentXlsx()">📊 배정내역 엑셀 출력</button>
+      <button class="btn btn-primary" onclick="openAddScheduleClient()">+ 이용자 추가</button>
+      <button class="btn btn-success" onclick="exportScheduleXlsx()">📊 엑셀 출력</button>
+      <button class="btn btn-secondary" onclick="openShareModal()">📤 공유</button>
+      <button class="btn btn-secondary" onclick="openVehicleSmsModal()">🚐 차량별 문자</button>
+      <button class="btn btn-secondary" onclick="saveScheduleAsTemplate()">📌 요일 템플릿 저장</button>
+      <button class="btn btn-warning" onclick="sendNextDayBulkSms()" style="background:#f59e0b;color:#fff;border-color:#f59e0b" title="모든 운전원에게 내일 담당 구간 문자 발송">📱 전날 일괄 문자</button>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-body" style="padding:14px">
-      <div id="driverScheduleGrid"></div>
+  <div id="quickCmdBar" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:14px;font-weight:800;color:#1d4ed8;white-space:nowrap">⚡ 자연어 빠른 변경</span>
+      <input type="text" id="quickCmdInput" class="form-control" style="flex:1;min-width:230px"
+        placeholder='예) 홍길동 취소  ·  김영자 등원 9:10  ·  8978 기사 이미숙'
+        onkeydown="if(event.key==='Enter'){event.preventDefault();runQuickCommand();}">
+      <button class="btn btn-primary" onclick="runQuickCommand()">실행</button>
     </div>
+    <div style="font-size:11px;color:#64748b;margin-top:6px;line-height:1.6">
+      취소·결석 · 시간변경(등원/하원) · 기사변경 · 추가 — 쉼표로 여러 건을 한 번에 (예: <em>키타야마 취소, 카지 등원 9:00</em>). 표시 중인 날짜에 적용됩니다.
+    </div>
+    <div id="quickCmdResult" style="margin-top:8px"></div>
   </div>
+  <div id="driverScheduleGrid"></div>
 </div>
 
 <div id="tab-settings" class="tab-content">
@@ -395,6 +403,10 @@
         <div class="form-group"><label class="form-label">🔑 Kakao REST API Key</label>
           <input type="text" class="form-control" id="sKakaoKey" placeholder="카카오 REST API 키 (주소 검색용)">
           <div class="text-sm text-muted" style="margin-top:4px">카카오 개발자 콘솔 → 앱 만들기 → REST API 키 복사</div>
+        </div>
+        <div class="form-group"><label class="form-label">🗺️ Kakao JavaScript Key</label>
+          <input type="text" class="form-control" id="sKakaoJsKey" placeholder="카카오 JavaScript 키 (지도 표시용)">
+          <div class="text-sm text-muted" style="margin-top:4px">카카오 개발자 콘솔 → 앱 선택 → JavaScript 키 복사</div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">💾 저장</button>
       </div>
@@ -457,23 +469,31 @@
       <div class="form-group"><label class="form-label">보호자 / 연락처</label><input type="text" class="form-control" id="cGuardian" placeholder="홍길동 / 010-0000-0000"></div>
       <div class="form-group"><label class="form-label">담당 차량</label><select class="form-control" id="cVehicle"></select></div>
       <div class="form-group">
-        <label class="form-label">등원 요일 *</label>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="1"> 월</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="2"> 화</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="3"> 수</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="4"> 목</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="5"> 금</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="6"> 토</label>
+        <label class="form-label">등원 유형 *</label>
+        <select class="form-control" id="cScheduleType" onchange="toggleCustomDays()">
+          <option value="daily">매일 (월~금)</option>
+          <option value="mwf">주3일 (월·수·금)</option>
+          <option value="saturday">토요일</option>
+          <option value="custom">직접 지정</option>
+        </select>
+        <div id="customDaysRow" style="display:none;margin-top:8px">
+          <div style="display:flex;gap:12px">
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="1"> 월</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="2"> 화</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="3"> 수</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="4"> 목</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="5"> 금</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" class="c-day" value="6"> 토</label>
+          </div>
         </div>
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">등원 희망 시간 <span style="font-size:10px;color:var(--warning);text-transform:none;letter-spacing:0">참고용 (배차 우선)</span></label>
+          <label class="form-label">🌅 등원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
           <input type="time" class="form-control" id="cPickup" value="09:00">
         </div>
         <div class="form-group">
-          <label class="form-label">하원 희망 시간 <span style="font-size:10px;color:var(--warning);text-transform:none;letter-spacing:0">참고용 (배차 우선)</span></label>
+          <label class="form-label">🌇 하원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
           <input type="time" class="form-control" id="cDropoff" value="17:00">
         </div>
       </div>
@@ -565,6 +585,145 @@
   </div>
 </div>
 
+<!-- VEHICLE SMS MODAL -->
+<div class="modal-overlay" id="vehicleSmsModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="card-title">🚐 차량별 운전원 문자</div>
+      <button class="modal-close" onclick="closeModal('vehicleSmsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="vehicleSmsTabBtns"></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+        <div style="font-size:12px;color:#64748b;margin-bottom:4px">운전원 연락처</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="tel" id="vSmsPhone" class="form-control" placeholder="010-0000-0000" style="max-width:180px">
+          <span style="font-size:12px;color:#94a3b8">미등록 시 직접 입력</span>
+        </div>
+      </div>
+      <textarea id="vSmsText" style="width:100%;height:260px;font-size:12px;line-height:1.8;border:1px solid #e2e8f0;border-radius:8px;padding:12px;resize:vertical;font-family:inherit;background:#fff"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="sendVehicleSms()">💬 문자 전송</button>
+        <button class="btn btn-secondary" onclick="copyVehicleSmsText()">📋 복사</button>
+        <button class="btn btn-secondary" onclick="shareVehicleNative()" id="vSmsNativeBtn" style="display:none">🔗 공유</button>
+      </div>
+      <div class="text-sm text-muted" style="margin-top:6px">연락처 입력 후 "문자 전송"을 누르면 해당 운전원에게 직접 문자를 보냅니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE CLIENT MODAL -->
+<div class="modal-overlay" id="moveClientModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="card-title">↗ 이용자 이동</div>
+      <button class="modal-close" onclick="closeModal('moveClientModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:8px 12px;font-size:13px;margin-bottom:14px">
+        <strong id="moveClientName"></strong> 님을 아래 위치로 이동합니다.
+      </div>
+      <div class="form-group">
+        <label class="form-label">이동 구분 *</label>
+        <select class="form-control" id="mvDir">
+          <option value="morning">🌅 오전 등원 (차량)</option>
+          <option value="afternoon">🌇 오후 하원 (차량)</option>
+          <option value="indiv_morning">🚶 개별 등원</option>
+          <option value="indiv_afternoon">🚶 개별 하원</option>
+        </select>
+      </div>
+      <div id="mvVehicleFields">
+        <div class="form-group">
+          <label class="form-label">대상 차량 *</label>
+          <select class="form-control" id="mvVehicle"></select>
+          <input type="text" class="form-control" id="mvVehicleNew" placeholder="새 차량명 직접 입력 (선택 시 무시)" style="margin-top:6px;font-size:12px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">탑승 시간 *</label>
+          <select class="form-control" id="mvTimeSlot"></select>
+          <input type="time" class="form-control" id="mvTimeNew" style="margin-top:6px" value="09:00">
+          <div class="text-sm text-muted" style="margin-top:4px">기존 슬롯 선택 또는 새 시간 직접 입력</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('moveClientModal')">취소</button>
+      <button class="btn btn-primary" onclick="execMoveClient()">이동</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="card-title">📤 송영일정 공유</div>
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="shareText" readonly style="width:100%;height:320px;font-size:12px;line-height:1.7;border:1px solid #e2e8f0;border-radius:8px;padding:12px;resize:none;font-family:inherit;background:#f8fafc"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="copyShareText()">📋 클립보드 복사</button>
+        <button class="btn btn-secondary" onclick="shareViaSms()">💬 문자(SMS) 전송</button>
+        <button class="btn btn-secondary" onclick="shareNative()" id="nativeShareBtn" style="display:none">🔗 공유하기</button>
+      </div>
+      <div class="text-sm text-muted" style="margin-top:8px">복사 후 카카오톡·밴드 등에 붙여넣기 하세요.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SCHEDULE CLIENT MODAL -->
+<div class="modal-overlay" id="addScheduleModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="card-title">이용자 송영 추가</div>
+      <button class="modal-close" onclick="closeModal('addScheduleModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:8px 12px;font-size:12px;color:#0369a1;margin-bottom:14px">
+        📅 날짜: <strong id="addSchDate"></strong>
+      </div>
+      <div class="form-group">
+        <label class="form-label">구분 *</label>
+        <select class="form-control" id="addSchDir" onchange="toggleSchVehicleFields()">
+          <option value="morning">🌅 오전 등원 (차량)</option>
+          <option value="afternoon">🌇 오후 하원 (차량)</option>
+          <option value="indiv_morning">🚶 개별 등원</option>
+          <option value="indiv_afternoon">🚶 개별 하원</option>
+        </select>
+      </div>
+      <div id="schVehicleFields">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">차량 *</label>
+            <select class="form-control" id="addSchVehicle"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">운전원</label>
+            <input type="text" class="form-control" id="addSchDriver" placeholder="운전원 이름">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">탑승 시간 *</label>
+          <input type="time" class="form-control" id="addSchTime" value="09:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이용자 선택</label>
+        <select class="form-control" id="addSchClient" style="margin-bottom:6px"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이용자 이름 *</label>
+        <input type="text" class="form-control" id="addSchClientName" placeholder="이름 직접 입력 또는 위에서 선택">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addScheduleModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveScheduleClient()">추가</button>
+    </div>
+  </div>
+</div>
+
 <!-- ABSENCE MODAL -->
 <div class="modal-overlay" id="absenceModal">
   <div class="modal" style="max-width:380px">
@@ -573,6 +732,10 @@
       <button class="modal-close" onclick="closeModal('absenceModal')">✕</button>
     </div>
     <div class="modal-body">
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e">
+        ℹ️ <strong>경로는 변경되지 않습니다.</strong><br>
+        결석 처리 시 해당 이용자만 제외되며, 차량 배치와 다른 이용자의 픽업 순서·시간은 그대로 유지됩니다.
+      </div>
       <div class="form-group"><label class="form-label">이용자</label><select class="form-control" id="absClient"></select></div>
       <div class="form-group"><label class="form-label">날짜</label><input type="date" class="form-control" id="absDate"></div>
       <div class="form-group"><label class="form-label">사유</label>
@@ -583,6 +746,23 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('absenceModal')">취소</button>
       <button class="btn btn-primary" onclick="saveAbsence()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLACEMENT AUDIT MODAL -->
+<div class="modal-overlay" id="placementAuditModal">
+  <div class="modal" style="max-width:760px;max-height:85vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <div class="card-title">🔍 이용자 배치 현황 확인</div>
+      <button class="modal-close" onclick="closeModal('placementAuditModal')">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;flex:1;padding-top:8px">
+      <div id="placementAuditBody"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('placementAuditModal')">닫기</button>
+      <button class="btn btn-primary" onclick="autoFixMissingPlacements()">⚡ 누락 이용자 일괄 배치</button>
     </div>
   </div>
 </div>
@@ -665,8 +845,9 @@
 // ============================================================
 let DB = {
   clients:[], vehicles:[], absences:[], drivers:[], vehicleAssignments:[], driverSchedules:[],
+  scheduleData:{}, scheduleTemplates:{},
   settings:{orgName:'주간보호센터',orgAddr:'',orgLat:37.5665,orgLng:126.9780,
-            startTime:'08:30',endTime:'17:00',kakaoKey:''}
+            startTime:'08:30',endTime:'17:00',kakaoKey:'c1c3dd6cbd0e1afbe336a56f8daa7de2',kakaoJsKey:''}
 };
 let editCid=null, editVid=null, importRows=[];
 const DAYS=['일','월','화','수','목','금','토'];
@@ -678,6 +859,36 @@ function load(){
   if(!DB.drivers) DB.drivers=[];
   if(!DB.vehicleAssignments) DB.vehicleAssignments=[];
   if(!DB.driverSchedules) DB.driverSchedules=[];
+  if(!DB.scheduleData) DB.scheduleData={};
+  if(!DB.scheduleTemplates) DB.scheduleTemplates={};
+  if(!DB.scheduleTemplates[1]) DB.scheduleTemplates[1] = buildDefaultMonTemplate();
+  if(!DB.scheduleTemplates[2]) DB.scheduleTemplates[2] = buildDefaultTueTemplate();
+  if(!DB.scheduleTemplates[3]) DB.scheduleTemplates[3] = buildDefaultWedTemplate();
+  if(!DB.scheduleTemplates[4]) DB.scheduleTemplates[4] = buildDefaultThuTemplate();
+  if(!DB.scheduleTemplates[5]) DB.scheduleTemplates[5] = buildDefaultFriTemplate();
+  if(!DB.scheduleTemplates[6]) DB.scheduleTemplates[6] = buildDefaultSatTemplate();
+  if(DB.vehicleColors) Object.assign(VEHICLE_COLORS, DB.vehicleColors);
+  // 차량·운전원 초기 데이터 (비어있을 때만)
+  if(!DB.vehicles || !DB.vehicles.length) DB.vehicles = [
+    {id:'v-ray7733',  name:'2호차 레이 7733',   plate:'201러7733', cap:5, color:'#dc2626', note:'레이'},
+    {id:'v-car6005',  name:'3호차 카니발 6005', plate:'25마6005',  cap:7, color:'#7c3aed', note:'카니발'},
+    {id:'v-ray8449',  name:'4호차 레이 8449',   plate:'288보8449', cap:5, color:'#d97706', note:'레이'},
+    {id:'v-ray9725',  name:'7호차 레이 9725',   plate:'160허9725', cap:4, color:'#0891b2', note:'레이'},
+    {id:'v-ray8978',  name:'8호차 레이 8978',   plate:'177허8978', cap:5, color:'#2563eb', note:'레이'},
+    {id:'v-sta2857',  name:'스타리아 2857',     plate:'177허2857', cap:9, color:'#059669', note:'스타리아'},
+    {id:'v-car6925',  name:'카니발 6925',       plate:'177호6925', cap:9, color:'#db2777', note:'카니발'}
+  ];
+  if(!DB.drivers || !DB.drivers.length) DB.drivers = [
+    {id:'d-imisuk',  name:'이미숙', role:'운전원', phone:'', color:'#2563eb', hasLicense:true, active:true, note:''},
+    {id:'d-leetaeu', name:'이태욱', role:'운전원', phone:'', color:'#2563eb', hasLicense:true, active:true, note:''},
+    {id:'d-jungsun', name:'정순석', role:'운전원', phone:'', color:'#7c3aed', hasLicense:true, active:true, note:''},
+    {id:'d-kimgil',  name:'김길찬', role:'운전원', phone:'', color:'#7c3aed', hasLicense:true, active:true, note:''},
+    {id:'d-minyoung',name:'민영세', role:'운전원', phone:'', color:'#059669', hasLicense:true, active:true, note:''},
+    {id:'d-nojae',   name:'노재일', role:'운전원', phone:'', color:'#d97706', hasLicense:true, active:true, note:''},
+    {id:'d-parksang',name:'박상근', role:'운전원', phone:'', color:'#d97706', hasLicense:true, active:true, note:''},
+    {id:'d-hwangjeo',name:'황정자', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''},
+    {id:'d-seokhyuk',name:'석혁준', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''}
+  ];
   importRihawonBridge();
   if ((window.BENEFICIARY_CLIENTS||[]).length && DB.settings?.beneficiarySourceVersion !== window.BENEFICIARY_SOURCE_VERSION) {
     syncBeneficiaryClients(true);
@@ -729,7 +940,7 @@ function syncBeneficiaryClients(silent){
     };
     if (client) {
       Object.assign(client, common);
-      client.days = src.days || client.days || [1,2,3,4,5];
+      if (!client.days || !client.days.length) client.days = src.days || [1,2,3,4,5];
       if (!client.pickupTime) client.pickupTime = src.pickupTime || '09:00';
       if (!client.dropoffTime) client.dropoffTime = src.dropoffTime || '17:00';
       updated++;
@@ -776,6 +987,12 @@ function toast(msg,type){
   t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+function toggleSchVehicleFields() {
+  const dir = document.getElementById('addSchDir').value;
+  const show = dir === 'morning' || dir === 'afternoon';
+  document.getElementById('schVehicleFields').style.display = show ? '' : 'none';
+}
+
 function openModal(id){document.getElementById(id).classList.add('open');}
 
 function clientsForDate(dateStr){
@@ -785,8 +1002,6 @@ function clientsForDate(dateStr){
   return DB.clients.filter(c=>c.status==='active'&&(c.days||[]).includes(d)).map(c=>({...c,absent:abs.includes(c.id)}));
 }
 
-function isDriverActiveOnDate(driver, dateStr){ return !driver.retirementDate || dateStr <= driver.retirementDate; }
-function isDriverActiveInMonth(driver, yr, mo){ return !driver.retirementDate || `${yr}-${String(mo).padStart(2,'0')}-01` <= driver.retirementDate; }
 function timeToMin(t){if(!t) return 0; const [h,m]=t.split(':').map(Number); return h*60+m;}
 function minToTime(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
 
@@ -806,10 +1021,10 @@ function gotoTab(id){
 function returnToMainSchedule(){
   const params = new URLSearchParams(window.location.search);
   if (params.get('source') === 'rihawon') {
-    window.location.href = '/';
+    window.location.href = 'file:///Users/udcares/projects/근무표작성 프로그램 제작/rihawon_schedule_v4.html';
     return;
   }
-  gotoTab('driverschedule');
+  gotoTab('dashboard');
 }
 
 // ============================================================
@@ -895,8 +1110,17 @@ function renderClients(){
         <td style="max-width:150px;font-size:11px;color:var(--text-muted)">${c.addr||'-'}</td>
         <td>${hc}</td>
         <td>${v?`<span style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:${v.color}"></div>${v.name}</span>`:'<span class="text-muted">미배정</span>'}</td>
-        <td>${dn||'-'}</td>
+        <td><select onchange="quickSetScheduleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.scheduleType==='mwf'?'#dbeafe':c.scheduleType==='saturday'?'#fce7f3':'#dcfce7'};cursor:pointer">
+          <option value="daily" ${(!c.scheduleType||c.scheduleType==='daily')?'selected':''}>매일(월~금)</option>
+          <option value="mwf" ${c.scheduleType==='mwf'?'selected':''}>주3일(월수금)</option>
+          <option value="saturday" ${c.scheduleType==='saturday'?'selected':''}>토요일</option>
+        </select></td>
         <td style="font-size:11px">${c.pickupTime||'-'} / ${c.dropoffTime||'-'}</td>
+        <td style="font-size:11px"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;${
+          c.scheduleType==='mwf'?'background:#dbeafe;color:#1d4ed8':
+          c.scheduleType==='saturday'?'background:#fce7f3;color:#be185d':
+          'background:#dcfce7;color:#15803d'
+        }">${c.scheduleType==='mwf'?'주3일':c.scheduleType==='saturday'?'토요일':'매일'}</span></td>
         <td style="max-width:120px;font-size:11px;color:var(--text-muted)">${(c.special||'').slice(0,30)}${(c.special||'').length>30?'...':''}</td>
         <td>${sb}${c.priority==='high'?' <span class="badge badge-red">우선</span>':''}</td>
         <td><div style="display:flex;gap:4px">
@@ -914,6 +1138,7 @@ function openClientModal(id){
   fillVSelect('cVehicle');
   if(id){
     const c=cc(id);if(!c)return;
+    document.getElementById('cScheduleType').value=c.scheduleType||'daily'; toggleCustomDays();
     document.getElementById('cName').value=c.name||'';
     document.getElementById('cGender').value=c.gender||'여';
     document.getElementById('cAge').value=c.age||'';
@@ -931,6 +1156,7 @@ function openClientModal(id){
     document.querySelectorAll('.c-day').forEach(cb=>cb.checked=(c.days||[]).includes(+cb.value));
   } else {
     ['cName','cAge','cPhone','cAddr','cLat','cLng','cGuardian','cSpecial'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('cScheduleType').value='daily'; toggleCustomDays();
     document.getElementById('cGender').value='여';
     document.getElementById('cVehicle').value='';
     document.getElementById('cPickup').value='09:00';
@@ -942,6 +1168,48 @@ function openClientModal(id){
   openModal('clientModal');
 }
 
+function quickSetScheduleType(cid, type) {
+  const c = DB.clients.find(x => x.id === cid);
+  if (!c) return;
+  c.scheduleType = type;
+  c.days = daysFromScheduleType(type, c.days);
+  save();
+  toast(`${c.name} → ${type === 'mwf' ? '주3일' : type === 'saturday' ? '토요일' : '매일'} 변경`);
+}
+
+function bulkSetScheduleType(type) {
+  const label = type === 'mwf' ? '주3일(월수금)' : type === 'saturday' ? '토요일' : '매일(월~금)';
+  if (!confirm(`이용자 전체를 "${label}"로 변경하시겠습니까?`)) return;
+  DB.clients.forEach(c => {
+    c.scheduleType = type;
+    c.days = daysFromScheduleType(type, c.days);
+  });
+  save(); renderClients();
+  toast(`전체 ${DB.clients.length}명 → ${label} 변경 완료`);
+}
+
+function toggleCustomDays() {
+  const t = document.getElementById('cScheduleType').value;
+  document.getElementById('customDaysRow').style.display = t === 'custom' ? 'block' : 'none';
+}
+
+function daysFromScheduleType(type, customDays) {
+  if (type === 'daily') return [1,2,3,4,5];
+  if (type === 'mwf') return [1,3,5];
+  if (type === 'saturday') return [6];
+  return customDays || [];
+}
+
+function clientIsOnDay(client, dow) {
+  // dow: 0=일, 1=월 ... 6=토
+  const t = client.scheduleType || 'daily';
+  if (t === 'daily') return dow >= 1 && dow <= 5;
+  if (t === 'mwf') return [1,3,5].includes(dow);
+  if (t === 'saturday') return dow === 6;
+  if (t === 'custom') return (client.days || []).includes(dow);
+  return false;
+}
+
 function saveClient(){
   const name=document.getElementById('cName').value.trim();
   if(!name){toast('이름을 입력해주세요.','error');return;}
@@ -950,12 +1218,27 @@ function saveClient(){
     phone:document.getElementById('cPhone').value,addr:document.getElementById('cAddr').value,
     lat:+document.getElementById('cLat').value||null,lng:+document.getElementById('cLng').value||null,
     guardian:document.getElementById('cGuardian').value,vehicleId:document.getElementById('cVehicle').value,
-    days,pickupTime:document.getElementById('cPickup').value,dropoffTime:document.getElementById('cDropoff').value,
+    scheduleType:document.getElementById('cScheduleType').value,
+    days:daysFromScheduleType(document.getElementById('cScheduleType').value,days),
+    pickupTime:document.getElementById('cPickup').value,dropoffTime:document.getElementById('cDropoff').value,
     special:document.getElementById('cSpecial').value,priority:document.getElementById('cPriority').value,
     status:document.getElementById('cStatus').value};
   if(editCid){const i=DB.clients.findIndex(c=>c.id===editCid);DB.clients[i]={...DB.clients[i],...data};toast(`${name} 수정 완료`);}
   else{DB.clients.push({id:uid(),...data});toast(`${name} 추가 완료`);}
-  save();closeModal('clientModal');renderClients();
+  const isNew = !editCid;
+  save(); closeModal('clientModal'); renderClients();
+  // 신규 이용자 → 해당 차량 템플릿에 자동 배치
+  if (isNew && data.vehicleId) {
+    autoInsertClientToTemplates(data);
+    setTimeout(() => {
+      const v = vc(data.vehicleId);
+      if (v && confirm(`✅ ${data.name}님이 ${v.name}에 자동 배치됐습니다.\n\n담당 운전원에게 배치 안내 문자를 발송하시겠습니까?`)) {
+        openVehicleSmsModal();
+      }
+    }, 200);
+  } else if (isNew) {
+    toast(`${data.name} 추가 완료 — 담당 차량을 배정하면 자동 배치됩니다`);
+  }
 }
 
 function delClient(id){
@@ -996,8 +1279,8 @@ async function searchAddr(){
 }
 
 function openAddrFallback(q){
-  // Without API key, open Naver Map in new tab so user can look up coordinates manually
-  window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`,'_blank');
+  // Without API key, open Kakao Map in new tab so user can look up coordinates manually
+  window.open(`https://map.kakao.com/?q=${encodeURIComponent(q)}`,'_blank');
   toast('API 키 없이 수동으로 좌표를 확인하려면 네이버 지도를 이용하세요.','warn');
 }
 
@@ -1056,11 +1339,10 @@ function openVehicleModal(id){
   document.getElementById('vModalTitle').textContent=id?'차량 수정':'차량 추가';
   if(id){const v=vc(id);if(!v)return;
     document.getElementById('vName').value=v.name||'';document.getElementById('vPlate').value=v.plate||'';
-    document.getElementById('vCap').value=v.cap||8;document.getElementById('vDriver').value=v.driver||'';
-    document.getElementById('vDPhone').value=v.dphone||'';document.getElementById('vColor').value=v.color||'#2563eb';
+    document.getElementById('vCap').value=v.cap||8;document.getElementById('vColor').value=v.color||'#2563eb';
     document.getElementById('vNote').value=v.note||'';
   } else {
-    ['vName','vPlate','vDriver','vDPhone','vNote'].forEach(i=>document.getElementById(i).value='');
+    ['vName','vPlate','vNote'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('vCap').value=8;document.getElementById('vColor').value='#2563eb';
   }
   openModal('vehicleModal');
@@ -1070,7 +1352,6 @@ function saveVehicle(){
   const name=document.getElementById('vName').value.trim();
   if(!name){toast('차량명을 입력하세요.','error');return;}
   const data={name,plate:document.getElementById('vPlate').value,cap:+document.getElementById('vCap').value||8,
-    driver:document.getElementById('vDriver').value,dphone:document.getElementById('vDPhone').value,
     color:document.getElementById('vColor').value,note:document.getElementById('vNote').value};
   if(editVid){const i=DB.vehicles.findIndex(v=>v.id===editVid);DB.vehicles[i]={...DB.vehicles[i],...data};toast('수정 완료');}
   else{DB.vehicles.push({id:uid(),...data});toast(`${name} 추가 완료`);}
@@ -1127,7 +1408,16 @@ function renderDrivers() {
       <div class="card-body" style="padding:12px">
         <div style="display:flex;gap:16px;flex-wrap:wrap">
           <div><div class="text-muted text-sm">직종</div><div style="font-weight:600">${d.role || '-'}</div></div>
-          <div><div class="text-muted text-sm">연락처</div><div style="font-size:12px">${d.phone || '-'}</div></div>
+          <div style="flex:1">
+            <div class="text-muted text-sm">📱 연락처</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+              <input type="tel" value="${d.phone||''}" placeholder="010-0000-0000"
+                style="font-size:12px;border:1px solid #e2e8f0;border-radius:4px;padding:3px 7px;width:130px;color:#374151"
+                onblur="quickSaveDriverPhone('${d.id}',this.value)"
+                onkeydown="if(event.key==='Enter')this.blur()">
+              ${d.phone ? `<a href="tel:${d.phone}" style="font-size:15px;text-decoration:none" title="전화걸기">📞</a>` : ''}
+            </div>
+          </div>
         </div>
         ${d.note ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">📝 ${d.note}</div>` : ''}
       </div>
@@ -1183,6 +1473,17 @@ function saveDriver() {
   save(); closeModal('driverModal'); renderDrivers();
 }
 
+function quickSaveDriverPhone(did, phone) {
+  const d = DB.drivers.find(x => x.id === did);
+  if (!d) return;
+  const cleaned = phone.trim();
+  if (d.phone === cleaned) return;
+  d.phone = cleaned;
+  save();
+  renderDrivers();
+  if (cleaned) toast(`${d.name} 연락처 저장 완료`);
+}
+
 function delDriver(id) {
   const d = DB.drivers.find(x => x.id === id); if (!d) return;
   if (!confirm(`${d.name}을(를) 삭제하시겠습니까?`)) return;
@@ -1200,7 +1501,7 @@ function renderVehicleAssignments() {
     el.innerHTML = '<div class="text-muted text-sm">등록된 차량이 없습니다.</div>';
     return;
   }
-  const activDrivers = (DB.drivers || []).filter(d => d.active !== false && d.hasLicense && isDriverActiveOnDate(d, dstr));
+  const activDrivers = (DB.drivers || []).filter(d => d.active !== false && d.hasLicense);
   // 근무표에서 오늘 근무 가능한 운전원 분류
   const driverShiftInfo = {};
   const dObj = new Date(dstr + 'T00:00:00');
@@ -1268,7 +1569,7 @@ function autoAssignFromSchedule() {
 
   // 운전 가능한 운전원 목록, D반 우선 정렬
   const available = (DB.drivers||[]).filter(d => {
-    if (d.active === false || !d.hasLicense || !isDriverActiveOnDate(d, dstr)) return false;
+    if (!d.active || !d.hasLicense) return false;
     const sc = (DB.driverSchedules||[]).find(s=>s.driverId===d.id&&s.year===yr&&s.month===mo);
     const sh = sc ? ((sc.shifts||{})[day]||'') : '';
     return !sh || TRANSPORT_SHIFTS.includes(sh);
@@ -1339,87 +1640,1185 @@ function setDriverShift(driverId, yr, mo, day, shift) {
   save();
 }
 
+
+function buildDefaultTueTemplate() {
+  // 화요일: 월요일과 동일한 구조 (별도 데이터 없음)
+  return buildDefaultMonTemplate();
+}
+
+function buildDefaultWedTemplate() {
+  // 수요일: 2026-06-24 실제 데이터 기반 (일부 차량은 월요일 패턴 적용)
+  return {
+    morning: [
+      { vehicle:'8호차 레이 8978', driver:'이미숙', stops:[
+        { time:'08:20', clients:['유정순','안상경'] },
+        { time:'08:45', clients:['심영흠','진순균','김제분'] },
+        { time:'09:30', clients:['김광영','최문자','임명숙'] },
+        { time:'10:10', clients:['서영희','정동구','강정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'07:10', clients:['김태윤','유무산','신순철','정상연'] },
+        { time:'08:10', clients:['안병화','송영재','박정순'] },
+        { time:'09:00', clients:['조현훈','장해심','오분탁'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'06:50', clients:['최돈자','유경옥','김막례','차선오','전완표','송정자'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'노재일', stops:[
+        { time:'06:50', clients:['구자종','정금자'] },
+        { time:'08:00', clients:['김말례','한정자'] },
+        { time:'08:30', clients:['진점례','박금철'] },
+        { time:'09:00', clients:['국희정','이일용'] }
+      ]},
+      { vehicle:'2호차 레이 7733', driver:'황정자', stops:[
+        { time:'08:00', clients:['김경태'] },
+        { time:'09:20', clients:['홍화선'] },
+        { time:'09:50', clients:['송광석'] },
+        { time:'10:10', clients:['한계심'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
+    afternoon: [
+      { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
+        { time:'15:30', clients:['김영훈'] },
+        { time:'17:00', clients:['전완표','김막례'] },
+        { time:'18:00', clients:['김성선'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'김길찬', stops:[
+        { time:'16:30', clients:['장해심','조현훈','오분탁'] },
+        { time:'18:00', clients:['최문자','김태윤','김제분','유무산'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'15:10', clients:['임명숙','정상연','진순균'] },
+        { time:'15:50', clients:['심재귀','김연배','한계심'] },
+        { time:'17:00', clients:['안상경','유정순','이병모','유경옥','송정자','최돈자'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'박상근', stops:[
+        { time:'15:10', clients:['차선오','김경태'] },
+        { time:'16:50', clients:['박삼분','한정자'] },
+        { time:'17:20', clients:['박금철','국희정'] },
+        { time:'17:40', clients:['신순철','김동주','홍화선'] },
+        { time:'18:10', clients:['김성선','이화자'] },
+        { time:'18:30', clients:['강정순','진점례'] },
+        { time:'19:00', clients:['정금자'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'이태욱', stops:[
+        { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
+        { time:'16:50', clients:['김말례','한정자','서영희','심영흠'] },
+        { time:'17:40', clients:['송영재','송광석','김대근'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivAfternoon:['구자종','박영임','박순연','이율자','최분묵']
+  };
+}
+
+function buildDefaultThuTemplate() {
+  // 목요일: 2026-06-25 실제 데이터 기반
+  return {
+    morning: [
+      { vehicle:'8호차 레이 8978', driver:'이미숙', stops:[
+        { time:'08:20', clients:['유정순','안상경'] },
+        { time:'08:45', clients:['심영흠','진순균','김제분'] },
+        { time:'09:30', clients:['김광영','최문자','임명숙'] },
+        { time:'10:10', clients:['송광석','정동구','강정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'07:10', clients:['김태윤','유무산','신순철','정상연'] },
+        { time:'08:10', clients:['안병화','송영재','김정자','박정순'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'06:50', clients:['최돈자','유경옥','김막례','차선오','전완표'] },
+        { time:'09:00', clients:['송정자','김연배','심재귀'] },
+        { time:'09:40', clients:['이병모'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'노재일', stops:[
+        { time:'06:50', clients:['구자종','정금자'] },
+        { time:'08:00', clients:['김말례','한정자'] },
+        { time:'08:30', clients:['진점례','박금철'] },
+        { time:'09:00', clients:['국희정','이일용'] },
+        { time:'09:30', clients:['홍화선','박삼분'] },
+        { time:'09:50', clients:['최분묵','김명조'] }
+      ]},
+      { vehicle:'2호차 레이 7733', driver:'황정자', stops:[
+        { time:'08:00', clients:['김경태'] },
+        { time:'09:20', clients:['홍화선'] },
+        { time:'09:50', clients:['송광석'] },
+        { time:'10:10', clients:['한계심'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
+    afternoon: [
+      { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
+        { time:'15:30', clients:['김영훈'] },
+        { time:'17:00', clients:['전완표','김막례'] },
+        { time:'17:50', clients:['안병화'] },
+        { time:'18:00', clients:['김성선','박정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'16:30', clients:['장해심','조현훈','오분탁'] },
+        { time:'18:00', clients:['최문자','박정순','김제분','유무산'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'15:10', clients:['임명숙','정상연','진순균'] },
+        { time:'15:50', clients:['심재귀','김연배','한계심'] },
+        { time:'17:00', clients:['안상경','유정순','이병모','유경옥','송정자','최돈자'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'박상근', stops:[
+        { time:'15:10', clients:['차선오','김경태'] },
+        { time:'16:50', clients:['박삼분','한정자'] },
+        { time:'17:20', clients:['박금철','국희정'] },
+        { time:'17:40', clients:['신순철','김동주','홍화선'] },
+        { time:'18:10', clients:['김성선','이화자'] },
+        { time:'18:30', clients:['강정순','진점례'] },
+        { time:'19:00', clients:['정금자'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'이태욱', stops:[
+        { time:'14:20', clients:['김광영'] },
+        { time:'15:20', clients:['김명조','최분묵'] },
+        { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
+        { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
+        { time:'17:40', clients:['송영재','송광석','김대근'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivAfternoon:['구자종','박영임','박순연','이율자','최분묵']
+  };
+}
+
+function buildDefaultFriTemplate() {
+  // 금요일: 2026-06-26 실제 데이터
+  return {
+    morning: [
+      { vehicle:'8호차 레이 8978', driver:'김길찬', stops:[
+        { time:'08:20', clients:['유정순','안상경'] },
+        { time:'08:45', clients:['심영흠','진순균','이율자'] },
+        { time:'09:30', clients:['김광영','최문자','임명숙'] },
+        { time:'10:10', clients:['서영희','정동구','강정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'07:10', clients:['김태윤','유무산','신순철','정상연'] },
+        { time:'08:10', clients:['안병화','송영재','박정순'] },
+        { time:'09:00', clients:['조현훈','장해심','오분탁'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'06:50', clients:['최돈자','유경옥','김막례','차선오','전완표'] },
+        { time:'09:00', clients:['송정자','김연배','심재귀'] },
+        { time:'09:40', clients:['이병모'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'노재일', stops:[
+        { time:'06:50', clients:['구자종','정금자'] },
+        { time:'08:00', clients:['김말례','한정자'] },
+        { time:'08:30', clients:['진점례','박금철'] },
+        { time:'09:00', clients:['국희정','이일용'] },
+        { time:'09:30', clients:['홍화선','박삼분'] },
+        { time:'09:50', clients:['최분묵','김명조'] }
+      ]},
+      { vehicle:'2호차 레이 7733', driver:'황정자', stops:[
+        { time:'08:00', clients:['김경태'] },
+        { time:'09:20', clients:['홍화선'] },
+        { time:'09:50', clients:['송광석'] },
+        { time:'10:10', clients:['한계심'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
+    afternoon: [
+      { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
+        { time:'15:30', clients:['김영훈'] },
+        { time:'17:00', clients:['전완표','김막례'] },
+        { time:'18:00', clients:['김태윤'] },
+        { time:'18:10', clients:['김성선','박정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'16:30', clients:['장해심','조현훈','오분탁'] },
+        { time:'18:00', clients:['최문자','박정순','김제분','유무산'] },
+        { time:'18:40', clients:['김태윤','최재수'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'15:10', clients:['임명숙','정상연','진순균'] },
+        { time:'15:50', clients:['심재귀','김연배','한계심'] },
+        { time:'17:00', clients:['안상경','유정순','이병모','유경옥','송정자','최돈자'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'박상근', stops:[
+        { time:'15:10', clients:['차선오','김경태'] },
+        { time:'16:50', clients:['박삼분','한정자'] },
+        { time:'17:20', clients:['박금철','국희정'] },
+        { time:'17:50', clients:['신순철','김동주','홍화선'] },
+        { time:'18:10', clients:['김성선','이화자'] },
+        { time:'18:30', clients:['강정순','진점례'] },
+        { time:'19:00', clients:['정금자','구자종'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'이태욱', stops:[
+        { time:'14:20', clients:['김광영'] },
+        { time:'15:20', clients:['김명조','최분묵'] },
+        { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
+        { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
+        { time:'17:40', clients:['송영재','송광석','김대근'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivAfternoon:['구자종','김태윤','박영임','박순연','이율자','최분묵']
+  };
+}
+
+
+function buildDefaultSatTemplate() {
+  return {
+    morning: [
+      { vehicle:'4호차 레이 8449', driver:'노재일/조현정', stops:[
+        { time:'08:00', clients:['김말례','한정자'] },
+        { time:'08:30', clients:['진점례','반장환'] },
+        { time:'09:00', clients:['김태윤','송영재'] },
+        { time:'09:30', clients:['최분묵','이병모'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'이미숙/전은숙', stops:[
+        { time:'08:00', clients:['최재수','박정순','정상연'] },
+        { time:'09:00', clients:['심영흠','송광석','이율자'] },
+        { time:'09:50', clients:['서영희'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'07:00', clients:['최돈자','유경옥','김막례','최재수'] },
+        { time:'08:40', clients:['송영재'] },
+        { time:'09:20', clients:['이병모','서영희'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석/이태욱', stops:[
+        { time:'07:00', clients:['최돈자','유경옥','김막례','전완표'] },
+        { time:'08:50', clients:['유무산','박삼분','김동주','홍화선'] },
+        { time:'09:40', clients:['오분탁'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivMorning:['구자종','김대근','박영임','이화자'],
+    afternoon: [
+      { vehicle:'4호차 레이 8449', driver:'조현정', stops:[
+        { time:'15:30', clients:['정상연','최분묵'] },
+        { time:'16:50', clients:['박삼분','유무산'] },
+        { time:'17:20', clients:['송영재','이화자'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'이미숙', stops:[
+        { time:'17:00', clients:['김동주','홍화선','심영흠'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'김길찬', stops:[
+        { time:'17:40', clients:['박정순','이병모','유경옥','전완표','김막례','최재수','최돈자'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'이태욱', stops:[
+        { time:'15:50', clients:['반장환','오분탁'] },
+        { time:'17:00', clients:['김말례','서영희','진점례','한정자'] },
+        { time:'17:40', clients:['송광석','김태윤','구자종','김대근'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivAfternoon:['박영임','이율자']
+  };
+}
+
+function buildDefaultMonTemplate() {
+  return {
+    morning: [
+      { vehicle:'8호차 레이 8978', driver:'조현정', stops:[
+        { time:'08:20', clients:['유정순','안상경'] },
+        { time:'08:45', clients:['심영흠','진순균','이율자'] },
+        { time:'09:30', clients:['김광영','최문자','임명숙'] },
+        { time:'10:10', clients:['서영희','정동구','강정순'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'07:10', clients:['김태윤','유무산','신순철','정상연'] },
+        { time:'08:10', clients:['송영재','구자종','박정순'] },
+        { time:'09:00', clients:['조현훈','장해심','오분탁'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'06:50', clients:['최돈자','유경옥','김막례','차선오','전완표'] },
+        { time:'09:00', clients:['송정자','김연배','심재귀'] },
+        { time:'09:40', clients:['이병모'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'노재일', stops:[
+        { time:'06:50', clients:['구자종','정금자'] },
+        { time:'08:00', clients:['김말례','한정자'] },
+        { time:'08:30', clients:['진점례','박금철'] },
+        { time:'09:00', clients:['국희정','이일용'] },
+        { time:'09:30', clients:['홍화선','박삼분'] },
+        { time:'09:50', clients:['최분묵','김명조'] }
+      ]},
+      { vehicle:'2호차 레이 7733', driver:'이미숙', stops:[
+        { time:'08:00', clients:['김경태'] },
+        { time:'09:20', clients:['홍화선'] },
+        { time:'09:50', clients:['송광석'] },
+        { time:'10:10', clients:['한계심'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivMorning:['구자종','김동주','김대근','박영임','박순연','이화자'],
+    afternoon: [
+      { vehicle:'2호차 레이 7733', driver:'석혁준', stops:[
+        { time:'15:30', clients:['김영훈'] },
+        { time:'17:00', clients:['전완표','김막례'] },
+        { time:'18:00', clients:['구자종'] },
+        { time:'18:10', clients:['김성선'] }
+      ]},
+      { vehicle:'3호차 카니발 6005', driver:'정순석', stops:[
+        { time:'16:30', clients:['장해심','조현훈','오분탁'] },
+        { time:'18:00', clients:['최문자','김태윤','김제분','유무산'] },
+        { time:'18:40', clients:['박정순','구자종','최재수'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'민영세', stops:[
+        { time:'15:10', clients:['임명숙','정상연','진순균'] },
+        { time:'15:50', clients:['심재귀','김연배','한계심'] },
+        { time:'17:00', clients:['안상경','유정순','이병모','유경옥','송정자','최돈자'] }
+      ]},
+      { vehicle:'4호차 레이 8449', driver:'박상근', stops:[
+        { time:'15:10', clients:['차선오','김경태'] },
+        { time:'16:50', clients:['박삼분','한정자'] },
+        { time:'17:20', clients:['박금철','국희정'] },
+        { time:'17:40', clients:['신순철','김동주','홍화선'] },
+        { time:'18:10', clients:['김성선','이화자'] },
+        { time:'18:30', clients:['강정순','진점례'] },
+        { time:'19:00', clients:['정금자'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'김길찬', stops:[
+        { time:'14:20', clients:['김광영'] },
+        { time:'15:20', clients:['김명조','최분묵'] },
+        { time:'16:10', clients:['김광영','이일용','김정자','정동구'] },
+        { time:'17:00', clients:['김말례','한정자','서영희','심영흠'] },
+        { time:'17:40', clients:['송영재','송광석','김대근'] }
+      ]},
+      { vehicle:'7호차 레이 9725', driver:'', stops:[] },
+      { vehicle:'카니발 6925', driver:'', stops:[] }
+    ],
+    indivAfternoon:['구자종','김태윤','박영임','박순연','이율자','최분묵']
+  };
+}
+
+function getScheduleForDate(dstr) {
+  if (DB.scheduleData && DB.scheduleData[dstr]) return DB.scheduleData[dstr];
+  const d = pd(dstr);
+  const dow = d.getDay();
+  if (DB.scheduleTemplates && DB.scheduleTemplates[dow]) {
+    return JSON.parse(JSON.stringify(DB.scheduleTemplates[dow]));
+  }
+  return null;
+}
+
+function countScheduleClients(sch) {
+  if (!sch) return 0;
+  let n = 0;
+  (sch.morning||[]).forEach(v=>v.stops.forEach(s=>n+=s.clients.length));
+  n += (sch.indivMorning||[]).length;
+  return n;
+}
+
+// 차량별 색상
+const VEHICLE_COLORS = {
+  '2호차 레이 7733':'#dc2626',
+  '3호차 카니발 6005':'#7c3aed',
+  '4호차 레이 8449':'#d97706',
+  '7호차 레이 9725':'#0891b2',
+  '8호차 레이 8978':'#2563eb',
+  '스타리아 2857':'#059669',
+  '카니발 6925':'#db2777'
+};
+function vColor(name) {
+  return VEHICLE_COLORS[name] || '#64748b';
+}
+
+function renderScheduleVehicleCard(vdata, type, dstr) {
+  const col = vColor(vdata.vehicle);
+  const totalClients = vdata.stops.reduce((a,s)=>a+s.clients.length,0);
+  const icon = type==='morning' ? '🌅' : '🌇';
+  const isEditable = !!(DB.scheduleData && DB.scheduleData[dstr]);
+  let stopsHtml = '';
+  vdata.stops.forEach((stop, si) => {
+    const timeEdit = isEditable
+      ? `<span onclick="editSchTime('${dstr}','${type}','${vdata.vehicle}',${si})" title="시간 수정" style="cursor:pointer;opacity:.55;font-size:10px;margin-left:3px">✏️</span>`
+      : '';
+    const tags = stop.clients.map((c, ci) => {
+      const del = isEditable
+        ? `<span onclick="removeSchClient('${dstr}','${type}','${vdata.vehicle}',${si},${ci})" title="제거" style="cursor:pointer;color:#ef4444;font-size:10px;margin-left:2px;font-weight:400">×</span>`
+        : '';
+      const mv = isEditable
+        ? `<span onclick="openMoveClient('${dstr}','${type}','${vdata.vehicle}',${si},${ci},'${c}')" title="이동" style="cursor:pointer;color:#2563eb;font-size:10px;margin-left:1px;font-weight:400">↗</span>`
+        : '';
+      return `<span style="display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px 1px 7px;font-size:12px;margin:2px 2px 2px 0;font-weight:600">${c}${mv}${del}</span>`;
+    }).join('');
+    stopsHtml += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+      <div style="min-width:46px;font-size:13px;font-weight:700;color:${col};padding-top:2px;white-space:nowrap">${stop.time}${timeEdit}</div>
+      <div style="flex:1;line-height:1.8">${tags}</div>
+    </div>`;
+  });
+  // 색상 변경 버튼
+  const colorPicker = `<input type="color" value="${col}" title="차량 색상 변경"
+    onchange="changeVehicleColor('${vdata.vehicle}',this.value)"
+    style="width:18px;height:18px;border:none;background:none;padding:0;cursor:pointer;border-radius:50%;flex-shrink:0;opacity:.7">`;
+  const navBtn = `<span onclick="openVehicleNav('${dstr}','${type}','${vdata.vehicle}')" title="기사용 내비 링크(카카오맵)" style="cursor:pointer;font-size:15px;flex-shrink:0;opacity:.85">🧭</span>`;
+  return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);flex:1;min-width:260px;max-width:380px">
+    <div style="background:${col}18;border-bottom:2px solid ${col}40;padding:10px 14px;display:flex;align-items:center;gap:8px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px">${vdata.vehicle}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:1px;display:flex;align-items:center;gap:4px">
+          ${icon}
+          <select onchange="changeSchDriver('${dstr}','${type}','${vdata.vehicle}',this.value)"
+            style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:90px">
+            <option value="">미배정</option>
+            ${(DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false).map(d=>`<option value="${d.name}" ${d.name===vdata.driver?'selected':''}>${d.name}</option>`).join('')}
+          </select>
+          <span title="동승자" style="color:#94a3b8">🧑‍🤝‍🧑</span>
+          <select onchange="changeSchEscort('${dstr}','${type}','${vdata.vehicle}',this.value)" title="동승자(보조 탑승)"
+            style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:84px">
+            <option value="">동승 −</option>
+            ${(DB.drivers||[]).filter(d=>d.active!==false&&d.name!==vdata.driver).map(d=>`<option value="${d.name}" ${d.name===vdata.escort?'selected':''}>${d.name}</option>`).join('')}
+          </select>
+          <span style="color:#94a3b8">· ${totalClients}명</span>
+        </div>
+      </div>
+      ${navBtn}
+      ${colorPicker}
+    </div>
+    <div style="padding:6px 14px 10px">${stopsHtml}</div>
+  </div>`;
+}
+
+function autoInsertClientToTemplates(client) {
+  // 이용자의 scheduleType에 따라 관련 요일 템플릿에 자동 삽입
+  const type = client.scheduleType || 'daily';
+  const targetDows = type === 'mwf' ? [1,3,5] : type === 'saturday' ? [6] : type === 'daily' ? [1,2,3,4,5] : (client.days || []);
+  const v = vc(client.vehicleId);
+  if (!v) return;
+
+  targetDows.forEach(dow => {
+    if (!DB.scheduleTemplates[dow]) return;
+    const tmpl = DB.scheduleTemplates[dow];
+
+    ['morning','afternoon'].forEach(section => {
+      const time = section === 'morning' ? (client.pickupTime || '09:00') : (client.dropoffTime || '16:00');
+      let arr = tmpl[section] || [];
+      // 해당 차량 항목 찾기
+      let vEntry = arr.find(e => e.vehicle === v.name);
+      if (!vEntry) {
+        // 없으면 새로 생성
+        vEntry = { vehicle: v.name, driver: '', stops: [] };
+        arr.push(vEntry);
+        tmpl[section] = arr;
+      }
+      // 이미 이름이 있으면 스킵
+      const already = vEntry.stops.some(s => s.clients.includes(client.name));
+      if (already) return;
+      // 같은 시간 stop 찾기 (±10분)
+      const tMin = timeToMin(time);
+      let stop = vEntry.stops.find(s => Math.abs(timeToMin(s.time) - tMin) <= 10);
+      if (stop) {
+        stop.clients.push(client.name);
+      } else {
+        // 새 stop 추가하고 시간순 정렬
+        vEntry.stops.push({ time, clients: [client.name] });
+        vEntry.stops.sort((a, b) => timeToMin(a.time) - timeToMin(b.time));
+      }
+    });
+  });
+  save();
+  toast(`${client.name}님을 ${targetDows.length}개 요일 템플릿에 자동 배치했습니다.`);
+}
+
+function filterScheduleByDay(sch, dstr) {
+  // 결석 목록
+  const absSet = new Set((DB.absences || []).filter(a => a.date === dstr).map(a => a.clientName));
+  const dObj = new Date(dstr + 'T00:00:00');
+  const dow = dObj.getDay(); // 0=일, 1=월 ... 6=토
+
+  function filterClients(clients) {
+    return clients.filter(name => {
+      if (absSet.has(name)) return false; // 결석 제외
+      const c = (DB.clients || []).find(x => x.name === name);
+      if (!c) return true; // 이용자 정보 없으면 유지
+      return clientIsOnDay(c, dow);
+    });
+  }
+
+  if (!sch) return sch;
+  const result = JSON.parse(JSON.stringify(sch)); // 깊은 복사
+  (result.morning || []).forEach(v => {
+    v.stops = v.stops.map(s => ({ ...s, clients: filterClients(s.clients) }))
+                     .filter(s => s.clients.length > 0);
+  });
+  (result.afternoon || []).forEach(v => {
+    v.stops = v.stops.map(s => ({ ...s, clients: filterClients(s.clients) }))
+                     .filter(s => s.clients.length > 0);
+  });
+  result.indivMorning = filterClients(result.indivMorning || []);
+  result.indivAfternoon = filterClients(result.indivAfternoon || []);
+  return result;
+}
+
 function renderDriverSchedule() {
   const el = document.getElementById('driverScheduleGrid');
   if (!el) return;
   const dateInput = document.getElementById('transportDate');
   const dstr = (dateInput && dateInput.value) || ds();
   const dObj = pd(dstr);
-  const yr = dObj.getFullYear();
-  const mo = dObj.getMonth()+1;
-  const day = dObj.getDate();
-  const yearSel = document.getElementById('dsYear');
-  const monthSel = document.getElementById('dsMonth');
-  if (yearSel) yearSel.value = yr;
-  if (monthSel) monthSel.value = mo;
+  const DOW = ['일','월','화','수','목','금','토'];
+  const dowLabel = DOW[dObj.getDay()];
+  const rawSch = getScheduleForDate(dstr);
+  const sch = filterScheduleByDay(rawSch, dstr);
+  const isOwnData = !!(DB.scheduleData && DB.scheduleData[dstr]);
+  const isTemplate = isOwnData ? '' :
+    `<span style="font-size:11px;background:#fef3c7;color:#92400e;border-radius:4px;padding:2px 7px;margin-left:8px">요일 기본 템플릿</span>
+     <button onclick="startEditSchedule('${dstr}')" style="font-size:11px;padding:2px 9px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:4px;cursor:pointer;margin-left:4px">✏️ 이 날짜 편집</button>`;
 
-  const clients = clientsForDate(dstr).filter(c => !c.absent);
-  const byVehicle = {};
-  DB.vehicles.forEach(v => byVehicle[v.id] = []);
-  byVehicle.x = [];
-  clients.forEach(c => {
-    const key = c.vehicleId || 'x';
-    if (!byVehicle[key]) byVehicle[key] = [];
-    byVehicle[key].push(c);
-  });
-
-  function rowsFor(list, dir) {
-    const sorted = [...list].sort((a,b) => {
-      const at = dir === 'pickup' ? (a.pickupTime || '09:00') : (a.dropoffTime || '17:00');
-      const bt = dir === 'pickup' ? (b.pickupTime || '09:00') : (b.dropoffTime || '17:00');
-      return at.localeCompare(bt) || a.name.localeCompare(b.name);
-    });
-    if (!sorted.length) return '<div class="empty-schedule">배정된 이용자가 없습니다.</div>';
-    return sorted.map(c => {
-      const t = dir === 'pickup' ? (c.pickupTime || '-') : (c.dropoffTime || '-');
-      return `<div class="time-row ${dir === 'dropoff' ? 'dropoff' : ''}">
-        <div class="time-value">${t}</div>
-        <div>
-          <div class="client-name">${c.name}${c.priority==='high'?' <span class="badge badge-red" style="font-size:10px">우선</span>':''}</div>
-          <div class="client-meta">${c.addr || '주소 미등록'}</div>
-          ${c.special ? `<div class="client-meta" style="color:var(--warning)">특이사항: ${c.special}</div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+  if (!sch) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#94a3b8;background:#fff;border-radius:10px;border:1px dashed #e2e8f0">
+      <div style="font-size:32px;margin-bottom:12px">📋</div>
+      <div style="font-size:15px;font-weight:600">해당 날짜의 송영일정이 없습니다</div>
+      <div style="font-size:13px;margin-top:6px">이용자 추가 버튼으로 직접 입력하거나, 요일 템플릿을 저장하세요.</div>
+    </div>`;
+    return;
   }
 
-  const vehicles = [...DB.vehicles, {id:'x', name:'미배정', color:'#94a3b8', plate:'', cap:99}];
-  const total = clients.length;
-  let h = `<div class="flex items-center justify-between mb-3" style="gap:12px;flex-wrap:wrap">
-    <div class="text-sm text-muted"><strong>${fmt(dObj)}</strong> 전체 송영 대상 <strong style="color:var(--primary)">${total}명</strong></div>
-    <div class="text-sm text-muted">등원은 파란색, 하원은 주황색 시간으로 표시됩니다.</div>
-  </div>
-  <div class="schedule-board">`;
+  const morningTotal = (sch.morning||[]).reduce((a,v)=>a+v.stops.reduce((b,s)=>b+s.clients.length,0),0)
+                     + (sch.indivMorning||[]).length;
+  const afternoonTotal = (sch.afternoon||[]).reduce((a,v)=>a+v.stops.reduce((b,s)=>b+s.clients.length,0),0)
+                       + (sch.indivAfternoon||[]).length;
 
-  vehicles.forEach(v => {
-    const list = byVehicle[v.id] || [];
-    if (v.id === 'x' && !list.length) return;
-    const assignment = v.id === 'x' ? {name:''} : getTodayAssignment(v.id, dstr);
-    const driver = assignment.name || '운전원 미배정';
-    h += `<div class="schedule-vehicle">
-      <div class="schedule-head" style="background:${v.color || '#94a3b8'}12">
-        <div class="schedule-head-main">
-          <div class="schedule-dot" style="background:${v.color || '#94a3b8'}"></div>
-          <div style="min-width:0">
-            <div class="schedule-title">${v.name}${v.plate ? ` <span class="text-muted" style="font-weight:500;font-size:11px">${v.plate}</span>` : ''}</div>
-            <div class="schedule-driver">${driver}</div>
-          </div>
-        </div>
-        <div class="schedule-count">${list.length}명</div>
-      </div>
-      <div class="time-group">
-        <div class="time-label"><span>🌅 등원 시간표</span><span>${list.length}명</span></div>
-        ${rowsFor(list, 'pickup')}
-      </div>
-      <div class="time-group">
-        <div class="time-label"><span>🌇 하원 시간표</span><span>${list.length}명</span></div>
-        ${rowsFor(list, 'dropoff')}
-      </div>
+  let h = `<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:14px;font-weight:700">${dstr.replace(/-/g,'.')} (${dowLabel})</span>
+    ${isTemplate}
+    <span style="font-size:12px;color:#64748b;margin-left:4px">총 등원 <strong>${morningTotal}</strong>명 · 총 하원 <strong>${afternoonTotal}</strong>명</span>
+  </div>`;
+
+  // ── 오전 등원 섹션 ──
+  h += `<div style="margin:16px 0 8px;display:flex;align-items:center;gap:8px">
+    <div style="font-size:15px;font-weight:800;color:#1d4ed8">🌅 오전 등원</div>
+    <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${morningTotal}명</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">`;
+  (sch.morning||[]).forEach(v => { h += renderScheduleVehicleCard(v, 'morning', dstr); });
+  h += `</div>`;
+
+  if ((sch.indivMorning||[]).length) {
+    const isEd = !!(DB.scheduleData && DB.scheduleData[dstr]);
+    const tags = sch.indivMorning.map((n,i)=>{
+      const del = isEd ? `<span onclick="removeSchIndiv('${dstr}','indivMorning',${i})" style="cursor:pointer;color:#ef4444;font-size:10px;margin-left:2px">×</span>` : '';
+      return `<span style="display:inline-flex;align-items:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-size:12px;font-weight:600">${n}${del}</span>`;
+    }).join(' ');
+    h += `<div style="margin:10px 0;padding:8px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:13px">
+      <span style="color:#64748b;font-weight:600;margin-right:8px">🚶 개별 등원</span>${tags}
     </div>`;
-  });
-  h += '</div>';
-  el.innerHTML = total ? h : '<div class="empty-schedule">선택한 날짜의 송영 대상 이용자가 없습니다.</div>';
+  }
+
+  // ── 오후 하원 섹션 ──
+  h += `<div style="margin:20px 0 8px;display:flex;align-items:center;gap:8px">
+    <div style="font-size:15px;font-weight:800;color:#c2410c">🌇 오후 하원</div>
+    <span style="background:#fed7aa;color:#c2410c;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${afternoonTotal}명</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">`;
+  (sch.afternoon||[]).forEach(v => { h += renderScheduleVehicleCard(v, 'afternoon', dstr); });
+  h += `</div>`;
+
+  if ((sch.indivAfternoon||[]).length) {
+    const isEd2 = !!(DB.scheduleData && DB.scheduleData[dstr]);
+    const tags = sch.indivAfternoon.map((n,i)=>{
+      const del = isEd2 ? `<span onclick="removeSchIndiv('${dstr}','indivAfternoon',${i})" style="cursor:pointer;color:#ef4444;font-size:10px;margin-left:2px">×</span>` : '';
+      return `<span style="display:inline-flex;align-items:center;background:#fff7ed;border:1px solid #fed7aa;border-radius:4px;padding:2px 7px;font-size:12px;font-weight:600">${n}${del}</span>`;
+    }).join(' ');
+    h += `<div style="margin:10px 0;padding:8px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:13px">
+      <span style="color:#64748b;font-weight:600;margin-right:8px">🚶 개별 하원</span>${tags}
+    </div>`;
+  }
+
+  el.innerHTML = h;
 }
+
+function saveScheduleAsTemplate() {
+  const dstr = document.getElementById('transportDate').value || ds();
+  const sch = getScheduleForDate(dstr);
+  if (!sch) { toast('저장할 일정이 없습니다.','error'); return; }
+  const dow = pd(dstr).getDay();
+  const DOW = ['일','월','화','수','목','금','토'];
+  if (!confirm(`현재 일정을 "${DOW[dow]}요일" 기본 템플릿으로 저장하시겠습니까?`)) return;
+  if (!DB.scheduleTemplates) DB.scheduleTemplates = {};
+  DB.scheduleTemplates[dow] = JSON.parse(JSON.stringify(sch));
+  save();
+  toast(`${DOW[dow]}요일 템플릿 저장 완료`);
+}
+
+function openAddScheduleClient() {
+  const dstr = document.getElementById('transportDate').value || ds();
+  document.getElementById('addSchDate').textContent = dstr;
+  // 기존 차량 목록 채우기
+  const sch = getScheduleForDate(dstr);
+  const morVehicles = (sch&&sch.morning||[]).map(v=>v.vehicle);
+  const aftVehicles = (sch&&sch.afternoon||[]).map(v=>v.vehicle);
+  const allVehicles = [...new Set([...morVehicles,...aftVehicles,'8호차 레이 8978','3호차 카니발 6005','스타리아 2857','4호차 레이 8449','2호차 레이 7733'])];
+  const vSel = document.getElementById('addSchVehicle');
+  vSel.innerHTML = allVehicles.map(v=>`<option value="${v}">${v}</option>`).join('');
+  // 이용자 목록
+  const cSel = document.getElementById('addSchClient');
+  const clientNames = (DB.clients||[]).filter(c=>c.status!=='inactive').map(c=>c.name).sort();
+  cSel.innerHTML = '<option value="">-- 직접 입력 --</option>' + clientNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+  cSel.onchange = ()=>{ if(cSel.value) document.getElementById('addSchClientName').value=cSel.value; };
+  openModal('addScheduleModal');
+}
+
+function saveScheduleClient() {
+  const dstr = document.getElementById('transportDate').value || ds();
+  const dir = document.getElementById('addSchDir').value; // morning / afternoon / indiv_morning / indiv_afternoon
+  const vehicle = document.getElementById('addSchVehicle').value.trim();
+  const driver = document.getElementById('addSchDriver').value.trim();
+  const time = document.getElementById('addSchTime').value;
+  const clientName = document.getElementById('addSchClientName').value.trim();
+  if (!clientName) { toast('이용자 이름을 입력하세요.','error'); return; }
+
+  // 해당 날짜 스케줄 없으면 템플릿 복사 또는 빈 객체
+  if (!DB.scheduleData) DB.scheduleData = {};
+  if (!DB.scheduleData[dstr]) {
+    const tmpl = getScheduleForDate(dstr);
+    DB.scheduleData[dstr] = tmpl ? JSON.parse(JSON.stringify(tmpl)) : { morning:[], indivMorning:[], afternoon:[], indivAfternoon:[] };
+  }
+  const sch = DB.scheduleData[dstr];
+
+  if (dir === 'indiv_morning') {
+    if (!sch.indivMorning) sch.indivMorning = [];
+    if (!sch.indivMorning.includes(clientName)) sch.indivMorning.push(clientName);
+  } else if (dir === 'indiv_afternoon') {
+    if (!sch.indivAfternoon) sch.indivAfternoon = [];
+    if (!sch.indivAfternoon.includes(clientName)) sch.indivAfternoon.push(clientName);
+  } else {
+    const section = dir === 'morning' ? sch.morning : sch.afternoon;
+    if (!Array.isArray(section)) { toast('섹션 오류','error'); return; }
+    // 해당 차량 찾기
+    let vEntry = section.find(v=>v.vehicle===vehicle);
+    if (!vEntry) {
+      vEntry = { vehicle, driver: driver||'미배정', stops:[] };
+      section.push(vEntry);
+    }
+    if (driver) vEntry.driver = driver;
+    // 해당 시간 슬롯 찾기
+    if (!time) { toast('시간을 입력하세요.','error'); return; }
+    let slot = vEntry.stops.find(s=>s.time===time);
+    if (!slot) { slot = { time, clients:[] }; vEntry.stops.push(slot); vEntry.stops.sort((a,b)=>a.time.localeCompare(b.time)); }
+    if (!slot.clients.includes(clientName)) slot.clients.push(clientName);
+  }
+
+  save();
+  closeModal('addScheduleModal');
+  renderDriverSchedule();
+  toast(`${clientName} 추가 완료`);
+}
+
+// ─── 송영일정표 편집 함수들 ────────────────────────────────────────────
+
+function startEditSchedule(dstr) {
+  // 템플릿을 해당 날짜 전용 데이터로 복사
+  const sch = getScheduleForDate(dstr);
+  if (!sch) return;
+  if (!DB.scheduleData) DB.scheduleData = {};
+  DB.scheduleData[dstr] = JSON.parse(JSON.stringify(sch));
+  save();
+  renderDriverSchedule();
+  toast('이 날짜 일정을 편집 모드로 전환했습니다.');
+}
+
+function getEditableSchedule(dstr) {
+  if (!DB.scheduleData) DB.scheduleData = {};
+  if (!DB.scheduleData[dstr]) {
+    const tmpl = getScheduleForDate(dstr);
+    DB.scheduleData[dstr] = tmpl ? JSON.parse(JSON.stringify(tmpl)) : { morning:[], indivMorning:[], afternoon:[], indivAfternoon:[] };
+  }
+  return DB.scheduleData[dstr];
+}
+
+function changeSchDriver(dstr, type, vehicleName, newDriver) {
+  // 템플릿 상태이면 먼저 날짜 전용 복사본 생성
+  const sch = getEditableSchedule(dstr);
+  const section = type === 'morning' ? sch.morning : sch.afternoon;
+  const vEntry = (section || []).find(v => v.vehicle === vehicleName);
+  if (vEntry) { vEntry.driver = newDriver; save(); renderDriverSchedule(); }
+}
+
+// 동승자(添乗): 운전원 외 보조 탑승 직원 지정
+function changeSchEscort(dstr, type, vehicleName, name) {
+  const sch = getEditableSchedule(dstr);
+  const section = type === 'morning' ? sch.morning : sch.afternoon;
+  const vEntry = (section || []).find(v => v.vehicle === vehicleName);
+  if (vEntry) { vEntry.escort = name; save(); renderDriverSchedule(); }
+}
+
+function removeSchClient(dstr, type, vehicleName, stopIdx, clientIdx) {
+  const sch = getEditableSchedule(dstr);
+  const section = type === 'morning' ? sch.morning : sch.afternoon;
+  const vEntry = section.find(v => v.vehicle === vehicleName);
+  if (!vEntry) return;
+  vEntry.stops[stopIdx].clients.splice(clientIdx, 1);
+  // 이용자 없는 슬롯 제거
+  vEntry.stops = vEntry.stops.filter(s => s.clients.length > 0);
+  // 이용자 없는 차량 제거
+  if (vEntry.stops.length === 0) section.splice(section.indexOf(vEntry), 1);
+  save(); renderDriverSchedule();
+}
+
+function removeSchIndiv(dstr, field, idx) {
+  const sch = getEditableSchedule(dstr);
+  if (!sch[field]) return;
+  sch[field].splice(idx, 1);
+  save(); renderDriverSchedule();
+}
+
+function editSchTime(dstr, type, vehicleName, stopIdx) {
+  const sch = getEditableSchedule(dstr);
+  const section = type === 'morning' ? sch.morning : sch.afternoon;
+  const vEntry = section.find(v => v.vehicle === vehicleName);
+  if (!vEntry || !vEntry.stops[stopIdx]) return;
+  const cur = vEntry.stops[stopIdx].time;
+  const newTime = prompt(`시간 수정 (현재: ${cur})`, cur);
+  if (!newTime || !/^\d{2}:\d{2}$/.test(newTime.trim())) { toast('HH:MM 형식으로 입력하세요.', 'error'); return; }
+  vEntry.stops[stopIdx].time = newTime.trim();
+  vEntry.stops.sort((a, b) => a.time.localeCompare(b.time));
+  save(); renderDriverSchedule();
+}
+
+// ─── 차량 색상 변경 ──────────────────────────────────────────────────
+
+function changeVehicleColor(vehicleName, color) {
+  if (!DB.vehicleColors) DB.vehicleColors = {};
+  DB.vehicleColors[vehicleName] = color;
+  // VEHICLE_COLORS 객체도 즉시 업데이트
+  VEHICLE_COLORS[vehicleName] = color;
+  save(); renderDriverSchedule();
+}
+
+
+// ─── 이용자 이동 ─────────────────────────────────────────────────────
+
+let _moveCtx = {};
+
+// ─── 차량별 운전원 문자 ──────────────────────────────────────────────
+
+let _vSmsCtx = { dstr:'', vehicles:[], curVehicle:null };
+
+function openVehicleSmsModal() {
+  const dstr = document.getElementById('transportDate').value || ds();
+  const sch = getScheduleForDate(dstr);
+  if (!sch) { toast('표시할 일정이 없습니다.','error'); return; }
+
+  // 등원+하원 차량 목록 (중복 제거, 차량명 기준)
+  const vMap = {};
+  const addVehicle = (v, type) => {
+    if (!vMap[v.vehicle]) vMap[v.vehicle] = { vehicle:v.vehicle, morDriver:'', aftDriver:'' };
+    if (type==='morning') vMap[v.vehicle].morDriver = v.driver;
+    else vMap[v.vehicle].aftDriver = v.driver;
+  };
+  (sch.morning||[]).forEach(v=>addVehicle(v,'morning'));
+  (sch.afternoon||[]).forEach(v=>addVehicle(v,'afternoon'));
+
+  _vSmsCtx = { dstr, vehicles: Object.values(vMap), curVehicle: null };
+
+  // 탭 버튼 생성
+  const btnContainer = document.getElementById('vehicleSmsTabBtns');
+  btnContainer.innerHTML = _vSmsCtx.vehicles.map((v,i) =>
+    `<button onclick="selectVehicleSmsTab(${i})" id="vSmsTabBtn_${i}"
+      style="padding:6px 12px;border-radius:6px;border:1px solid ${vColor(v.vehicle)};
+      background:#fff;color:${vColor(v.vehicle)};font-size:12px;font-weight:700;cursor:pointer">
+      ${v.vehicle}
+    </button>`
+  ).join('');
+
+  document.getElementById('vSmsNativeBtn').style.display = navigator.share ? '' : 'none';
+  openModal('vehicleSmsModal');
+  if (_vSmsCtx.vehicles.length) selectVehicleSmsTab(0);
+}
+
+function selectVehicleSmsTab(idx) {
+  _vSmsCtx.curVehicle = _vSmsCtx.vehicles[idx];
+  // 탭 버튼 스타일 업데이트
+  _vSmsCtx.vehicles.forEach((v,i) => {
+    const btn = document.getElementById(`vSmsTabBtn_${i}`);
+    if (!btn) return;
+    const col = vColor(v.vehicle);
+    btn.style.background = i===idx ? col : '#fff';
+    btn.style.color = i===idx ? '#fff' : col;
+  });
+  // 운전원 전화번호 자동 조회
+  const v = _vSmsCtx.curVehicle;
+  const driverName = v.morDriver || v.aftDriver;
+  const driverRec = (DB.drivers||[]).find(d => d.name && driverName && driverName.includes(d.name));
+  document.getElementById('vSmsPhone').value = driverRec ? (driverRec.phone||'') : '';
+  // 문자 내용 생성
+  document.getElementById('vSmsText').value = buildVehicleSmsText(_vSmsCtx.dstr, v.vehicle);
+}
+
+// ============================================================
+// 기사용 내비 링크 (한국: 구글지도 자동차 길안내 불가 → 카카오맵)
+//   카카오맵 단일목적지 링크: 탭하면 앱에서 현재 GPS→해당 자택 길안내
+//   정거장 순서대로 다음 링크를 탭 = 실제 운행 순서와 일치
+// ============================================================
+function navKakaoUrl(name,lat,lng){
+  return `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+}
+// 차량 한 방향(vEntry)의 정거장 순서대로 좌표 있는 이용자 링크 + 좌표없는 인원수
+function vehicleNavStops(vEntry){
+  const out=[]; let noCoord=0;
+  (vEntry&&vEntry.stops||[]).forEach(s=>{
+    (s.clients||[]).forEach(n=>{
+      const c=(DB.clients||[]).find(x=>(x.name||'').trim()===n);
+      if(c&&c.lat&&c.lng) out.push({time:s.time,name:n,url:navKakaoUrl(n,c.lat,c.lng)});
+      else noCoord++;
+    });
+  });
+  return {stops:out, noCoord};
+}
+// 문자 본문에 넣을 내비 링크 라인들
+function vehicleNavSmsLines(vEntry){
+  const {stops,noCoord}=vehicleNavStops(vEntry);
+  if(!stops.length) return [];
+  const lines=['🧭 길안내(카카오맵·순서대로 탭)'];
+  stops.forEach((s,i)=>lines.push(`${i+1}. ${s.name} ${s.url}`));
+  if(noCoord) lines.push(`(좌표 미등록 ${noCoord}명 제외)`);
+  return lines;
+}
+// 온스크린: 차량 카드의 🧭 버튼 → 정거장 순서 링크 목록 오버레이
+function openVehicleNav(dstr,type,vehicleName){
+  const sch=getScheduleForDate(dstr); if(!sch){toast('일정이 없습니다','error');return;}
+  const section=type==='morning'?sch.morning:sch.afternoon;
+  const v=(section||[]).find(x=>x.vehicle===vehicleName);
+  if(!v){toast('차량 일정을 찾지 못했습니다','error');return;}
+  const {stops,noCoord}=vehicleNavStops(v);
+  const dirLabel=type==='morning'?'🌅 등원':'🌇 하원';
+  let body;
+  if(!stops.length){
+    body=`<div style="color:#b91c1c;font-size:13px;line-height:1.6">좌표가 등록된 이용자가 없어 링크를 만들 수 없습니다.<br>📍 노선 지도 탭에서 <strong>주소 일괄 좌표 변환</strong> 후 다시 시도하세요.</div>`;
+  } else {
+    body=stops.map((s,i)=>`<a href="${s.url}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:7px;text-decoration:none;color:#0f172a;background:#fff">
+        <span style="min-width:22px;height:22px;border-radius:50%;background:#2563eb;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
+        <span style="flex:1"><strong>${s.name}</strong> <span style="color:#64748b;font-size:12px">${s.time}</span></span>
+        <span style="font-size:12px;color:#2563eb;font-weight:700">길안내 ▶</span></a>`).join('');
+    if(noCoord) body+=`<div style="font-size:11px;color:#d97706;margin-top:4px">⚠ 좌표 미등록 ${noCoord}명은 목록에서 제외됨</div>`;
+  }
+  const ov=document.createElement('div');
+  ov.setAttribute('data-navov','1');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+    <div style="padding:14px 16px;border-bottom:1px solid #eef2f7;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div><div style="font-weight:800;font-size:15px">🧭 ${vehicleName}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px">${dirLabel} · 순서대로 탭하면 카카오맵 길안내가 열립니다</div></div>
+      <button onclick="this.closest('[data-navov]').remove()" style="border:none;background:#f1f5f9;border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+    <div style="padding:14px 16px">${body}</div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+function buildVehicleSmsText(dstr, vehicleName) {
+  const sch = getScheduleForDate(dstr);
+  if (!sch) return '';
+  const d = pd(dstr);
+  const DOW = ['일','월','화','수','목','금','토'];
+  const dateLabel = `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]}) 송영 안내`;
+
+  const lines = [dateLabel, ''];
+
+  const morVehicle = (sch.morning||[]).find(v=>v.vehicle===vehicleName);
+  if (morVehicle) {
+    lines.push(`[🌅 등원 - ${morVehicle.driver}${morVehicle.escort?` · 동승 ${morVehicle.escort}`:''}]`);
+    morVehicle.stops.forEach(s => {
+      lines.push(`${s.time} ${s.clients.join(' · ')}`);
+    });
+    vehicleNavSmsLines(morVehicle).forEach(l => lines.push(l));
+    lines.push('');
+  }
+
+  const aftVehicle = (sch.afternoon||[]).find(v=>v.vehicle===vehicleName);
+  if (aftVehicle) {
+    lines.push(`[🌇 하원 - ${aftVehicle.driver}${aftVehicle.escort?` · 동승 ${aftVehicle.escort}`:''}]`);
+    aftVehicle.stops.forEach(s => {
+      lines.push(`${s.time} ${s.clients.join(' · ')}`);
+    });
+    vehicleNavSmsLines(aftVehicle).forEach(l => lines.push(l));
+    lines.push('');
+  }
+
+  lines.push(`${DB.settings&&DB.settings.orgName||'주간보호센터'} 드림`);
+  return lines.join('\n');
+}
+
+function sendNextDayBulkSms() {
+  const todayInput = document.getElementById('transportDate');
+  const baseDstr = (todayInput && todayInput.value) || ds();
+  // 내일 날짜 계산
+  const d = new Date(baseDstr + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  const nextDstr = d.toISOString().slice(0,10);
+
+  const sch = filterScheduleByDay(getScheduleForDate(nextDstr), nextDstr);
+  if (!sch) { toast('내일 일정 데이터가 없습니다.', 'error'); return; }
+
+  const DOW = ['일','월','화','수','목','금','토'];
+  const nextDow = DOW[d.getDay()];
+
+  // 차량별로 운전원 전화번호 + 담당 구간 텍스트 생성
+  const vehicleMap = {};
+  ['morning','afternoon'].forEach(section => {
+    const icon = section === 'morning' ? '🌅 등원' : '🌇 하원';
+    (sch[section] || []).forEach(v => {
+      if (!vehicleMap[v.vehicle]) vehicleMap[v.vehicle] = { driver: v.driver, lines: [] };
+      vehicleMap[v.vehicle].driver = v.driver || vehicleMap[v.vehicle].driver;
+      const stopLines = v.stops
+        .filter(s => s.clients.length > 0)
+        .map(s => `  ${s.time} ${s.clients.join('·')}`)
+        .join('\n');
+      const navLines = vehicleNavSmsLines(v);
+      const escortLabel = v.escort ? ` · 동승 ${v.escort}` : '';
+      if (stopLines) vehicleMap[v.vehicle].lines.push(`${icon}${escortLabel}\n${stopLines}${navLines.length ? '\n' + navLines.join('\n') : ''}`);
+    });
+  });
+
+  const vehicles = Object.keys(vehicleMap);
+  if (!vehicles.length) { toast('내일 배차된 차량이 없습니다.', 'error'); return; }
+
+  let sent = 0, skipped = 0;
+  vehicles.forEach(vName => {
+    const info = vehicleMap[vName];
+    const driverName = info.driver;
+    if (!driverName) { skipped++; return; }
+    const driverObj = (DB.drivers || []).find(x => x.name === driverName);
+    const phone = driverObj ? (driverObj.phone || '') : '';
+    if (!phone) { skipped++; return; }
+
+    const orgName = (DB.settings && DB.settings.orgName) || '주간보호센터';
+    const body = `[${orgName}] ${nextDstr} (${nextDow}) 송영 일정\n차량: ${vName}\n\n${info.lines.join('\n\n')}\n\n결석자는 건너뜁니다. 수고하세요!`;
+    const clean = phone.replace(/[^0-9]/g, '');
+    const isIos = /iP(hone|od|ad)/.test(navigator.userAgent);
+    const sep = isIos ? '&' : '?';
+    window.open(`sms:${clean}${sep}body=${encodeURIComponent(body)}`, '_blank');
+    sent++;
+  });
+
+  const msg = `내일(${nextDstr}) 일정 발송: ${sent}명 완료${skipped ? `, ${skipped}명 전화번호 미등록` : ''}`;
+  toast(msg, skipped > 0 ? 'warning' : 'success');
+}
+
+function sendVehicleSms() {
+  const phone = document.getElementById('vSmsPhone').value.replace(/\D/g,'');
+  const text = document.getElementById('vSmsText').value;
+  if (!phone) { toast('연락처를 입력하세요.','error'); return; }
+  const encoded = encodeURIComponent(text);
+  // iOS: sms:번호&body=..., Android: sms:번호?body=...
+  const ua = navigator.userAgent;
+  const sep = /iPad|iPhone|iPod/.test(ua) ? '&' : '?';
+  window.location.href = `sms:${phone}${sep}body=${encoded}`;
+}
+
+function copyVehicleSmsText() {
+  const text = document.getElementById('vSmsText').value;
+  navigator.clipboard.writeText(text)
+    .then(()=>toast('복사됐습니다.'))
+    .catch(()=>{ document.getElementById('vSmsText').select(); document.execCommand('copy'); toast('복사 완료'); });
+}
+
+function shareVehicleNative() {
+  const text = document.getElementById('vSmsText').value;
+  const v = _vSmsCtx.curVehicle;
+  navigator.share({ title:`${v&&v.vehicle} 송영 안내`, text }).catch(()=>{});
+}
+
+
+function openMoveClient(dstr, type, vehicleName, stopIdx, clientIdx, clientName) {
+  _moveCtx = { dstr, type, vehicleName, stopIdx, clientIdx, clientName };
+  document.getElementById('moveClientName').textContent = clientName;
+
+  const sch = getEditableSchedule(dstr);
+  // 차량 목록
+  const allVehicles = [...new Set([
+    ...(sch.morning||[]).map(v=>v.vehicle),
+    ...(sch.afternoon||[]).map(v=>v.vehicle)
+  ])];
+  const mvV = document.getElementById('mvVehicle');
+  mvV.innerHTML = allVehicles.map(v=>`<option value="${v}">${v}</option>`).join('');
+
+  // 방향 변경 시 시간 슬롯 갱신
+  const mvDir = document.getElementById('mvDir');
+  mvDir.value = type;
+  updateMvTimeSlots();
+  mvDir.onchange = updateMvTimeSlots;
+  mvV.onchange = updateMvTimeSlots;
+
+  // native share 가능 여부
+  document.getElementById('mvVehicleFields').style.display = '';
+  openModal('moveClientModal');
+}
+
+function updateMvTimeSlots() {
+  const dstr = _moveCtx.dstr;
+  const dir = document.getElementById('mvDir').value;
+  const vehicle = document.getElementById('mvVehicle').value;
+  const sch = getEditableSchedule(dstr);
+  const vfShow = dir === 'morning' || dir === 'afternoon';
+  document.getElementById('mvVehicleFields').style.display = vfShow ? '' : 'none';
+  if (!vfShow) return;
+  const section = dir === 'morning' ? sch.morning : sch.afternoon;
+  const vEntry = section.find(v=>v.vehicle===vehicle);
+  const slots = vEntry ? vEntry.stops : [];
+  const sel = document.getElementById('mvTimeSlot');
+  sel.innerHTML = '<option value="">-- 새 시간 직접 입력 --</option>'
+    + slots.map(s=>`<option value="${s.time}">${s.time} (${s.clients.join(', ')})</option>`).join('');
+}
+
+function execMoveClient() {
+  const { dstr, type, vehicleName, stopIdx, clientIdx, clientName } = _moveCtx;
+  const dir = document.getElementById('mvDir').value;
+  const sch = getEditableSchedule(dstr);
+
+  // 원래 위치에서 제거
+  if (type === 'morning' || type === 'afternoon') {
+    const section = type === 'morning' ? sch.morning : sch.afternoon;
+    const vEntry = section.find(v=>v.vehicle===vehicleName);
+    if (vEntry) {
+      vEntry.stops[stopIdx].clients.splice(clientIdx, 1);
+      vEntry.stops = vEntry.stops.filter(s=>s.clients.length>0);
+      if (!vEntry.stops.length) section.splice(section.indexOf(vEntry),1);
+    }
+  } else if (type === 'indiv_morning') {
+    sch.indivMorning = (sch.indivMorning||[]).filter(n=>n!==clientName);
+  } else if (type === 'indiv_afternoon') {
+    sch.indivAfternoon = (sch.indivAfternoon||[]).filter(n=>n!==clientName);
+  }
+
+  // 새 위치에 추가
+  if (dir === 'indiv_morning') {
+    if (!sch.indivMorning) sch.indivMorning = [];
+    if (!sch.indivMorning.includes(clientName)) sch.indivMorning.push(clientName);
+  } else if (dir === 'indiv_afternoon') {
+    if (!sch.indivAfternoon) sch.indivAfternoon = [];
+    if (!sch.indivAfternoon.includes(clientName)) sch.indivAfternoon.push(clientName);
+  } else {
+    const targetVehicle = document.getElementById('mvVehicleNew').value.trim()
+      || document.getElementById('mvVehicle').value;
+    const slotSel = document.getElementById('mvTimeSlot').value;
+    const timeNew = document.getElementById('mvTimeNew').value;
+    const targetTime = slotSel || timeNew;
+    if (!targetTime) { toast('시간을 선택하거나 입력하세요.','error'); return; }
+
+    const section = dir === 'morning' ? sch.morning : sch.afternoon;
+    let vEntry = section.find(v=>v.vehicle===targetVehicle);
+    if (!vEntry) {
+      vEntry = { vehicle: targetVehicle, driver:'미배정', stops:[] };
+      section.push(vEntry);
+    }
+    let slot = vEntry.stops.find(s=>s.time===targetTime);
+    if (!slot) { slot={time:targetTime,clients:[]}; vEntry.stops.push(slot); }
+    vEntry.stops.sort((a,b)=>a.time.localeCompare(b.time));
+    if (!slot.clients.includes(clientName)) slot.clients.push(clientName);
+  }
+
+  save();
+  closeModal('moveClientModal');
+  renderDriverSchedule();
+  toast(`${clientName} 이동 완료`);
+}
+
+// ─── 공유 기능 ──────────────────────────────────────────────────────
+
+function buildShareText(dstr) {
+  const sch = getScheduleForDate(dstr);
+  if (!sch) return '';
+  const d = pd(dstr);
+  const DOW = ['일','월','화','수','목','금','토'];
+  const dateLabel = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]}) 송영표`;
+  let lines = [dateLabel, ''];
+
+  const morTotal = (sch.morning||[]).reduce((a,v)=>a+v.stops.reduce((b,s)=>b+s.clients.length,0),0)
+                 + (sch.indivMorning||[]).length;
+  lines.push(`[오전 등원 - 총 ${morTotal}명]`);
+  (sch.morning||[]).forEach(v => {
+    lines.push(`▶ ${v.vehicle} (${v.driver})`);
+    v.stops.forEach(s => {
+      lines.push(`  ${s.time} ${s.clients.join(' · ')}`);
+    });
+  });
+  if ((sch.indivMorning||[]).length)
+    lines.push(`  개별: ${sch.indivMorning.join(', ')}`);
+
+  lines.push('');
+  const aftTotal = (sch.afternoon||[]).reduce((a,v)=>a+v.stops.reduce((b,s)=>b+s.clients.length,0),0)
+                 + (sch.indivAfternoon||[]).length;
+  lines.push(`[오후 하원 - 총 ${aftTotal}명]`);
+  (sch.afternoon||[]).forEach(v => {
+    lines.push(`▶ ${v.vehicle} (${v.driver})`);
+    v.stops.forEach(s => {
+      lines.push(`  ${s.time} ${s.clients.join(' · ')}`);
+    });
+  });
+  if ((sch.indivAfternoon||[]).length)
+    lines.push(`  개별: ${sch.indivAfternoon.join(', ')}`);
+
+  return lines.join('\n');
+}
+
+function openShareModal() {
+  const dstr = document.getElementById('transportDate').value || ds();
+  const text = buildShareText(dstr);
+  if (!text) { toast('공유할 일정이 없습니다.','error'); return; }
+  document.getElementById('shareText').value = text;
+  const nBtn = document.getElementById('nativeShareBtn');
+  nBtn.style.display = navigator.share ? '' : 'none';
+  openModal('shareModal');
+}
+
+function copyShareText() {
+  const text = document.getElementById('shareText').value;
+  navigator.clipboard.writeText(text).then(()=>toast('클립보드에 복사됐습니다. 카카오톡·밴드에 붙여넣기 하세요.'))
+    .catch(()=>{
+      const ta = document.getElementById('shareText');
+      ta.select(); document.execCommand('copy');
+      toast('복사 완료');
+    });
+}
+
+function shareViaSms() {
+  const text = document.getElementById('shareText').value;
+  const encoded = encodeURIComponent(text);
+  // iOS: sms:?&body=..., Android: sms:?body=...
+  window.location.href = `sms:?body=${encoded}`;
+}
+
+function shareNative() {
+  const text = document.getElementById('shareText').value;
+  const dstr = document.getElementById('transportDate').value || ds();
+  navigator.share({ title:`${dstr} 송영표`, text }).catch(()=>{});
+}
+
+
+function exportScheduleXlsx() {
+  if (typeof XLSX === 'undefined') { toast('엑셀 라이브러리를 로드할 수 없습니다.','error'); return; }
+  const dstr = document.getElementById('transportDate').value || ds();
+  const sch = getScheduleForDate(dstr);
+  if (!sch) { toast('내보낼 일정이 없습니다.','error'); return; }
+  const rows = [['구분','차량','운전원','시간','이용자']];
+  (sch.morning||[]).forEach(v=>{
+    v.stops.forEach(s=>s.clients.forEach(c=>rows.push(['등원',v.vehicle,v.driver,s.time,c])));
+  });
+  (sch.indivMorning||[]).forEach(c=>rows.push(['등원','개별','','-',c]));
+  (sch.afternoon||[]).forEach(v=>{
+    v.stops.forEach(s=>s.clients.forEach(c=>rows.push(['하원',v.vehicle,v.driver,s.time,c])));
+  });
+  (sch.indivAfternoon||[]).forEach(c=>rows.push(['하원','개별','','-',c]));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), '송영일정표');
+  XLSX.writeFile(wb, `송영일정표_${dstr}.xlsx`);
+  toast('엑셀 다운로드 완료');
+}
+
 
 function cycleShift(driverId, yr, mo, day, el) {
   const cur = getDriverShift(driverId, yr, mo, day);
@@ -1469,7 +2868,7 @@ function exportAssignmentXlsx() {
   }
 
   // Sheet 2: 운전원별 근무표
-  const driverList = (DB.drivers||[]).filter(d=>d.active!==false && isDriverActiveInMonth(d, yr, mo));
+  const driverList = (DB.drivers||[]).filter(d=>d.active!==false);
   const headers2 = ['운전원','직종','면허'];
   for(let d=1;d<=last;d++) {
     const dow = new Date(yr,mo-1,d).getDay();
@@ -1648,7 +3047,7 @@ function renderToday(){
 function quickAbsent(cid,dstr){
   if(DB.absences.find(a=>a.cid===cid&&a.date===dstr)){toast('이미 결석 처리됨','warn');return;}
   DB.absences.push({id:uid(),cid,date:dstr,reason:'개인',memo:''});
-  save();renderToday();const c=cc(cid);toast(`${c?c.name:''} 결석 처리 완료`);
+  save();renderToday();const c=cc(cid);toast(`${c?c.name:''} 결석 — 경로는 그대로 유지됩니다`);
 }
 
 function openAbsenceModal(){
@@ -1665,7 +3064,161 @@ function saveAbsence(){
   if(!cid||!date){toast('이용자와 날짜를 선택하세요','error');return;}
   if(DB.absences.find(a=>a.cid===cid&&a.date===date)){toast('이미 등록된 결석입니다','warn');return;}
   DB.absences.push({id:uid(),cid,date,reason:document.getElementById('absReason').value,memo:document.getElementById('absMemo').value});
-  save();closeModal('absenceModal');renderToday();renderDash();toast('결석 등록 완료');
+  save();closeModal('absenceModal');renderToday();renderDash();
+  const absC = cc(cid); toast(`${absC?absC.name:''} 결석 등록 — 경로는 유지됩니다`);
+}
+</script>
+
+<script>
+// ============================================================
+// 자연어 빠른 변경 (규칙 파서 · 100% 로컬 · 외부 전송 없음)
+//   지원: 취소/결석 · 시간변경(등원/하원) · 기사변경 · 추가
+//   쉼표/줄바꿈/"그리고" 로 여러 건을 한 번에 처리
+// ============================================================
+function qcPad(x){return String(x).padStart(2,'0');}
+
+// "9:10","09:10","9시","9시30분","930","1710" → "HH:MM" (없으면 null)
+// 차량번호(8978,6005 등)는 시(hour)>23 이거나 분>59 이라 시간으로 오인되지 않음
+function qcNormTime(str){
+  let m,h,mi;
+  if(m=str.match(/(\d{1,2})\s*:\s*(\d{2})/)){ h=+m[1]; mi=+m[2]; }
+  else if(m=str.match(/(\d{1,2})\s*시\s*(\d{1,2})?\s*분?/)){ h=+m[1]; mi=+(m[2]||0); }
+  else if(m=str.match(/(?:^|\D)(\d{3,4})(?:\D|$)/)){ const s=m[1].padStart(4,'0'); h=+s.slice(0,2); mi=+s.slice(2); }
+  else return null;
+  if(h<0||h>23||mi<0||mi>59) return null;
+  return qcPad(h)+':'+qcPad(mi);
+}
+
+function qcDir(cmd){
+  if(/등원|픽업|마중|오전|모시러|모시고\s?오/.test(cmd)) return 'morning';
+  if(/하원|드롭|배웅|오후|귀가|모셔다|모시고\s?가|댁으로/.test(cmd)) return 'afternoon';
+  return null;
+}
+
+// 해당 날짜 일정에 등장하는 모든 이용자 이름
+function qcScheduleNames(dstr){
+  const sch=getScheduleForDate(dstr); const set=new Set();
+  if(sch){
+    ['morning','afternoon'].forEach(t=>(sch[t]||[]).forEach(v=>(v.stops||[]).forEach(s=>(s.clients||[]).forEach(n=>set.add(n)))));
+    (sch.indivMorning||[]).forEach(n=>set.add(n));
+    (sch.indivAfternoon||[]).forEach(n=>set.add(n));
+  }
+  return [...set];
+}
+
+// 명령문에 포함된 이용자 이름 찾기 (가장 긴 일치 우선)
+function qcFindClientName(cmd,dstr){
+  let found=null;
+  const consider=n=>{ n=(n||'').trim(); if(n&&cmd.includes(n)&&(!found||n.length>found.length)) found=n; };
+  (DB.clients||[]).forEach(c=>consider(c.name));
+  if(!found) qcScheduleNames(dstr).forEach(consider);
+  return found;
+}
+
+// ── 취소/결석: 그날 송영일정표에서 제외 + 결석 기록 ──
+function qcCancel(name,dstr){
+  const sch=getEditableSchedule(dstr);
+  let cnt=0;
+  ['morning','afternoon'].forEach(type=>{
+    (sch[type]||[]).forEach(v=>{
+      (v.stops||[]).forEach(s=>{ const i=s.clients.indexOf(name); if(i>=0){ s.clients.splice(i,1); cnt++; } });
+      v.stops=(v.stops||[]).filter(s=>s.clients.length>0);
+    });
+    sch[type]=(sch[type]||[]).filter(v=>v.stops.length>0);
+  });
+  ['indivMorning','indivAfternoon'].forEach(f=>{
+    if(sch[f]){ const i=sch[f].indexOf(name); if(i>=0){ sch[f].splice(i,1); cnt++; } }
+  });
+  const c=(DB.clients||[]).find(x=>(x.name||'').trim()===name);
+  if(c && !DB.absences.find(a=>a.cid===c.id&&a.date===dstr))
+    DB.absences.push({id:uid(),cid:c.id,date:dstr,reason:'개인',memo:'빠른변경 취소'});
+  return cnt
+    ? {ok:true,msg:`${name} 취소 — 송영표에서 제외(${cnt}건) + 결석 기록`}
+    : {ok:true,msg:`${name} — 오늘 송영표엔 없어 결석만 기록`};
+}
+
+// ── 시간변경: 같은 차량 내에서 새 시간대로 이동 (다른 이용자 시간 불변) ──
+function qcChangeTime(name,dir,newTime,dstr){
+  const sch=getEditableSchedule(dstr);
+  const hits=[];
+  ['morning','afternoon'].forEach(type=>{
+    if(dir&&dir!==type) return;
+    (sch[type]||[]).forEach(v=>(v.stops||[]).forEach(s=>{ if(s.clients.includes(name)) hits.push({type,v,s}); }));
+  });
+  if(!hits.length) return {ok:false,msg:`${name}: ${dir?(dir==='morning'?'등원':'하원'):'해당'} 시간대에 없음`};
+  if(!dir && new Set(hits.map(h=>h.type)).size>1)
+    return {ok:false,msg:`${name}: 등원·하원 모두 있음 — "등원" 또는 "하원"을 붙여주세요`};
+  const labels=[];
+  hits.forEach(({type,v,s})=>{
+    s.clients.splice(s.clients.indexOf(name),1);
+    let tgt=v.stops.find(x=>x.time===newTime);
+    if(!tgt){ tgt={time:newTime,clients:[]}; v.stops.push(tgt); }
+    if(!tgt.clients.includes(name)) tgt.clients.push(name);
+    v.stops=v.stops.filter(x=>x.clients.length>0);
+    v.stops.sort((a,b)=>a.time.localeCompare(b.time));
+    labels.push(`${type==='morning'?'등원':'하원'} ${v.vehicle} → ${newTime}`);
+  });
+  return {ok:true,msg:`${name} 시간변경: ${labels.join(', ')}`};
+}
+
+// ── 기사변경: "8978 기사 이미숙" 처럼 차량번호(4자리) + 기사명 ──
+function qcChangeDriver(cmd,dstr){
+  const drv=(DB.drivers||[]).map(d=>(d.name||'').trim()).filter(Boolean).find(n=>cmd.includes(n));
+  if(!drv) return null; // 기사명 없으면 기사변경 아님 → 다른 규칙으로
+  const num=(cmd.match(/\b(\d{4})\b/)||[])[1];
+  if(!num) return {ok:false,msg:`기사변경: 차량번호(4자리)도 입력하세요 (예: "8978 기사 ${drv}")`};
+  const dir=qcDir(cmd);
+  const sch=getEditableSchedule(dstr);
+  const cands=[];
+  ['morning','afternoon'].forEach(type=>{
+    if(dir&&dir!==type) return;
+    (sch[type]||[]).forEach(v=>{ if((v.vehicle||'').includes(num)) cands.push({type,v}); });
+  });
+  if(!cands.length) return {ok:false,msg:`기사변경: ${num} 차량을 ${dir?(dir==='morning'?'등원':'하원'):'오늘 일정'}에서 찾지 못함`};
+  cands.forEach(({v})=>{ v.driver=drv; });
+  const label=cands.map(c=>`${c.type==='morning'?'등원':'하원'} ${c.v.vehicle}`).join(', ');
+  return {ok:true,msg:`기사변경: ${label} → ${drv}`};
+}
+
+function qcRunClause(cmd,dstr){
+  cmd=cmd.trim(); if(!cmd) return null;
+  if(/기사|운전/.test(cmd)){ const r=qcChangeDriver(cmd,dstr); if(r) return r; }
+  const name=qcFindClientName(cmd,dstr);
+  if(/취소|결석|빠지|빠짐|안\s?와|안\s?옴|안\s?나|불참|안\s?오/.test(cmd)){
+    if(!name) return {ok:false,msg:`이름을 찾지 못함: "${cmd}"`};
+    return qcCancel(name,dstr);
+  }
+  if(/추가|넣어|태워/.test(cmd)){
+    setTimeout(()=>{ openAddScheduleClient(); if(name){const e=document.getElementById('addSchClientName'); if(e) e.value=name;} },60);
+    return {ok:true,msg:`${name||''} 추가 — 입력창을 엽니다(차량·시간 선택 후 저장)`};
+  }
+  const t=qcNormTime(cmd);
+  if(t){
+    if(!name) return {ok:false,msg:`이름을 찾지 못함: "${cmd}"`};
+    return qcChangeTime(name,qcDir(cmd),t,dstr);
+  }
+  return {ok:false,msg:`해석 불가: "${cmd}" (예: "홍길동 취소", "김영자 등원 9:10")`};
+}
+
+function runQuickCommand(){
+  const inp=document.getElementById('quickCmdInput'); if(!inp) return;
+  const text=(inp.value||'').trim();
+  if(!text){ toast('명령을 입력하세요','warn'); return; }
+  const di=document.getElementById('transportDate');
+  const dstr=(di&&di.value)||ds();
+  if(di&&!di.value) di.value=dstr;
+  const clauses=text.split(/[,\n]|그리고/).map(s=>s.trim()).filter(Boolean);
+  const results=[];
+  clauses.forEach(cl=>{ const r=qcRunClause(cl,dstr); if(r) results.push(r); });
+  save();
+  renderDriverSchedule();
+  const box=document.getElementById('quickCmdResult');
+  if(box) box.innerHTML=results.map(r=>
+    `<div style="font-size:12.5px;padding:4px 9px;border-radius:6px;margin-top:4px;background:${r.ok?'#f0fdf4':'#fef2f2'};color:${r.ok?'#166534':'#b91c1c'};border:1px solid ${r.ok?'#bbf7d0':'#fecaca'}">${r.ok?'✅':'⚠️'} ${r.msg}</div>`
+  ).join('');
+  const okN=results.filter(r=>r.ok).length;
+  toast(`빠른 변경: ${okN}/${results.length}건 적용`, okN?'':'warn');
+  if(okN===results.length) inp.value='';
 }
 </script>
 
@@ -1834,68 +3387,305 @@ function optimizeAll(){
 // MAP
 // ============================================================
 function renderMapList(){
-  const vid=document.getElementById('mapVehicle').value;
-  const dir=document.getElementById('mapDir').value;
-  const dstr=ds();
-  const clients=clientsForDate(dstr).filter(c=>!c.absent);
-  const ms=document.getElementById('mapVehicle');
-  if(ms.options.length<=1) DB.vehicles.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;ms.appendChild(o);});
-  const filtered=vid?clients.filter(c=>c.vehicleId===vid):clients;
-  const byV={};DB.vehicles.forEach(v=>byV[v.id]=[]);
-  filtered.forEach(c=>{const k=c.vehicleId||'x';if(!byV[k])byV[k]=[];byV[k].push(c);});
-  let h='';
-  DB.vehicles.forEach(v=>{
-    const cls=byV[v.id]||[];if(!cls.length)return;
-    const hc=cls.filter(c=>c.lat&&c.lng).length;
-    h+=`<div style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-weight:700">
-        <div style="width:12px;height:12px;border-radius:50%;background:${v.color}"></div>${v.name} — ${cls.length}명
-        ${hc<cls.length?`<span class="badge badge-yellow">좌표미입력 ${cls.length-hc}명</span>`:'<span class="badge badge-green">좌표완비</span>'}
-      </div>
-      <div class="route-card" style="border-left:3px solid ${v.color}">
-        ${cls.map((c,i)=>`<div style="display:flex;align-items:start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)">
-          <div style="width:22px;height:22px;border-radius:50%;background:${v.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${i+1}</div>
+  const dstr = (document.getElementById('mapDate')&&document.getElementById('mapDate').value) || ds();
+  const vid = document.getElementById('mapVehicle').value;
+  const dir = document.getElementById('mapDir').value;
+
+  // 송영일정표 스케줄 데이터 우선 사용
+  const sch = getScheduleForDate(dstr);
+  const section = dir==='pickup' ? (sch&&sch.morning||[]) : (sch&&sch.afternoon||[]);
+
+  // 차량 선택 드롭다운 갱신
+  const ms = document.getElementById('mapVehicle');
+  if (ms.options.length <= 1) {
+    const vehicles = [...new Set(section.map(v=>v.vehicle))];
+    vehicles.forEach(vn => {
+      if ([...ms.options].some(o=>o.value===vn)) return;
+      const o = document.createElement('option'); o.value=vn; o.textContent=vn; ms.appendChild(o);
+    });
+  }
+
+  const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+
+  let h = '';
+  filtered.forEach(vdata => {
+    const col = vColor(vdata.vehicle);
+    const icon = dir==='pickup' ? '🌅' : '🌇';
+    h += `<div style="margin-bottom:14px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
+      <div style="background:${col}18;border-bottom:2px solid ${col}40;padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${col}"></div>
+        <div style="font-weight:700;font-size:13px">${vdata.vehicle}</div>
+        <div style="font-size:11px;color:#64748b">${icon} ${vdata.driver||'미배정'}</div>
+      </div>`;
+    let seq = 1;
+    vdata.stops.forEach(stop => {
+      stop.clients.forEach(name => {
+        const c = (DB.clients||[]).find(x=>x.name===name);
+        const hasCoord = c && c.lat && c.lng;
+        h += `<div style="display:flex;align-items:start;gap:10px;padding:8px 12px;border-bottom:1px solid #f1f5f9">
+          <div style="width:22px;height:22px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${seq++}</div>
           <div style="flex:1">
-            <div style="font-weight:700;font-size:13px">${c.name}</div>
-            <div style="font-size:11px;color:var(--text-muted)">📍 ${c.addr||'주소 없음'}</div>
-            ${c.lat&&c.lng?`<div style="font-size:10px;color:var(--success)">🗺️ ${(+c.lat).toFixed(4)}, ${(+c.lng).toFixed(4)}</div>`:'<div style="font-size:10px;color:var(--danger)">⚠️ 좌표 미입력</div>'}
+            <div style="font-weight:700;font-size:13px">${name}</div>
+            <div style="font-size:11px;color:#64748b">📍 ${c&&c.addr||'주소 미등록'}</div>
+            ${hasCoord ? `<div style="font-size:10px;color:#16a34a">✅ 좌표 있음</div>` : `<div style="font-size:10px;color:#ef4444">⚠️ 좌표 없음 — 이용자 관리에서 변환 필요</div>`}
           </div>
-          <div style="font-size:12px;font-weight:700;color:var(--primary)">${dir==='pickup'?(c.pickupTime||'-'):(c.dropoffTime||'-')}</div>
-        </div>`).join('')}
-      </div>
-    </div>`;
+          <div style="font-size:12px;font-weight:700;color:${col};white-space:nowrap">${stop.time}</div>
+        </div>`;
+      });
+    });
+    h += '</div>';
   });
-  document.getElementById('mapList').innerHTML=h||'<div class="text-muted text-sm">오늘 일정이 없습니다.</div>';
+
+  if (!h && section.length===0) {
+    h = '<div style="text-align:center;padding:30px;color:#94a3b8">해당 날짜 일정이 없습니다.</div>';
+  }
+  document.getElementById('mapList').innerHTML = h || '<div style="text-align:center;padding:30px;color:#94a3b8">표시할 경로가 없습니다.</div>';
 }
 
-function loadNaverMap(){
-  const key=document.getElementById('naverKey').value.trim();
-  if(!key){toast('API 키를 입력해주세요','warn');return;}
-  const s=document.createElement('script');
-  s.src=`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${key}&submodules=geocoder`;
-  s.onload=()=>{
-    const mc=document.getElementById('mapContainer');
-    mc.innerHTML='<div id="nm" style="width:100%;height:100%;border-radius:var(--radius)"></div>';
-    const cen=new naver.maps.LatLng(DB.settings.orgLat||37.5665,DB.settings.orgLng||126.9780);
-    const map=new naver.maps.Map('nm',{center:cen,zoom:13});
-    new naver.maps.Marker({position:cen,map,title:DB.settings.orgName,
-      icon:{content:`<div style="background:var(--primary);color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:800">🏢 ${DB.settings.orgName}</div>`}});
-    const vid=document.getElementById('mapVehicle').value,dir=document.getElementById('mapDir').value;
-    const clients=clientsForDate(ds()).filter(c=>!c.absent&&c.lat&&c.lng);
-    const filtered=vid?clients.filter(c=>c.vehicleId===vid):clients;
-    const byV={};filtered.forEach(c=>{const k=c.vehicleId||'x';if(!byV[k])byV[k]=[];byV[k].push(c);});
-    Object.entries(byV).forEach(([vid2,cls])=>{
-      const v=vc(vid2),col=v?v.color:'#64748b';
-      const path=[cen,...cls.map(c=>new naver.maps.LatLng(c.lat,c.lng)),cen];
-      new naver.maps.Polyline({map,path,strokeColor:col,strokeWeight:3,strokeOpacity:.75});
-      cls.forEach((c,i)=>{new naver.maps.Marker({position:new naver.maps.LatLng(c.lat,c.lng),map,title:c.name,
-        icon:{content:`<div style="background:${col};color:#fff;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700">${i+1}. ${c.name}</div>`}});});
+let _kakaoMapLoaded = false;
+
+function saveKakaoJsKey() {
+  const k = document.getElementById('kakaoJsKeyInput').value.trim();
+  if (!k) { toast('JavaScript 키를 입력하세요.','error'); return; }
+  if (!DB.settings) DB.settings = {};
+  DB.settings.kakaoJsKey = k;
+  save();
+  document.getElementById('kakaoJsKeyBanner').style.display = 'none';
+  loadKakaoMap();
+}
+
+function loadKakaoMap() {
+  const jsKey = (DB.settings && DB.settings.kakaoJsKey) || '';
+  if (!jsKey) {
+    document.getElementById('kakaoJsKeyBanner').style.display = 'block';
+    return;
+  }
+  document.getElementById('kakaoJsKeyBanner').style.display = 'none';
+
+  if (_kakaoMapLoaded && window.kakao && window.kakao.maps) {
+    drawKakaoMap();
+    return;
+  }
+  const s = document.createElement('script');
+  s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${jsKey}&autoload=false`;
+  s.onload = () => {
+    kakao.maps.load(() => {
+      _kakaoMapLoaded = true;
+      drawKakaoMap();
     });
-    toast('지도가 로드되었습니다.');
   };
-  s.onerror=()=>toast('API 키 오류','error');
+  s.onerror = () => {
+    toast('카카오 지도 로드 실패 — JavaScript 키를 확인하세요.','error');
+    document.getElementById('kakaoJsKeyBanner').style.display = 'block';
+  };
   document.head.appendChild(s);
 }
+
+function drawKakaoMap() {
+  const dstr = (document.getElementById('mapDate')&&document.getElementById('mapDate').value) || ds();
+  const vid = document.getElementById('mapVehicle').value;
+  const dir = document.getElementById('mapDir').value;
+  const sch = getScheduleForDate(dstr);
+  const section = dir==='pickup' ? (sch&&sch.morning||[]) : (sch&&sch.afternoon||[]);
+
+  const mc = document.getElementById('mapContainer');
+  mc.innerHTML = '<div id="kakaoMapDiv" style="width:100%;height:480px;border-radius:10px"></div>';
+
+  const orgLat = DB.settings&&DB.settings.orgLat || 37.5665;
+  const orgLng = DB.settings&&DB.settings.orgLng || 126.9780;
+  const map = new kakao.maps.Map(document.getElementById('kakaoMapDiv'), {
+    center: new kakao.maps.LatLng(orgLat, orgLng), level: 5
+  });
+
+  // 기관 마커
+  const orgMarker = new kakao.maps.Marker({
+    position: new kakao.maps.LatLng(orgLat, orgLng), map,
+    title: DB.settings&&DB.settings.orgName||'주간보호센터'
+  });
+  const orgInfo = new kakao.maps.InfoWindow({ content:`<div style="padding:5px 8px;font-size:12px;font-weight:700">🏢 ${DB.settings&&DB.settings.orgName||'기관'}</div>` });
+  orgInfo.open(map, orgMarker);
+
+  const bounds = new kakao.maps.LatLngBounds();
+  bounds.extend(new kakao.maps.LatLng(orgLat, orgLng));
+
+  const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+
+  filtered.forEach(vdata => {
+    const col = vColor(vdata.vehicle);
+    const path = [new kakao.maps.LatLng(orgLat, orgLng)];
+    let seq = 1;
+
+    vdata.stops.forEach(stop => {
+      stop.clients.forEach(name => {
+        const c = (DB.clients||[]).find(x=>x.name===name);
+        if (!c || !c.lat || !c.lng) return;
+        const pos = new kakao.maps.LatLng(+c.lat, +c.lng);
+        path.push(pos);
+        bounds.extend(pos);
+
+        // 마커 (번호 + 이름)
+        const markerContent = `<div style="background:${col};color:#fff;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.2)">${seq}. ${name}</div>`;
+        const marker = new kakao.maps.Marker({ position:pos, map, title:name,
+          image: new kakao.maps.MarkerImage(
+            `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><circle cx='5' cy='5' r='5' fill='${col}'/></svg>`)}`,
+            new kakao.maps.Size(10,10)
+          )
+        });
+        const overlay = new kakao.maps.CustomOverlay({ position:pos, content:markerContent, yAnchor:2.2 });
+        overlay.setMap(map);
+
+        // 클릭 시 팝업
+        const infoContent = `<div style="padding:8px 12px;min-width:160px;font-size:12px">
+          <div style="font-weight:700;margin-bottom:4px">${name}</div>
+          <div style="color:#64748b">${c.addr||'주소 없음'}</div>
+          <div style="color:${col};margin-top:2px">⏰ ${stop.time}</div>
+        </div>`;
+        const info = new kakao.maps.InfoWindow({ content:infoContent, removable:true });
+        kakao.maps.event.addListener(marker,'click',()=>info.open(map,marker));
+        seq++;
+      });
+    });
+
+    // 경로 폴리라인 (기관→정류장→기관)
+    if (path.length > 1) {
+      path.push(new kakao.maps.LatLng(orgLat, orgLng));
+      new kakao.maps.Polyline({ path, map,
+        strokeWeight:3, strokeColor:col, strokeOpacity:0.8, strokeStyle:'solid'
+      });
+    }
+  });
+
+  if (!bounds.isEmpty()) map.setBounds(bounds, 60);
+  renderMapList();
+  toast('카카오 지도 로드 완료');
+}
+
+// ============================================================
+// PLACEMENT AUDIT — 이용자 배치 현황 검증
+// ============================================================
+function openPlacementAudit() {
+  renderPlacementAudit();
+  openModal('placementAuditModal');
+}
+
+function renderPlacementAudit() {
+  const DOW_LABEL = ['일','월','화','수','목','금','토'];
+  const TYPE_LABEL = { daily:'매일(월~금)', mwf:'주3일(월수금)', saturday:'토요일', custom:'직접지정' };
+  const TYPE_COLOR = { daily:'#dcfce7', mwf:'#dbeafe', saturday:'#fce7f3', custom:'#fef3c7' };
+  const TYPE_TEXT  = { daily:'#15803d', mwf:'#1d4ed8', saturday:'#be185d', custom:'#92400e' };
+
+  // 모든 템플릿에서 이름→배치 요일 수집
+  const placedOn = {}; // name → Set of dow
+  for (let dow = 1; dow <= 6; dow++) {
+    const tmpl = DB.scheduleTemplates[dow];
+    if (!tmpl) continue;
+    ['morning','afternoon'].forEach(sec => {
+      (tmpl[sec] || []).forEach(v => {
+        v.stops.forEach(s => {
+          s.clients.forEach(name => {
+            if (!placedOn[name]) placedOn[name] = new Set();
+            placedOn[name].add(dow);
+          });
+        });
+      });
+    });
+    ([...tmpl.indivMorning||[], ...tmpl.indivAfternoon||[]]).forEach(name => {
+      if (!placedOn[name]) placedOn[name] = new Set();
+      placedOn[name].add(dow);
+    });
+  }
+
+  // 기대 요일 계산
+  function expectedDows(c) {
+    const t = c.scheduleType || 'daily';
+    if (t === 'daily') return [1,2,3,4,5];
+    if (t === 'mwf') return [1,3,5];
+    if (t === 'saturday') return [6];
+    return (c.days || []).map(Number);
+  }
+
+  const activeClients = DB.clients.filter(c => c.status === 'active');
+  let okCount = 0, missingCount = 0, extraCount = 0;
+
+  let rows = activeClients.map(c => {
+    const expected = new Set(expectedDows(c));
+    const actual = placedOn[c.name] || new Set();
+    const missing = [...expected].filter(d => !actual.has(d));
+    const extra   = [...actual].filter(d => !expected.has(d));
+    const v = vc(c.vehicleId);
+    const status = missing.length === 0 && extra.length === 0 ? 'ok'
+                 : missing.length > 0 ? 'missing' : 'extra';
+    if (status === 'ok') okCount++;
+    else if (missing.length) missingCount++;
+    if (extra.length) extraCount++;
+
+    const statusIcon = status === 'ok'
+      ? `<span style="color:#16a34a;font-weight:700">✅ 정상</span>`
+      : `<span style="color:#dc2626;font-weight:700">⚠️ 불일치</span>`;
+
+    const missingDays = missing.map(d => DOW_LABEL[d]).join('·');
+    const extraDays   = extra.map(d => DOW_LABEL[d]).join('·');
+
+    return `<tr style="background:${status!=='ok'?'#fff7ed':'#fff'}">
+      <td style="font-weight:700;padding:7px 10px">${c.name}</td>
+      <td style="padding:7px 10px">
+        <span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;background:${TYPE_COLOR[c.scheduleType||'daily']};color:${TYPE_TEXT[c.scheduleType||'daily']}">
+          ${TYPE_LABEL[c.scheduleType||'daily']}
+        </span>
+      </td>
+      <td style="padding:7px 10px;font-size:12px">${v ? `<span style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:${v.color}"></div>${v.name}</span>` : '<span style="color:#94a3b8">미배정</span>'}</td>
+      <td style="padding:7px 10px;font-size:12px">${[...expected].map(d=>DOW_LABEL[d]).join('·') || '-'}</td>
+      <td style="padding:7px 10px;font-size:12px">${actual.size ? [...actual].sort().map(d=>DOW_LABEL[d]).join('·') : '<span style="color:#ef4444">없음</span>'}</td>
+      <td style="padding:7px 10px">${statusIcon}${missing.length?`<div style="font-size:11px;color:#dc2626;margin-top:2px">누락: ${missingDays}</div>`:''}${extra.length?`<div style="font-size:11px;color:#d97706;margin-top:2px">초과: ${extraDays}</div>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  const summary = `<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="background:#dcfce7;border-radius:8px;padding:8px 16px;text-align:center">
+      <div style="font-size:20px;font-weight:800;color:#15803d">${okCount}</div>
+      <div style="font-size:11px;color:#15803d">정상 배치</div>
+    </div>
+    <div style="background:${missingCount?'#fee2e2':'#f1f5f9'};border-radius:8px;padding:8px 16px;text-align:center">
+      <div style="font-size:20px;font-weight:800;color:${missingCount?'#dc2626':'#94a3b8'}">${missingCount}</div>
+      <div style="font-size:11px;color:${missingCount?'#dc2626':'#94a3b8'}">누락 있음</div>
+    </div>
+    <div style="background:${extraCount?'#fff7ed':'#f1f5f9'};border-radius:8px;padding:8px 16px;text-align:center">
+      <div style="font-size:20px;font-weight:800;color:${extraCount?'#d97706':'#94a3b8'}">${extraCount}</div>
+      <div style="font-size:11px;color:${extraCount?'#d97706':'#94a3b8'}">초과 배치</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;font-size:12px;color:#64748b">
+      💡 누락 = 등원유형 기준 요일에 템플릿 미등록<br>초과 = 등원유형 외 요일에 배치됨
+    </div>
+  </div>`;
+
+  const table = `<div class="table-wrapper"><table style="width:100%">
+    <thead><tr style="background:#f8fafc">
+      <th style="padding:7px 10px;font-size:12px">이름</th>
+      <th style="padding:7px 10px;font-size:12px">등원유형</th>
+      <th style="padding:7px 10px;font-size:12px">담당 차량</th>
+      <th style="padding:7px 10px;font-size:12px">기대 요일</th>
+      <th style="padding:7px 10px;font-size:12px">실제 배치</th>
+      <th style="padding:7px 10px;font-size:12px">상태</th>
+    </tr></thead>
+    <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8">이용자가 없습니다.</td></tr>'}</tbody>
+  </table></div>`;
+
+  document.getElementById('placementAuditBody').innerHTML = summary + table;
+}
+
+function autoFixMissingPlacements() {
+  const activeClients = DB.clients.filter(c => c.status === 'active' && c.vehicleId);
+  let fixed = 0;
+  activeClients.forEach(c => {
+    const expected = clientIsOnDay ? [] : [];
+    autoInsertClientToTemplates(c);
+    fixed++;
+  });
+  renderPlacementAudit();
+  toast(`${fixed}명 일괄 배치 완료 — 결과를 다시 확인하세요`);
+}
+
+
 </script>
 
 <script>
@@ -2011,6 +3801,7 @@ function renderSettings(){
   document.getElementById('sStartTime').value=s.startTime||'08:30';
   document.getElementById('sEndTime').value=s.endTime||'17:00';
   document.getElementById('sKakaoKey').value=s.kakaoKey||'';
+  document.getElementById('sKakaoJsKey').value=s.kakaoJsKey||'';
   document.getElementById('storageInfo').innerHTML=
     `이용자: ${DB.clients.length}명 | 차량: ${DB.vehicles.length}대 | 운전원: ${DB.drivers.length}명 | 결석: ${DB.absences.length}건<br>저장 크기: ${(JSON.stringify(DB).length/1024).toFixed(1)}KB`;
 }
@@ -2022,7 +3813,8 @@ function saveSettings(){
     orgLng:+document.getElementById('sOrgLng').value||126.9780,
     startTime:document.getElementById('sStartTime').value,
     endTime:document.getElementById('sEndTime').value,
-    kakaoKey:document.getElementById('sKakaoKey').value};
+    kakaoKey:document.getElementById('sKakaoKey').value,
+    kakaoJsKey:document.getElementById('sKakaoJsKey').value||DB.settings.kakaoJsKey||''};
   save();document.getElementById('headerInfo').textContent=DB.settings.orgName;toast('설정 저장 완료');
 }
 
@@ -2106,7 +3898,7 @@ function init(){
   const linkedYear = Number(params.get('year')) || new Date().getFullYear();
   const linkedMonth = Number(params.get('month')) || new Date().getMonth()+1;
   const linkedDate = params.get('date') || ds();
-  const linkedTab = params.get('tab') || 'driverschedule';
+  const linkedTab = params.get('tab') || 'dashboard';
   // dsYear selector
   const dsy = document.getElementById('dsYear');
   if(dsy){
