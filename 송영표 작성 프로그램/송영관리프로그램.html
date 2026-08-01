@@ -3556,6 +3556,18 @@ function optimizeAll(){
 // ============================================================
 // MAP
 // ============================================================
+// 지도 필터: ''=전체, 'v:차량명'=차량 전체 회차, 'r:차량명#N'=특정 회차
+function mapFilterEntries(section, vid){
+  if (!vid) return section;
+  if (vid.indexOf('r:') === 0) {
+    const s = vid.slice(2), h = s.lastIndexOf('#'), name = s.slice(0, h), run = +s.slice(h+1);
+    let seen = 0;
+    return (section||[]).filter(v => { if (v.vehicle !== name) return false; seen++; return seen === run; });
+  }
+  if (vid.indexOf('v:') === 0) { const n = vid.slice(2); return (section||[]).filter(v => v.vehicle === n); }
+  return (section||[]).filter(v => v.vehicle === vid); // 하위호환(옛 값=차량명)
+}
+
 function renderMapList(){
   const dstr = (document.getElementById('mapDate')&&document.getElementById('mapDate').value) || ds();
   const vid = document.getElementById('mapVehicle').value;
@@ -3565,17 +3577,25 @@ function renderMapList(){
   const sch = filterScheduleByDay(getScheduleForDate(dstr), dstr);
   const section = dir==='pickup' ? (sch&&sch.morning||[]) : (sch&&sch.afternoon||[]);
 
-  // 차량 선택 드롭다운 갱신
+  // 차량/회차 선택 드롭다운 (회차가 여러 개면 "전체 회차" + "N회차" 항목 제공)
   const ms = document.getElementById('mapVehicle');
-  if (ms.options.length <= 1) {
-    const vehicles = [...new Set(section.map(v=>v.vehicle))];
-    vehicles.forEach(vn => {
-      if ([...ms.options].some(o=>o.value===vn)) return;
-      const o = document.createElement('option'); o.value=vn; o.textContent=vn; ms.appendChild(o);
-    });
-  }
+  const prevSel = ms.value;
+  const _tot = {}; section.forEach(v=>{_tot[v.vehicle]=(_tot[v.vehicle]||0)+1;});
+  const _seenO = {}; let _opts = '<option value="">전체 차량</option>';
+  section.forEach(v=>{
+    if (_tot[v.vehicle] > 1) {
+      _seenO[v.vehicle] = (_seenO[v.vehicle]||0)+1;
+      const rn = _seenO[v.vehicle];
+      if (rn === 1) _opts += `<option value="v:${v.vehicle}">${v.vehicle} (전체 회차)</option>`;
+      _opts += `<option value="r:${v.vehicle}#${rn}">${v.vehicle} · ${rn}회차</option>`;
+    } else {
+      _opts += `<option value="v:${v.vehicle}">${v.vehicle}</option>`;
+    }
+  });
+  ms.innerHTML = _opts;
+  if ([...ms.options].some(o=>o.value===prevSel)) ms.value = prevSel;
 
-  const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+  const filtered = mapFilterEntries(section, ms.value);
   const runTot = {}; filtered.forEach(v=>{runTot[v.vehicle]=(runTot[v.vehicle]||0)+1;}); const runSeen = {};
 
   let h = '';
@@ -3684,11 +3704,15 @@ function drawKakaoMap() {
     .bindTooltip('🏢 ' + ((DB.settings&&DB.settings.orgName)||'기관'), { permanent:true, direction:'top' });
 
   const pts = [[orgLat, orgLng]];
-  const filtered = vid ? section.filter(v=>v.vehicle===vid) : section;
+  const filtered = mapFilterEntries(section, vid);
+  // 회차 번호(차량 내 순번) — 2회차+는 점선으로 구분
+  const runIndex = new Map();
+  { const seen = {}; (section||[]).forEach(v => { seen[v.vehicle] = (seen[v.vehicle]||0)+1; runIndex.set(v, seen[v.vehicle]); }); }
   let noCoord = 0;
 
   filtered.forEach(vdata => {
     const col = vColor(vdata.vehicle);
+    const rNo = runIndex.get(vdata) || 1;
     const path = [[orgLat, orgLng]];
     let seq = 1;
     vdata.stops.forEach(stop => {
@@ -3708,10 +3732,12 @@ function drawKakaoMap() {
         seq++;
       });
     });
-    // 경로 폴리라인 (기관→정거장→기관)
+    // 경로 폴리라인 (기관→정거장→기관) — 2회차 이상은 점선으로 구분
     if (path.length > 1) {
       path.push([orgLat, orgLng]);
-      L.polyline(path, { color:col, weight:3, opacity:0.85 }).addTo(map);
+      L.polyline(path, { color:col, weight:3, opacity:0.85, dashArray: rNo>1 ? '9,7' : null })
+        .addTo(map)
+        .bindTooltip(`${vdata.vehicle}${rNo>1?' · '+rNo+'회차':''}${vdata.departTime?' (🏢'+vdata.departTime+'→'+(vdata.returnTime||'-')+')':''}`, { sticky:true });
     }
   });
 
