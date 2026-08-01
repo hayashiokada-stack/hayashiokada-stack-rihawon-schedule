@@ -467,7 +467,13 @@
         <div class="form-group"><label class="form-label">경도 (자동입력)</label><input type="number" class="form-control" id="cLng" step="0.0001" placeholder="126.9780"></div>
       </div>
       <div class="form-group"><label class="form-label">보호자 / 연락처</label><input type="text" class="form-control" id="cGuardian" placeholder="홍길동 / 010-0000-0000"></div>
-      <div class="form-group"><label class="form-label">담당 차량</label><select class="form-control" id="cVehicle"></select></div>
+      <div class="form-group"><label class="form-label">담당 차량 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">희망시간 입력 후 자동 추천</span></label>
+        <div style="display:flex;gap:6px">
+          <select class="form-control" id="cVehicle" style="flex:1"></select>
+          <button type="button" class="btn btn-secondary" onclick="applyVehicleRecommend()" title="희망 송영시간·위치·정원·휠체어 기준으로 차량 추천" style="white-space:nowrap">🚐 추천</button>
+        </div>
+        <div id="vehicleRecommendNote" style="display:none;font-size:11px;color:#15803d;margin-top:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:5px 8px"></div>
+      </div>
       <div class="form-group">
         <label class="form-label">등원 유형 *</label>
         <select class="form-control" id="cScheduleType" onchange="toggleCustomDays()">
@@ -490,7 +496,7 @@
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">🌅 등원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
-          <input type="time" class="form-control" id="cPickup" value="09:00">
+          <input type="time" class="form-control" id="cPickup" value="09:00" onchange="if(!document.getElementById('cVehicle').value)applyVehicleRecommend()">
         </div>
         <div class="form-group">
           <label class="form-label">🌇 하원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
@@ -1210,6 +1216,7 @@ function renderClients(){
 
 function openClientModal(id){
   editCid=id||null;
+  { const rn=document.getElementById('vehicleRecommendNote'); if(rn) rn.style.display='none'; }
   document.getElementById('clientModalTitle').textContent=id?'이용자 수정':'이용자 추가';
   document.getElementById('addrResults').style.display='none';
   fillVSelect('cVehicle');
@@ -2183,6 +2190,65 @@ function renderScheduleVehicleCard(vdata, type, dstr, vIdx, runNo, runTotal) {
     <div style="padding:6px 14px 10px">${wcWarn}${stopsHtml}</div>
     ${actionRow}
   </div>`;
+}
+
+// 신규 이용자 희망 송영시간 기준 차량 추천 (시간 근접 + 위치 + 정원 + 휠체어)
+function recommendVehicle(client){
+  if (client.individual) return null;   // 개별 등하원 → 차량 미배정
+  const pickupMin = timeToMin(client.pickupTime || '09:00');
+  const days = (client.days && client.days.length) ? client.days : daysFromScheduleType(client.scheduleType || 'daily', client.days);
+  const needWheel = !!client.needsWheelchair;
+  const clat = +client.lat || null, clng = +client.lng || null;
+  const cands = [];
+  (DB.vehicles || []).forEach(veh => {
+    if (needWheel && !veh.wheelchairAccessible) return;   // 휠체어 필요 → 휠체어 차량만
+    const assigned = (DB.clients || []).filter(c => c.vehicleId === veh.id && c.status === 'active' && c.id !== client.id).length;
+    const overCap = assigned >= (veh.cap || 8);
+    let bestTimeDiff = Infinity, bestDist = Infinity;
+    (days || []).forEach(dow => {
+      const tmpl = (DB.scheduleTemplates || {})[dow]; if (!tmpl) return;
+      (tmpl.morning || []).filter(v => v.vehicle === veh.name).forEach(vEntry => {
+        (vEntry.stops || []).forEach(s => {
+          const diff = Math.abs(timeToMin(s.time) - pickupMin);
+          if (diff < bestTimeDiff) bestTimeDiff = diff;
+          if (clat && clng) {
+            s.clients.forEach(n => { const oc = (DB.clients || []).find(x => x.name === n); if (oc && oc.lat && oc.lng) { const d = haversine(clat, clng, +oc.lat, +oc.lng); if (d < bestDist) bestDist = d; } });
+          }
+        });
+      });
+    });
+    const timeScore = bestTimeDiff === Infinity ? 300 : bestTimeDiff;   // 해당 요일 정거장 없으면 큰 값
+    const distScore = bestDist === Infinity ? 0 : bestDist * 6;         // km당 가중
+    const score = timeScore + distScore + (overCap ? 1000 : 0) + assigned * 0.2;
+    cands.push({ veh, score, bestTimeDiff, bestDist, assigned, overCap });
+  });
+  if (!cands.length) return null;
+  cands.sort((a, b) => a.score - b.score);
+  return cands[0];
+}
+
+function applyVehicleRecommend(){
+  const days = daysFromScheduleType(document.getElementById('cScheduleType').value, [...document.querySelectorAll('.c-day:checked')].map(cb => +cb.value));
+  const temp = {
+    id: editCid,
+    pickupTime: document.getElementById('cPickup').value || '09:00',
+    scheduleType: document.getElementById('cScheduleType').value, days,
+    needsWheelchair: document.getElementById('cWheelchair').checked,
+    individual: document.getElementById('cIndividual').checked,
+    lat: +document.getElementById('cLat').value || null,
+    lng: +document.getElementById('cLng').value || null
+  };
+  const note = document.getElementById('vehicleRecommendNote');
+  if (temp.individual) { toast('개별 등하원 이용자는 차량 미배정입니다.', 'warn'); return; }
+  const rec = recommendVehicle(temp);
+  if (!rec) { toast('추천할 차량이 없습니다 (정원·휠체어 조건 확인).', 'warn'); return; }
+  document.getElementById('cVehicle').value = rec.veh.id;
+  const reasons = [];
+  if (rec.bestTimeDiff !== Infinity && rec.bestTimeDiff < 300) reasons.push(`희망 ${temp.pickupTime} 기준 ${rec.bestTimeDiff}분 차 정거장`);
+  if (rec.bestDist !== Infinity) reasons.push(`가까운 탑승지 ${rec.bestDist.toFixed(1)}km`);
+  reasons.push(`탑승 ${rec.assigned}/${rec.veh.cap}명${rec.overCap ? ' ⚠정원초과' : ''}`);
+  if (note) { note.style.display = 'block'; note.innerHTML = `🚐 추천: <strong>${rec.veh.name}</strong> — ${reasons.join(' · ')}<br><span style="color:#64748b">저장하면 이 차량 일정(템플릿)에 자동 반영됩니다.</span>`; }
+  toast(`추천 차량: ${rec.veh.name}`);
 }
 
 function autoInsertClientToTemplates(client) {
