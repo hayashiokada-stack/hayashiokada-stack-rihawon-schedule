@@ -300,12 +300,18 @@
   .sm-badge-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
   .sm-badge { font-size:10px; padding:2px 8px; border-radius:8px; font-weight:500; }
 </style>
+<script src="/firebase-config.js"></script>
+<script type="module" src="/firebase-sync.js"></script>
 </head>
 <body>
 
 <header>
   <div class="logo">리하원 <span>근무표 v4 <span class="save-dot" id="save-dot" title="저장 상태"></span></span></div>
   <div class="header-actions">
+    <span id="cloud-pill" style="display:none;align-items:center;gap:6px;font-size:11px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:4px 8px;border-radius:6px;">
+      ☁ <span id="cloud-status">동기화</span><span id="cloud-user" style="opacity:0.8;"></span>
+      <button class="hbtn" style="padding:2px 6px;" onclick="doLogout()">로그아웃</button>
+    </span>
     <button class="hbtn primary" onclick="openStaffModal()">👥 직원 관리</button>
     <button class="hbtn" onclick="openChecklistModal()">🔄 자동배치</button>
     <button class="hbtn" onclick="clearAll()">초기화</button>
@@ -321,7 +327,7 @@
       <div class="sidebar-label">이번 달 현황</div>
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-num" id="stat-staff">17</div>
+          <div class="stat-num" id="stat-staff">18</div>
           <div class="stat-lbl">전체 직원</div>
         </div>
         <div class="stat-card">
@@ -468,6 +474,26 @@
   </div>
 </div>
 
+<!-- LOGIN GATE (클라우드 설정 시에만 표시) -->
+<div class="modal-overlay" id="login-gate" style="z-index:3000;">
+  <div class="modal" style="width:320px;">
+    <h3>🔒 리하원 로그인</h3>
+    <div class="sub">센터 공용 계정으로 로그인하면 근무표가 클라우드에 저장·공유됩니다.</div>
+    <div class="sm-form-group full" style="margin-bottom:10px;">
+      <label class="sm-label">이메일</label>
+      <input class="sm-input" id="login-email" type="email" autocomplete="username" placeholder="center@rihawon.kr">
+    </div>
+    <div class="sm-form-group full" style="margin-bottom:6px;">
+      <label class="sm-label">비밀번호</label>
+      <input class="sm-input" id="login-pw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-err" style="color:var(--warn);font-size:11px;min-height:14px;margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="mbtn primary" style="width:100%;" onclick="doLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- AUTOFILL CHECKLIST MODAL -->
@@ -550,6 +576,17 @@ const SHIFTS = {
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
   'H':  { label:'연차',   time:'',            cls:'shift-holiday', hours:0,  isTransport:false },
   'HH': { label:'반차',   time:'',            cls:'shift-halfday', hours:4,  isTransport:false },
+};
+
+// ▶ 법정 인력배치기준 (노인복지법 시행규칙 별표9 요지 · 설정값으로 관리)
+//   규정이 바뀌면 이 객체만 수정하면 됩니다. 착수/운영 전 관할 지자체·공단 최신 기준을 반드시 재확인하세요.
+const STAFFING_RULES = {
+  carePerUsers:     7,   // 요양보호사: 이용자 N명당 1명 이상
+  nurseMinUsers:    10,  // 간호(조무)사: 이용자 N명 이상일 때 배치
+  swMinUsers:       25,  // 사회복지사: 이용자 N명 이상일 때 1명 이상
+  therapistMinUsers:30,  // 물리/작업치료사: 이용자 N명 이상일 때 1명 이상
+  nightMinStaff:    1,   // 야간(단기보호): 밤 시간대 최소 근무 인력
+  restHours:        11,  // 야간·이브닝 근무 후 연속 휴게 시간(시간)
 };
 
 // ▲ 개선④: 날짜별 이용자 수 (동적 관리)
@@ -668,11 +705,17 @@ function openTransportProgram(tab = 'today') {
   showToast('송영관리프로그램을 열었습니다', 'ok');
 }
 
-function saveData() {
+// 현재 달을 localStorage에 영구 저장 (토스트/동기화 없이 저장만)
+function persistData() {
   const key = getSaveKey();
   cleanRetiredScheduleData();
   const payload = { scheduleData, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
   localStorage.setItem(key, JSON.stringify(payload));
+  cloudPushMonthDebounced();          // ▶ 로그인 상태면 클라우드에도 반영(자동)
+}
+
+function saveData() {
+  persistData();
   syncTransportData(true);
   document.getElementById('save-dot').classList.add('saved');
   showToast('💾 저장 완료!', 'ok');
@@ -718,7 +761,8 @@ function migrateSaturdayServiceDays() {
 }
 
 function autoSave() {
-  document.getElementById('save-dot').classList.remove('saved');
+  persistData();                       // ▶ 편집 즉시 영구 저장 — 저장 버튼을 누르지 않아도 유실되지 않음
+  document.getElementById('save-dot').classList.add('saved');
   syncTransportData(true);
 }
 
@@ -854,36 +898,69 @@ function calcStaffHours(sid) {
 // 주간 근무 여부 (야간/이브닝/휴무/연차 제외)
 function isDayWorking(sh) { return sh && !['O','H','HH','N','E'].includes(sh); }
 
-function renderLawPanel() {
-  const days = getDays().filter(isServiceDay);
-  let insuffDays = 0, hasNurseAll = true, hasSWAll = true;
+// ── 법정 배치기준 종합 검증 (주간·야간) — renderLawPanel/updateStats 공용 ──
+// 반환: 각 위반 "일수" 및 휴게 위반 "건수". 아직 편성되지 않은(근무 0명) 영업일은 검증 대상에서 제외.
+function computeCompliance(days = getDays()) {
+  const totalDays = new Date(currentYear, currentMonth, 0).getDate();
+  let careShortDays = 0, nurseMissDays = 0, swMissDays = 0, therapistMissDays = 0;
+  let nightShortDays = 0, restViolations = 0;
 
-  days.forEach(d => {
+  days.filter(isServiceDay).forEach(d => {
     const users = getDailyUsers(d);
-    const minCare = Math.ceil(users / 7);
-    const careWorking = STAFF.filter(s => {
-      if (!isStaffActiveOnDay(s, d)) return false;
-      const sh = scheduleData[`${s.id}-${d}`];
-      return s.type==='care' && isDayWorking(sh);
-    }).length;
-    if (careWorking > 0 && careWorking < minCare) insuffDays++;
-    const hasNurse = STAFF.some(s => isStaffActiveOnDay(s, d) && s.type==='nurse' && isDayWorking(scheduleData[`${s.id}-${d}`]));
-    const hasSW = STAFF.some(s => isStaffActiveOnDay(s, d) && s.type==='sw' && isDayWorking(scheduleData[`${s.id}-${d}`]));
-    if (!hasNurse) hasNurseAll = false;
-    if (!hasSW) hasSWAll = false;
+    const working = STAFF.filter(s => isStaffActiveOnDay(s, d) && isDayWorking(scheduleData[`${s.id}-${d}`]));
+    if (working.length === 0) return;                    // 미편성일은 제외
+    const careCount = working.filter(s => s.type === 'care').length;
+    // ▶ 0명 미배치도 부족으로 집계 (기존 careWorking>0 가드가 전원 미배치를 놓치던 버그 수정)
+    if (careCount < Math.ceil(users / STAFFING_RULES.carePerUsers)) careShortDays++;
+    // 간호/사회복지/치료사는 이용현원이 기준 이상일 때만 필수
+    if (users >= STAFFING_RULES.nurseMinUsers   && !working.some(s => s.type === 'nurse')) nurseMissDays++;
+    if (users >= STAFFING_RULES.swMinUsers      && !working.some(s => s.type === 'sw'))    swMissDays++;
+    if (users >= STAFFING_RULES.therapistMinUsers && !working.some(s => s.type === 'pt' || s.type === 'ot')) therapistMissDays++;
   });
 
-  const panelOk = insuffDays === 0 && hasNurseAll && hasSWAll;
+  // ── 야간(단기보호) 검증 ──
+  days.forEach(d => {
+    STAFF.forEach(s => {
+      if (!isStaffActiveOnDay(s, d)) return;
+      const sh = scheduleData[`${s.id}-${d}`];
+      // 11시간 휴게: N/E 근무 다음날이 주간근무면 위반
+      if ((sh === 'N' || sh === 'E') && d + 1 <= totalDays && isDayWorking(scheduleData[`${s.id}-${d + 1}`])) {
+        restViolations++;
+      }
+    });
+    // 야간 인력: 단기보호 주간 평일 밤에 야간(N) 담당이 최소기준 미만
+    if (isShortTermDay(d)) {
+      const dow = getDow(d);
+      if (dow >= 1 && dow <= 5) {
+        const nightCount = STAFF.filter(s => isStaffActiveOnDay(s, d) && scheduleData[`${s.id}-${d}`] === 'N').length;
+        if (nightCount < STAFFING_RULES.nightMinStaff) nightShortDays++;
+      }
+    }
+  });
+
+  return { careShortDays, nurseMissDays, swMissDays, therapistMissDays, nightShortDays, restViolations };
+}
+
+function renderLawPanel() {
+  const c = computeCompliance();
+  const nightApplies = shortTermWeeks.size > 0;
+  const panelOk = c.careShortDays === 0 && c.nurseMissDays === 0 && c.swMissDays === 0 &&
+                  c.therapistMissDays === 0 && c.nightShortDays === 0 && c.restViolations === 0;
+  const row = (label, bad, okText, badText) =>
+    `<div class="law-item"><span>${label}</span><span class="${bad===0?'ok':'ng'}">${bad===0?okText:badText}</span></div>`;
   document.getElementById('law-panel-wrap').innerHTML = `
     <div class="law-panel ${panelOk?'ok':''}">
       <div class="law-title" style="color:${panelOk?'var(--accent)':'var(--warn)'}">
         ${panelOk ? '✓ 법령 기준 충족' : '⚠ 법령 확인 필요'}
       </div>
-      <div class="law-item"><span>요양사 부족 일수</span><span class="${insuffDays===0?'ok':'ng'}">${insuffDays}일 ${insuffDays===0?'✓':'✗'}</span></div>
-      <div class="law-item"><span>간호(조무)사 배치</span><span class="${hasNurseAll?'ok':'ng'}">${hasNurseAll?'전일 배치 ✓':'미배치일 있음 ✗'}</span></div>
-      <div class="law-item"><span>사회복지사 배치</span><span class="${hasSWAll?'ok':'ng'}">${hasSWAll?'전일 배치 ✓':'미배치일 있음 ✗'}</span></div>
+      ${row('요양사 부족 일수', c.careShortDays, '0일 ✓', c.careShortDays + '일 ✗')}
+      ${row('간호(조무)사 배치', c.nurseMissDays, '충족 ✓', c.nurseMissDays + '일 부족 ✗')}
+      ${row('사회복지사 배치', c.swMissDays, '충족 ✓', c.swMissDays + '일 부족 ✗')}
+      ${row('물리/작업치료사', c.therapistMissDays, '충족 ✓', c.therapistMissDays + '일 부족 ✗')}
+      ${nightApplies ? row('야간 인력(단기보호)', c.nightShortDays, '충족 ✓', c.nightShortDays + '일 부족 ✗') : ''}
+      ${row('11시간 휴게', c.restViolations, '위반 없음 ✓', c.restViolations + '건 위반 ✗')}
       <div class="law-item" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.08);">
-        <span style="font-size:9px;color:var(--text3)">※ 전체 영업일 기준 검증</span>
+        <span style="font-size:9px;color:var(--text3)">※ 이용현원·직종 기준 · 편성된 영업일만 검증</span>
       </div>
     </div>`;
 }
@@ -1472,7 +1549,7 @@ function autoFill() {
       }
 
       if (s.type === 'care') {
-        if (s.name === '정윤정') { scheduleData[key] = 'B'; return; }
+        if (s.role && s.role.includes('주방')) { scheduleData[key] = 'B'; return; }   // 주방 담당은 B반 고정(이름 하드코딩 제거)
         const dayIdx = weekDays.indexOf(d);
         if (s.hasLicense) {
           const licIdx = licCare.findIndex(x => x.id === s.id);
@@ -1525,6 +1602,22 @@ function autoFill() {
     });
   }
 
+  // ─── 3단계: 야간(N)·이브닝(E) 근무 다음날 11시간 휴게 보장 ──────────
+  // N(20:00-08:00)·E(14:00-22:00) 직후 주간근무가 잡히면 휴게 위반 → 다음날을 휴무(O)로 대체.
+  // E→N 연쇄(이브닝 다음 야간)는 isDayWorking(N)=false 라 그대로 보존된다.
+  // 연차(H)·반차(HH)·휴무(O)는 유지한다.
+  const totalDaysForRest = new Date(currentYear, currentMonth, 0).getDate();
+  activeStaff.forEach(s => {
+    for (let d = 1; d <= totalDaysForRest; d++) {
+      const sh = scheduleData[`${s.id}-${d}`];
+      if (sh !== 'N' && sh !== 'E') continue;
+      const nd = d + 1;
+      if (nd > totalDaysForRest || !isStaffActiveOnDay(s, nd)) continue;
+      const nsh = scheduleData[`${s.id}-${nd}`];
+      if (!nsh || isDayWorking(nsh)) scheduleData[`${s.id}-${nd}`] = 'O';
+    }
+  });
+
   refresh();
   showToast('자동 배치 완료! 법령 기준을 확인하세요.', 'ok');
   autoSave();
@@ -1551,19 +1644,20 @@ function updateStats() {
   document.getElementById('stat-shifts').textContent = total;
 
   const days = getDays().filter(isServiceDay);
-  let insuff=0, over=0, nightCount=0;
+  const comp = computeCompliance(getDays());   // 부족 일수는 법령검증과 동일 기준 사용(0명 미배치 포함)
+  let over=0, nightCount=0;
 
   days.forEach(d => {
     const users = getDailyUsers(d);
-    const minCare = Math.ceil(users/7);
-    const maxCare = Math.ceil(users/4);
-    const careW = STAFF.filter(s => isStaffActiveOnDay(s, d) && s.type==='care' && isDayWorking(scheduleData[`${s.id}-${d}`])).length;
-    if (careW>0&&careW<minCare) insuff++;
+    const maxCare = Math.ceil(users/4);          // 운영 참고용 과잉 기준(법정 근거 아님)
+    const working = STAFF.filter(s => isStaffActiveOnDay(s, d) && isDayWorking(scheduleData[`${s.id}-${d}`]));
+    if (working.length === 0) return;            // 미편성일 제외
+    const careW = working.filter(s => s.type==='care').length;
     if (careW>maxCare) over++;
     nightCount += STAFF.filter(s => isStaffActiveOnDay(s, d) && (scheduleData[`${s.id}-${d}`]==='N' || scheduleData[`${s.id}-${d}`]==='E')).length;
   });
 
-  document.getElementById('stat-warn').textContent = insuff;
+  document.getElementById('stat-warn').textContent = comp.careShortDays;
   document.getElementById('stat-over').textContent = over;
   document.getElementById('stat-night').textContent = nightCount;
   const weekday = getMonthDays().find(d => { const dw = getDow(d); return dw >= 1 && dw <= 5; });
@@ -1619,6 +1713,8 @@ function refresh() {
 }
 
 function changeMonth(dir) {
+  persistData();                       // ▶ 월 이동 전 현재 달을 저장해 유실 방지
+  clearTimeout(_cloudPushTimer); cloudPushMonth(true);   // 구 달을 클라우드에 확정 저장(경로 동기 캡처)
   currentMonth += dir;
   if (currentMonth>12) { currentMonth=1; currentYear++; }
   if (currentMonth<1) { currentMonth=12; currentYear--; }
@@ -1627,6 +1723,7 @@ function changeMonth(dir) {
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   refresh();
   loadData();
+  cloudPullMonth();                    // ▶ 새 달을 클라우드에서 최신본으로 불러오기
 }
 
 function setView(v) {
@@ -1954,8 +2051,85 @@ document.getElementById('sm-overlay').addEventListener('click', function(e){ if(
 // ── START ─────────────────────────────────────────────────────────
 document.getElementById('modal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('night-modal').addEventListener('click', function(e){ if(e.target===this) closeNightModal(false); });
+// ── CLOUD SYNC (Firebase) ─────────────────────────────────────────
+// 저장 시 클라우드 반영 + 열 때 최신 불러오기. 로그인(센터 공용 계정) 필요.
+// firebase-config.js 가 자리표시자면 CLOUD.enabled=false → 아래 함수들은 모두 no-op(로컬 전용).
+const CENTER = (window.FIREBASE_CENTER_ID || 'rihawon');
+function schedDocPath(){ return `centers/${CENTER}/schedules/${currentYear}_${currentMonth}`; }
+function setCloudStatus(t){ const el=document.getElementById('cloud-status'); if(el) el.textContent=t; }
+
+function renderAuthUI(user){
+  const gate=document.getElementById('login-gate');
+  const pill=document.getElementById('cloud-pill');
+  if(!window.CLOUD || !window.CLOUD.enabled){ if(gate)gate.style.display='none'; if(pill)pill.style.display='none'; return; }
+  if(user){
+    if(gate)gate.style.display='none';
+    if(pill)pill.style.display='inline-flex';
+    const u=document.getElementById('cloud-user'); if(u)u.textContent=' · '+(user.email||'로그인됨');
+  } else {
+    if(gate)gate.style.display='flex';
+    if(pill)pill.style.display='none';
+  }
+}
+async function doLogin(){
+  const email=(document.getElementById('login-email').value||'').trim();
+  const pw=document.getElementById('login-pw').value||'';
+  const err=document.getElementById('login-err'); if(err)err.textContent='';
+  try{ await window.CLOUD.signIn(email,pw); }
+  catch(e){ if(err)err.textContent='로그인 실패: '+(e.code||e.message||''); }
+}
+function doLogout(){ if(window.CLOUD && window.CLOUD.signOut) window.CLOUD.signOut(); }
+
+let _cloudPushTimer=null;
+async function cloudPullMonth(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  setCloudStatus('불러오는 중…');
+  try{
+    const raw=await window.CLOUD.loadDoc(schedDocPath());
+    if(raw && raw.payload){
+      localStorage.setItem(getSaveKey(), raw.payload);   // 클라우드본 → 로컬 캐시
+      loadData();                                        // 로컬에서 읽어 렌더
+      setCloudStatus('클라우드 최신');
+    } else {
+      await cloudPushMonth(true);                        // 클라우드에 없으면 현재 로컬을 최초 업로드
+      setCloudStatus('클라우드 저장됨');
+    }
+  }catch(e){ console.warn('[cloud] pull 실패', e); setCloudStatus('동기화 실패'); }
+}
+function cloudPushMonthDebounced(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  clearTimeout(_cloudPushTimer);
+  _cloudPushTimer=setTimeout(()=>cloudPushMonth(), 800);
+}
+async function cloudPushMonth(silent){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  const path=schedDocPath();                             // 월 변경 전 동기 캡처
+  const payload=localStorage.getItem(getSaveKey());
+  if(payload==null) return;
+  if(!silent) setCloudStatus('저장 중…');
+  try{
+    await window.CLOUD.saveDoc(path, { payload, updatedAt:new Date().toISOString(), by:(window.CLOUD.user.email||'') });
+    setCloudStatus('클라우드 저장됨');
+  }catch(e){ console.warn('[cloud] push 실패', e); setCloudStatus('저장 실패'); }
+}
+function cloudInit(){
+  renderAuthUI(window.CLOUD ? window.CLOUD.user : null);
+  window.addEventListener('cloud-auth', e=>{
+    renderAuthUI(e.detail.user);
+    if(e.detail.user) cloudPullMonth();
+  });
+}
+function whenCloud(cb){
+  if(window.CLOUD) return cb();
+  let done=false;
+  window.addEventListener('cloud-loaded', ()=>{ if(!done){done=true;cb();} }, { once:true });
+  setTimeout(()=>{ if(!done){done=true;cb();} }, 3000);   // SDK 로드 실패 시에도 앱은 로컬로 동작
+}
+
 document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth}월`;
 init();
+whenCloud(cloudInit);                                    // ▶ 클라우드 로그인/동기화 초기화
+window.addEventListener('beforeunload', persistData);   // ▶ 창 닫기/새로고침 직전 마지막 저장 (유실 방지)
 </script>
 </body>
 </html>

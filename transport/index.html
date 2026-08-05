@@ -6,6 +6,8 @@
 <title>송영일정표</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="수급자목록데이터.js"></script>
+<script src="/firebase-config.js"></script>
+<script type="module" src="/firebase-sync.js"></script>
 <style>
   :root {
     --primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#dbeafe;
@@ -127,7 +129,27 @@
 
 <div class="header">
   <div class="header-title">📋 송영일정표</div>
-  <div style="font-size:12px;opacity:.85;text-align:right" id="headerInfo"></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="cloud-pill" style="display:none;align-items:center;gap:6px;font-size:11px;background:rgba(255,255,255,0.18);padding:4px 8px;border-radius:6px;">
+      ☁ <span id="cloud-status">동기화</span><span id="cloud-user" style="opacity:0.85;"></span>
+      <button onclick="doLogout()" style="font-size:11px;padding:2px 6px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:inherit;border-radius:5px;cursor:pointer;">로그아웃</button>
+    </span>
+    <div style="font-size:12px;opacity:.85;text-align:right" id="headerInfo"></div>
+  </div>
+</div>
+
+<!-- LOGIN GATE (클라우드 설정 시에만 표시) -->
+<div id="login-gate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:22px;width:320px;max-width:92vw;box-shadow:0 8px 40px rgba(0,0,0,0.2);color:#0f172a;">
+    <h3 style="margin:0 0 4px;font-size:16px;">🔒 리하원 로그인</h3>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px;">센터 공용 계정으로 로그인하면 송영 데이터가 클라우드에 저장·공유됩니다.</div>
+    <label style="font-size:12px;color:#475569;">이메일</label>
+    <input id="login-email" type="email" autocomplete="username" placeholder="center@rihawon.kr" style="width:100%;height:36px;padding:0 10px;margin:4px 0 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;">
+    <label style="font-size:12px;color:#475569;">비밀번호</label>
+    <input id="login-pw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;height:36px;padding:0 10px;margin:4px 0 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;">
+    <div id="login-err" style="color:#dc2626;font-size:11px;min-height:14px;margin-bottom:8px;"></div>
+    <button onclick="doLogin()" style="width:100%;height:38px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:14px;cursor:pointer;">로그인</button>
+  </div>
 </div>
 
 <div class="nav-tabs">
@@ -856,12 +878,12 @@ let DB = {
   clients:[], vehicles:[], absences:[], drivers:[], vehicleAssignments:[], driverSchedules:[],
   scheduleData:{}, scheduleTemplates:{},
   settings:{orgName:'주간보호센터',orgAddr:'',orgLat:37.5665,orgLng:126.9780,
-            startTime:'08:30',endTime:'17:00',kakaoKey:'c1c3dd6cbd0e1afbe336a56f8daa7de2',kakaoJsKey:''}
+            startTime:'08:30',endTime:'17:00',kakaoKey:'',kakaoJsKey:''}   // ▶ API 키는 설정 화면에서 입력(소스에 하드코딩 금지)
 };
 let editCid=null, editVid=null, importRows=[];
 const DAYS=['일','월','화','수','목','금','토'];
 
-function save(){localStorage.setItem('sy2_db',JSON.stringify(DB));}
+function save(){localStorage.setItem('sy2_db',JSON.stringify(DB));cloudPushDebounced();}   // ▶ 로그인 상태면 클라우드에도 반영(자동)
 
 // ── 차량 명부 표준화 (2026-08 기준 5대) ──
 // 기본 차량 배열은 빈 DB에만 적용되므로, 기존 localStorage도 이 버전으로 일회성 정리
@@ -983,8 +1005,17 @@ function importRihawonBridge(){
   }
   try { bridge = JSON.parse(localStorage.getItem('rihawon_transport_bridge') || 'null'); } catch(e) {}
   if (!bridge || bridge.source !== 'rihawon_schedule_v4') return;
-  DB.drivers = (DB.drivers || []).filter(d => !String(d.id || '').startsWith('rihawon-')).concat(bridge.drivers || []);
-  DB.driverSchedules = (DB.driverSchedules || []).filter(s => !String(s.id || '').startsWith('rihawon-')).concat(bridge.driverSchedules || []);
+  // 근무표에서 온 운전원으로 교체하되, 같은 이름의 로컬 시드 운전원은 제거해 중복 등장을 막는다.
+  const bridgeNames = new Set((bridge.drivers || []).map(d => d.name));
+  DB.drivers = (DB.drivers || [])
+    .filter(d => !String(d.id || '').startsWith('rihawon-'))
+    .filter(d => !bridgeNames.has(d.name))
+    .concat(bridge.drivers || []);
+  // 운전원 스케줄은 "브리지가 담고 있는 해당 연·월"만 교체 — 다른 달에 연결해 둔 스케줄이 사라지지 않도록.
+  const by = bridge.year, bm = bridge.month;
+  DB.driverSchedules = (DB.driverSchedules || [])
+    .filter(s => !(String(s.id || '').startsWith('rihawon-') && s.year === by && s.month === bm))
+    .concat(bridge.driverSchedules || []);
   save();
 }
 
@@ -2495,6 +2526,14 @@ function saveScheduleClient() {
     if (driver) vEntry.driver = driver;
     // 해당 시간 슬롯 찾기
     if (!time) { toast('시간을 입력하세요.','error'); return; }
+    // ▶ 정원 검증 — 이 회차 탑승 인원이 차량 정원을 넘으면 확인 후 진행
+    const vehObj = (DB.vehicles || []).find(v => v.name === vEntry.vehicle);
+    const cap = vehObj ? (vehObj.cap || 0) : 0;
+    const alreadyOnRun = vEntry.stops.some(s => s.clients.includes(clientName));
+    const currentRiders = vEntry.stops.reduce((a, s) => a + s.clients.length, 0);
+    if (cap && !alreadyOnRun && currentRiders >= cap) {
+      if (!confirm(`${vEntry.vehicle} 정원(${cap}명)이 이미 찼습니다. 그래도 ${clientName}님을 추가할까요?`)) return;
+    }
     let slot = vEntry.stops.find(s=>s.time===time);
     if (!slot) { slot = { time, clients:[] }; vEntry.stops.push(slot); vEntry.stops.sort((a,b)=>a.time.localeCompare(b.time)); }
     if (!slot.clients.includes(clientName)) slot.clients.push(clientName);
@@ -4462,7 +4501,87 @@ async function startBulkGeo() {
   renderClients();
 }
 
+// ── CLOUD SYNC (Firebase) ─────────────────────────────────────────
+// 저장 시 클라우드 반영 + 열 때 최신 불러오기. 로그인(센터 공용 계정) 필요.
+// firebase-config.js 가 자리표시자면 CLOUD.enabled=false → 아래 함수들은 모두 no-op(로컬 전용).
+const CENTER = (window.FIREBASE_CENTER_ID || 'rihawon');
+function transportDocPath(){ return `centers/${CENTER}/transport/db`; }
+function setCloudStatus(t){ const el=document.getElementById('cloud-status'); if(el) el.textContent=t; }
+
+function renderAuthUI(user){
+  const gate=document.getElementById('login-gate');
+  const pill=document.getElementById('cloud-pill');
+  if(!window.CLOUD || !window.CLOUD.enabled){ if(gate)gate.style.display='none'; if(pill)pill.style.display='none'; return; }
+  if(user){
+    if(gate)gate.style.display='none';
+    if(pill)pill.style.display='inline-flex';
+    const u=document.getElementById('cloud-user'); if(u)u.textContent=' · '+(user.email||'로그인됨');
+  } else {
+    if(gate)gate.style.display='flex';
+    if(pill)pill.style.display='none';
+  }
+}
+async function doLogin(){
+  const email=(document.getElementById('login-email').value||'').trim();
+  const pw=document.getElementById('login-pw').value||'';
+  const err=document.getElementById('login-err'); if(err)err.textContent='';
+  try{ await window.CLOUD.signIn(email,pw); }
+  catch(e){ if(err)err.textContent='로그인 실패: '+(e.code||e.message||''); }
+}
+function doLogout(){ if(window.CLOUD && window.CLOUD.signOut) window.CLOUD.signOut(); }
+
+function cloudRerender(){
+  load();                                                // sy2_db → DB (+reconcile+bridge)
+  const active = document.querySelector('.nav-tab.active');
+  gotoTab(active ? active.dataset.tab : 'dashboard');
+}
+let _tPushTimer=null;
+async function cloudPull(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  setCloudStatus('불러오는 중…');
+  try{
+    const raw=await window.CLOUD.loadDoc(transportDocPath());
+    if(raw && raw.payload){
+      localStorage.setItem('sy2_db', raw.payload);       // 클라우드본 → 로컬 캐시
+      cloudRerender();
+      setCloudStatus('클라우드 최신');
+    } else {
+      await cloudPush(true);                             // 클라우드에 없으면 현재 로컬을 최초 업로드
+      setCloudStatus('클라우드 저장됨');
+    }
+  }catch(e){ console.warn('[cloud] pull 실패', e); setCloudStatus('동기화 실패'); }
+}
+function cloudPushDebounced(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  clearTimeout(_tPushTimer);
+  _tPushTimer=setTimeout(()=>cloudPush(), 800);
+}
+async function cloudPush(silent){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  const payload=localStorage.getItem('sy2_db');
+  if(payload==null) return;
+  if(!silent) setCloudStatus('저장 중…');
+  try{
+    await window.CLOUD.saveDoc(transportDocPath(), { payload, updatedAt:new Date().toISOString(), by:(window.CLOUD.user.email||'') });
+    setCloudStatus('클라우드 저장됨');
+  }catch(e){ console.warn('[cloud] push 실패', e); setCloudStatus('저장 실패'); }
+}
+function cloudInit(){
+  renderAuthUI(window.CLOUD ? window.CLOUD.user : null);
+  window.addEventListener('cloud-auth', e=>{
+    renderAuthUI(e.detail.user);
+    if(e.detail.user) cloudPull();
+  });
+}
+function whenCloud(cb){
+  if(window.CLOUD) return cb();
+  let done=false;
+  window.addEventListener('cloud-loaded', ()=>{ if(!done){done=true;cb();} }, { once:true });
+  setTimeout(()=>{ if(!done){done=true;cb();} }, 3000);   // SDK 로드 실패 시에도 앱은 로컬로 동작
+}
+
 window.addEventListener('load',init);
+window.addEventListener('load',()=>whenCloud(cloudInit));   // ▶ 클라우드 로그인/동기화 초기화
 </script>
 </body>
 </html>
