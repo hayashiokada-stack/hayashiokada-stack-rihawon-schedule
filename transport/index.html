@@ -1135,7 +1135,7 @@ function gotoTab(id){
 function returnToMainSchedule(){
   const params = new URLSearchParams(window.location.search);
   if (params.get('source') === 'rihawon') {
-    window.location.href = 'file:///Users/udcares/projects/근무표작성 프로그램 제작/rihawon_schedule_v4.html';
+    window.location.href = '/';   // 근무표 작성 프로그램(루트)로 이동
     return;
   }
   gotoTab('dashboard');
