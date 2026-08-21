@@ -218,6 +218,13 @@
   .user-input:focus { outline: 2px solid var(--info); border-radius: 3px; background: #fff; }
 
   /* MODAL */
+  /* 헤더 버튼 묶음 — 사전 입력 / 배치·저장 */
+  .staff-link { cursor: pointer; border-radius: 6px; transition: background 0.12s; }
+  .staff-link:hover { background: var(--accent-light); }
+  .staff-link:hover .sc-name { text-decoration: underline; }
+  .hgroup { position: relative; display: flex; align-items: center; gap: 5px; padding: 9px 9px 5px; border: 1px solid rgba(255,255,255,0.28); border-radius: 8px; }
+  .hgroup + .hgroup { margin-left: 10px; }
+  .hgroup-label { position: absolute; top: -7px; left: 8px; font-size: 9px; font-weight: 700; letter-spacing: 0.2px; padding: 0 4px; background: var(--brand, #2d5a3d); color: rgba(255,255,255,0.9); border-radius: 3px; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border-radius: 12px; padding: 22px; width: 360px; max-width: 94vw; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
@@ -341,14 +348,21 @@
       ☁ <span id="cloud-status">동기화</span><span id="cloud-user" style="opacity:0.8;"></span>
       <button class="hbtn" style="padding:2px 6px;" onclick="doLogout()">로그아웃</button>
     </span>
-    <button class="hbtn primary" onclick="openStaffModal()">👥 직원 관리</button>
-    <button class="hbtn" onclick="openBathModal()">🛁 목욕 담당</button>
-    <button class="hbtn" id="btn-wish" onclick="toggleWishMode()">🙋 희망휴무 입력</button>
-    <button class="hbtn" onclick="openChecklistModal()">🔄 자동배치</button>
-    <button class="hbtn" onclick="clearAll()">초기화</button>
-    <button class="hbtn" onclick="saveData()">💾 저장</button>
-    <button class="hbtn" onclick="loadData()">📂 불러오기</button>
-    <button class="hbtn" onclick="exportCSV()">📥 엑셀저장</button>
+    <div class="hgroup" title="자동배치 전에 미리 정해 두는 항목">
+      <span class="hgroup-label">1. 사전 입력</span>
+      <button class="hbtn" onclick="openShortTermModal()">🌙 단기보호</button>
+      <button class="hbtn" onclick="openSaturdayModal()">📅 주말근무</button>
+      <button class="hbtn" onclick="openBathModal()">🛁 목욕 담당</button>
+      <button class="hbtn" id="btn-wish" onclick="toggleWishMode()">🙋 희망휴무</button>
+    </div>
+    <div class="hgroup" title="근무표를 만들고 저장합니다">
+      <span class="hgroup-label">2. 배치 · 저장</span>
+      <button class="hbtn primary" onclick="openChecklistModal()">🔄 자동배치</button>
+      <button class="hbtn" onclick="clearAll()">초기화</button>
+      <button class="hbtn" onclick="saveData()">💾 저장</button>
+      <button class="hbtn" onclick="loadData()">📂 불러오기</button>
+      <button class="hbtn" onclick="exportCSV()">📥 엑셀저장</button>
+    </div>
   </div>
 </header>
 
@@ -407,8 +421,8 @@
       <div style="font-size:9px;color:var(--text2);margin-bottom:6px;line-height:1.5;">
         6인 링에서 이브닝 담당이 하루 1칸씩 전진하고,<br>그날 야간은 전날 이브닝 담당이 맡습니다. 순번은 달이 바뀌어도 이어집니다.
       </div>
-      <div class="week-selector" id="week-selector"></div>
-      <div id="night-assign-preview" style="display:none;margin-top:8px;font-size:10px;"></div>
+      <button class="hbtn" style="width:100%;font-size:11px;padding:6px 0;margin-bottom:6px;" onclick="openShortTermModal()">🌙 단기보호 주간·담당 설정</button>
+      <div id="night-assign-preview" style="display:none;margin-top:4px;font-size:10px;"></div>
     </div>
 
     <!-- 이용자 수 자동채우기 -->
@@ -495,6 +509,35 @@
   </div>
 </div>
 
+<!-- 사전 입력: 단기보호 -->
+<div class="modal-overlay" id="st-modal" style="z-index:1300;" onclick="if(event.target===this)closePreModal('st-modal')">
+  <div class="modal" style="width:620px;max-width:96vw;">
+    <h3>🌙 단기보호 주간 · 담당</h3>
+    <div class="sub">이번 달 단기보호 주간을 고르면 이브닝·야간 담당이 6인 링 순번으로 채워집니다.<br>
+      이브닝이 하루 1칸씩 전진하고 그날 야간은 전날 이브닝 담당이 맡으며, 순번은 달이 바뀌어도 이어집니다.</div>
+    <div class="week-selector" id="week-selector" style="margin-bottom:12px;"></div>
+    <div id="st-modal-body" style="max-height:48vh;overflow:auto;"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="mbtn" onclick="resetStPlan()">담당 되돌리기</button>
+      <button class="mbtn primary" onclick="closePreModal('st-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 사전 입력: 주말근무 -->
+<div class="modal-overlay" id="sat-modal" style="z-index:1300;" onclick="if(event.target===this)closePreModal('sat-modal')">
+  <div class="modal" style="width:680px;max-width:96vw;">
+    <h3>📅 주말(토요일) 근무</h3>
+    <div class="sub">휴무자는 4주 주기 로테이션으로 정해집니다. 재활 · 간호/SW · 주방 담당만 바꿀 수 있습니다.<br>
+      개인 사정으로 쉬어야 하면 🙋 희망휴무로 신청하세요 (토요일도 받습니다).</div>
+    <div id="sat-modal-body" style="max-height:52vh;overflow:auto;"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="mbtn" onclick="resetSatPlan()">담당 되돌리기</button>
+      <button class="mbtn primary" onclick="closePreModal('sat-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- 결정이 필요한 항목 -->
 <div class="modal-overlay" id="pending-modal" style="z-index:1200;" onclick="if(event.target===this)closePendingModal()">
   <div class="modal" style="width:600px;max-width:96vw;">
@@ -509,7 +552,7 @@
 </div>
 
 <!-- 목욕 담당 편집 -->
-<div class="modal-overlay" id="bath-modal" onclick="if(event.target===this)closeBathModal()">
+<div class="modal-overlay" id="bath-modal" style="z-index:1300;" onclick="if(event.target===this)closeBathModal()">
   <div class="modal" style="width:640px;max-width:96vw;">
     <h3>🛁 목욕 담당</h3>
     <div class="sub">목욕은 고객 요구가 있는 날만 실시합니다. <strong>기본값은 미실시</strong>이니 실시할 날만 체크하세요.<br>
@@ -1367,7 +1410,7 @@ function renderTable() {
     const licBadge = s.hasLicense ? '<span style="font-size:9px;margin-left:3px;color:#7a6b2d;">🚗</span>' : '';
     const retireMeta = s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : '';
     tdName.innerHTML = `
-      <div class="staff-cell">
+      <div class="staff-cell staff-link" onclick="openStaffModal(${s.id})" title="${s.name} 직원 정보 열기">
         <div class="sc-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
         <div class="sc-info">
           <div class="sc-name">${s.name}${licBadge}</div>
@@ -1778,6 +1821,70 @@ function openChecklistModal() {
   document.getElementById('checklist-modal').classList.add('open');
 }
 
+// ── 사전 입력 화면 (단기보호 · 주말근무) ───────────────────────────
+function closePreModal(id) {
+  document.getElementById(id).classList.remove('open');
+  refresh(); autoSave();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
+}
+
+function openShortTermModal() {
+  renderWeekSelector();
+  renderStModal();
+  document.getElementById('st-modal').classList.add('open');
+}
+function resetStPlan() {
+  if (!confirm('이번 달 단기보호 담당 수정을 되돌리고 순번 원안으로 돌아갈까요?')) return;
+  stPlan = {}; renderStModal();
+}
+function renderStModal() {
+  const weeks = [...shortTermWeeks].sort((a, b) => a - b);
+  const pool = activeIds(NIGHT_RING);
+  if (!weeks.length) {
+    document.getElementById('st-modal-body').innerHTML =
+      `<div class="asg-note" style="padding:10px 0;">위에서 단기보호 주간을 먼저 고르세요. 이번 달에 단기보호가 없으면 그대로 두면 됩니다.</div>`;
+    return;
+  }
+  let rows = `<div class="asg-row head" style="grid-template-columns:100px 1fr 1fr;"><span>날짜</span><span>이브닝 13-22</span><span>야간 22-08</span></div>`;
+  weeks.forEach((w, order) => {
+    for (let k = 0; k < 5; k++) {
+      const d = w + k;
+      const duty = shortTermDuty(d) || {};
+      const pl = stPlan[d] || {};
+      rows += `<div class="asg-row" style="grid-template-columns:100px 1fr 1fr;">
+        <span>${d}일 (${DOW_KO[getDow(d)]})</span>
+        <select class="${pl.E ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value);renderStModal()">${opts(pool, duty.E)}</select>
+        <select class="${pl.N ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value);renderStModal()">${opts(pool, duty.N)}</select>
+      </div>`;
+    }
+  });
+  document.getElementById('st-modal-body').innerHTML = rows +
+    `<div class="asg-note">바꾼 칸은 주황 테두리로 표시됩니다. 야간 다음날은 11시간 휴게로 자동 휴무 처리됩니다.</div>`;
+}
+
+function openSaturdayModal() { renderSatModal(); document.getElementById('sat-modal').classList.add('open'); }
+function resetSatPlan() {
+  if (!confirm('이번 달 토요일 담당 수정을 되돌리고 순번 원안으로 돌아갈까요?')) return;
+  satPlan = {}; renderSatModal();
+}
+function renderSatModal() {
+  const carePool = activeIds(STAFF.filter(x => x.type === 'care').map(x => x.id));
+  let rows = `<div class="asg-row head" style="grid-template-columns:74px 46px 1fr 1fr 1fr 1.2fr;">
+    <span>날짜</span><span>주기</span><span>재활</span><span>간호/SW</span><span>주방</span><span>휴무</span></div>`;
+  getMonthDays().filter(d => getDow(d) === 6).forEach(d => {
+    const r = getSaturdayRoster(d); if (!r) return;
+    const pl = satPlan[d] || {};
+    rows += `<div class="asg-row" style="grid-template-columns:74px 46px 1fr 1fr 1fr 1.2fr;">
+      <span>${d}일 (토)</span><span style="color:var(--text3);">${r.cycleWeek}주차</span>
+      <select class="${pl.rehab ? 'manual' : ''}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(activeIds(SAT_REHAB_POOL), r.rehab)}</select>
+      <select class="${pl.nurseSw ? 'manual' : ''}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(activeIds(SAT_NURSE_SW), r.nurseSw)}</select>
+      <select class="${pl.kitchen ? 'manual' : ''}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(carePool, r.kitchen)}</select>
+      <span style="color:var(--text3);">${r.off.map(nameOf).join(', ')}</span>
+    </div>`;
+  });
+  document.getElementById('sat-modal-body').innerHTML = rows;
+}
+
 // ── 자동배치 전 인원 확인 ──────────────────────────────────────────
 const DOW_KO = ['일','월','화','수','목','금','토'];
 function activeIds(ids) {
@@ -1792,88 +1899,77 @@ function opts(pool, sel) {
 function nameOf(id) { const st = STAFF.find(x => x.id === id); return st ? st.name : '—'; }
 
 function renderAssignPreview() {
-  const carePool = activeIds(STAFF.filter(x => x.type === 'care').map(x => x.id));
-  const ringPool = activeIds(NIGHT_RING);
+  const openBtn = (fn, label) => `<button class="mbtn" style="padding:3px 9px;font-size:10px;" onclick="${fn}()">${label}</button>`;
+  const sec = (title, body, btn) => `<details class="asg-sec" open><summary>${title}</summary>
+    <div class="asg-body">${body}<div class="asg-note" style="margin-top:8px;">${btn}</div></div></details>`;
+  const star = (overridden, id) => `${nameOf(id)}${overridden ? ' *' : ''}`;
   let html = '';
 
   // 1) 단기보호
-  const weeks = [...shortTermWeeks].sort((a, b) => a - b);
-  if (weeks.length) {
-    let rows = `<div class="asg-row head" style="grid-template-columns:90px 1fr 1fr;"><span>날짜</span><span>이브닝</span><span>야간</span></div>`;
-    weeks.forEach((w, order) => {
-      for (let k = 0; k < 5; k++) {
-        const d = w + k;
-        const duty = shortTermDuty(d) || {};
-        const pl = stPlan[d] || {};
-        rows += `<div class="asg-row" style="grid-template-columns:90px 1fr 1fr;">
-          <span>${d}일 (${DOW_KO[getDow(d)]})</span>
-          <select class="${pl.E ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value)">${opts(ringPool, duty.E)}</select>
-          <select class="${pl.N ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value)">${opts(ringPool, duty.N)}</select>
-        </div>`;
-      }
-    });
-    html += `<details class="asg-sec" open><summary>🌙 단기보호 이브닝·야간</summary><div class="asg-body">${rows}
-      <div class="asg-note">기본값은 6인 링 순번입니다. 바꾸면 주황 테두리로 표시됩니다.</div></div></details>`;
-  } else {
-    html += `<details class="asg-sec"><summary>🌙 단기보호 — 이번 달 주간 미설정</summary><div class="asg-body">
-      <div class="asg-note">사이드바에서 단기보호 주간을 고르면 이브닝·야간 담당을 여기서 확인할 수 있습니다.</div></div></details>`;
-  }
+  const weeks = [...shortTermWeeks].sort((x, y) => x - y);
+  const stBody = !weeks.length
+    ? '<div class="asg-note">이번 달 단기보호 주간이 설정되지 않았습니다. 없으면 그대로 두세요.</div>'
+    : weeks.map(w => {
+        const rows = [0, 1, 2, 3, 4].map(k => {
+          const d = w + k, duty = shortTermDuty(d) || {}, pl = stPlan[d] || {};
+          return `<div class="asg-row" style="grid-template-columns:96px 1fr 1fr;">
+            <span>${d}일 (${DOW_KO[getDow(d)]})</span><span>E ${star(pl.E, duty.E)}</span><span>N ${star(pl.N, duty.N)}</span></div>`;
+        }).join('');
+        return `<div style="font-weight:700;font-size:11px;margin:4px 0 2px;">${w}일(월) 주간</div>${rows}`;
+      }).join('');
+  html += sec('🌙 단기보호 이브닝·야간', stBody, openBtn('openShortTermModal', '🌙 단기보호 설정 열기'));
 
-  // 2) 토요일
-  const sats = getMonthDays().filter(d => getDow(d) === 6);
-  let srows = `<div class="asg-row head" style="grid-template-columns:78px 1fr 1fr 1fr 1.3fr;"><span>날짜</span><span>재활</span><span>간호/SW</span><span>주방</span><span>휴무</span></div>`;
-  sats.forEach(d => {
-    const r = getSaturdayRoster(d); if (!r) return;
-    const pl = satPlan[d] || {};
-    srows += `<div class="asg-row" style="grid-template-columns:78px 1fr 1fr 1fr 1.3fr;">
-      <span>${d}일</span>
-      <select class="${pl.rehab ? 'manual' : ''}" onchange="setSatPlan(${d},'rehab',this.value)">${opts(activeIds(SAT_REHAB_POOL), r.rehab)}</select>
-      <select class="${pl.nurseSw ? 'manual' : ''}" onchange="setSatPlan(${d},'nurseSw',this.value)">${opts(activeIds(SAT_NURSE_SW), r.nurseSw)}</select>
-      <select class="${pl.kitchen ? 'manual' : ''}" onchange="setSatPlan(${d},'kitchen',this.value)">${opts(carePool, r.kitchen)}</select>
-      <span style="color:var(--text3);">${r.off.map(nameOf).join(', ')}</span>
-    </div>`;
-  });
-  html += `<details class="asg-sec"><summary>📅 토요일 근무</summary><div class="asg-body">${srows}
-    <div class="asg-note">휴무는 4주 주기 로테이션으로 정해집니다. 개인 사정 휴무는 🙋 희망휴무로 신청하세요 (토요일도 됩니다).</div></div></details>`;
+  // 2) 주말근무
+  const satBody = `<div class="asg-row head" style="grid-template-columns:70px 1fr 1fr 1fr 1.2fr;">
+      <span>날짜</span><span>재활</span><span>간호/SW</span><span>주방</span><span>휴무</span></div>` +
+    getMonthDays().filter(d => getDow(d) === 6).map(d => {
+      const r = getSaturdayRoster(d); if (!r) return '';
+      const pl = satPlan[d] || {};
+      return `<div class="asg-row" style="grid-template-columns:70px 1fr 1fr 1fr 1.2fr;">
+        <span>${d}일</span><span>${star(pl.rehab, r.rehab)}</span><span>${star(pl.nurseSw, r.nurseSw)}</span>
+        <span>${star(pl.kitchen, r.kitchen)}</span><span style="color:var(--text3);">${r.off.map(nameOf).join(', ')}</span></div>`;
+    }).join('');
+  html += sec('📅 주말(토요일) 근무', satBody, openBtn('openSaturdayModal', '📅 주말근무 설정 열기'));
 
   // 3) 목욕
   const bdays = getMonthDays().filter(d => getBathRotation(d));
-  let brows = `<div class="asg-row head" style="grid-template-columns:78px 34px 1fr 1fr 1fr;"><span>날짜</span><span>실시</span><span>메인</span><span>보조 1</span><span>보조 2</span></div>`;
-  bdays.forEach(d => {
-    const pl = bathPlan[d] || {};
-    const rot = getBathRotation(d);
-    const auto = pl.staff ? null : getBathAssignment(d);
-    const cur = pl.staff || (auto ? auto.list : bathRotationPreview(d));
-    const cells = [0, 1, 2].map(i => i >= rot.size
-      ? '<span style="color:var(--text3);">—</span>'
-      : `<select class="${pl.staff ? 'manual' : ''}" ${pl.on ? '' : 'disabled'} onchange="setBathStaff(${d},${i},this.value);renderAssignPreview()">${opts(carePool, cur[i])}</select>`).join('');
-    brows += `<div class="asg-row ${pl.on ? '' : 'skip'}" style="grid-template-columns:78px 34px 1fr 1fr 1fr;">
-      <span>${d}일 (${DOW_KO[getDow(d)]})</span>
-      <input type="checkbox" ${pl.on ? 'checked' : ''} onchange="setBathOn(${d},this.checked);renderAssignPreview()">
-      ${cells}</div>`;
-  });
-  const onCount = bdays.filter(d => (bathPlan[d] || {}).on).length;
-  html += `<details class="asg-sec"><summary>🛁 목욕 담당 — 실시 ${onCount} / ${bdays.length}일</summary><div class="asg-body">${brows}
-    <div class="asg-note" style="display:flex;gap:6px;align-items:center;">
-      <button class="mbtn" style="padding:3px 8px;font-size:10px;" onclick="setAllBath(true)">전체 실시</button>
-      <button class="mbtn" style="padding:3px 8px;font-size:10px;" onclick="setAllBath(false)">전체 해제</button>
-      <span>목욕은 고객 요구가 있는 날만 체크하세요. 회색 줄은 실시하지 않는 날입니다.</span>
-    </div></div></details>`;
+  const onDays = bdays.filter(d => (bathPlan[d] || {}).on);
+  const bathBody = onDays.length
+    ? onDays.map(d => {
+        const asg = getBathAssignment(d);
+        return `<div class="asg-row" style="grid-template-columns:96px 1fr;">
+          <span>${d}일 (${DOW_KO[getDow(d)]})</span><span>${(asg ? asg.list.map(nameOf) : []).join(' · ') || '담당 없음'}</span></div>`;
+      }).join('')
+    : '<div class="asg-note">실시로 표시된 날이 없습니다. 목욕은 고객 요구가 있는 날만 실시합니다.</div>';
+  html += sec(`🛁 목욕 담당 — 실시 ${onDays.length} / ${bdays.length}일`, bathBody, openBtn('openBathModal', '🛁 목욕 담당 열기'));
 
-  document.getElementById('checklist-assign').innerHTML = html;
+  // 4) 희망휴무
+  const len = getMonthDays().length;
+  const wishes = Object.keys(wishOff).map(k => k.split('-').map(Number))
+    .filter(pair => pair[1] >= 1 && pair[1] <= len).sort((x, y) => x[1] - y[1]);
+  const wishBody = wishes.length
+    ? wishes.map(pair => `<div class="asg-row" style="grid-template-columns:96px 1fr;">
+        <span>${pair[1]}일 (${DOW_KO[getDow(pair[1])]})</span><span>${nameOf(pair[0])}</span></div>`).join('')
+    : '<div class="asg-note">신청된 희망휴무가 없습니다.</div>';
+  html += sec(`🙋 희망 휴무일 — ${wishes.length}건`, wishBody,
+    '<span>표에서 셀을 클릭해 신청합니다. 헤더의 🙋 희망휴무 버튼으로 입력 모드를 켜세요.</span>');
+
+  document.getElementById('checklist-assign').innerHTML =
+    '<div class="asg-note" style="margin-bottom:6px;">* 표시는 순번 대신 직접 지정한 담당입니다.</div>' + html;
 }
+
 
 function setStPlan(day, slot, value) {
   const pl = stPlan[day] || {};
   if (value) pl[slot] = Number(value); else delete pl[slot];
   if (!pl.E && !pl.N) delete stPlan[day]; else stPlan[day] = pl;
-  renderAssignPreview();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 function setSatPlan(day, slot, value) {
   const pl = satPlan[day] || {};
   if (value) pl[slot] = Number(value); else delete pl[slot];
   if (!pl.rehab && !pl.nurseSw && !pl.kitchen) delete satPlan[day]; else satPlan[day] = pl;
-  renderAssignPreview();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 
 // ── 결정이 필요한 항목 ─────────────────────────────────────────────
@@ -2252,6 +2348,7 @@ function openBathModal() {
 function closeBathModal() {
   document.getElementById('bath-modal').classList.remove('open');
   refresh(); autoSave();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 function resetBathPlan() {
   if (!confirm('이번 달 목욕 실시 설정과 담당자 수정을 모두 지울까요? (전부 미실시로 돌아갑니다)')) return;
@@ -2437,11 +2534,13 @@ const COLOR_PRESETS = [
 let smEditingId = null; // null = new, number = existing staff id
 let smNextId = 100;
 
-function openStaffModal() {
+// staffId를 주면 그 직원의 편집 화면을 바로 연다 (표 왼쪽 명단에서 호출)
+function openStaffModal(staffId = null) {
+  document.getElementById('sm-overlay').classList.add('open');
+  if (staffId && STAFF.some(x => x.id === staffId)) { smSelectStaff(staffId); return; }
   smEditingId = null;
   renderSmList();
   renderSmEmpty();
-  document.getElementById('sm-overlay').classList.add('open');
 }
 
 function closeStaffModal() {
