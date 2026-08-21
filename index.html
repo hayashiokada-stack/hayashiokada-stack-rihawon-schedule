@@ -134,9 +134,9 @@
   .schedule-wrap { overflow-x: auto; }
   .schedule-table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
   .schedule-table th { background: var(--surface2); font-weight: 600; font-size: 11px; color: var(--text2); padding: 7px 3px; text-align: center; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; z-index: 10; }
-  .schedule-table th:first-child { width: 140px; text-align: left; padding-left: 10px; position: sticky; left: 0; z-index: 20; background: var(--surface2); }
+  .schedule-table th:first-child { width: 186px; min-width: 186px; text-align: left; padding-left: 10px; position: sticky; left: 0; z-index: 20; background: var(--surface2); }
   .schedule-table td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 3px; text-align: center; vertical-align: middle; }
-  .schedule-table td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; padding: 5px 8px; text-align: left; border-right: 2px solid var(--border2); }
+  .schedule-table td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; width: 186px; min-width: 186px; padding: 5px 8px; text-align: left; border-right: 2px solid var(--border2); }
   .schedule-table tr:last-child td { border-bottom: none; }
   .schedule-table td:last-child, .schedule-table th:last-child { border-right: none; }
   .schedule-table tr:hover td { background-color: #fafaf8; }
@@ -152,8 +152,11 @@
   /* STAFF CELL */
   .staff-cell { display: flex; align-items: center; gap: 5px; }
   .sc-dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
-  .sc-info .sc-name { font-size: 11px; font-weight: 500; }
-  .sc-info .sc-meta { font-size: 9px; color: var(--text3); }
+  .sc-info .sc-name { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-info .sc-meta { font-size: 9px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-info { flex: 1; min-width: 0; }
+  .sc-side { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+  .sc-hrs { font-size: 9px; color: var(--text3); font-weight: 600; }
 
   /* SHIFT CELL */
   .shift-cell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 34px; border-radius: 5px; font-size: 10px; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.1s; flex-direction: column; gap: 1px; user-select: none; }
@@ -398,11 +401,6 @@
       </div>
     </div>
 
-    <div class="sidebar-section" style="padding-top:4px;">
-      <div class="sidebar-label">직원 목록 · 연차/송영</div>
-      <div id="staff-list"></div>
-    </div>
-
     <div class="transport-banner">
       <div class="transport-banner-title">
         <span>송영표 바로가기</span>
@@ -443,13 +441,9 @@
 
     <div class="legend" style="margin-top:8px;">
       <div class="sidebar-label">범례</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A반 08:00-17:00 (조기등원)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-ap-bg);border:1px solid var(--shift-ap);"></div>A'반 09:00-18:00 (간호정규)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B반 09:00-18:00 (정규/주방)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-bp-bg);border:1px solid var(--shift-bp);"></div>B'반 09:00-18:00 (케어오전)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C반 10:00-19:00 (오후케어)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-s-bg);border:1px solid var(--shift-s);"></div>S반 09:00-18:00 (사무/특별)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-d-bg);border:1px solid var(--shift-d);"></div>D반 08:00-17:00 (운전원)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A반 08:00-17:00 (조기등원·송영)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B반 09:00-18:00 (정규)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C반 10:00-19:00 (오후케어·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-evening-bg);border:1px solid var(--shift-evening);"></div>E(이브닝) 13:00-22:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-night-bg);border:1px solid var(--shift-night);"></div>N(야간) 22:00-08:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-holiday-bg);border:1px solid var(--shift-holiday);"></div>연차 / 반차</div>
@@ -528,8 +522,8 @@
 <div class="modal-overlay" id="sat-modal" style="z-index:1300;" onclick="if(event.target===this)closePreModal('sat-modal')">
   <div class="modal" style="width:680px;max-width:96vw;">
     <h3>📅 주말(토요일) 근무</h3>
-    <div class="sub">휴무자는 4주 주기 로테이션으로 정해집니다. 재활 · 간호/SW · 주방 담당만 바꿀 수 있습니다.<br>
-      개인 사정으로 쉬어야 하면 🙋 희망휴무로 신청하세요 (토요일도 받습니다).</div>
+    <div class="sub">직종 그룹마다 한 자리씩입니다. 각 칸에는 해당 직종 직원만 나옵니다.<br>
+      휴무자는 4주 주기 로테이션으로 정해지며, 개인 사정으로 쉬어야 하면 🙋 희망휴무로 신청하세요 (토요일도 받습니다).</div>
     <div id="sat-modal-body" style="max-height:52vh;overflow:auto;"></div>
     <div class="modal-actions" style="margin-top:14px;">
       <button class="mbtn" onclick="resetSatPlan()">담당 되돌리기</button>
@@ -665,7 +659,7 @@ const STAFF = [
   { id:14, name:'민영세', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:15, name:'정순석', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:16, name:'노재일', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
-  { id:17, name:'전일환', role:'방문요양',        short:'방문', type:'home',  contract:40, color:'#1a5276', bg:'#d6eaf8', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
+  { id:17, name:'전일환', role:'사회복지사(방문요양)', short:'SW', type:'sw', contract:40, color:'#c0672d', bg:'#fdf0e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:18, name:'조민경', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:5,  transDays:0, nightShift:true  },
   { id:19, name:'이민옥', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
 ];
@@ -673,12 +667,8 @@ const STAFF = [
 // ▶ 근무코드 (실제 리하원 근무 코드 반영)
 const SHIFTS = {
   'A':  { label:'A반',    time:'08:00-17:00', cls:'shift-a',       hours:9,  isTransport:true  },
-  "A'": { label:"A'반",   time:'09:00-18:00', cls:'shift-ap',      hours:9,  isTransport:false },
   'B':  { label:'B반',    time:'09:00-18:00', cls:'shift-b',       hours:9,  isTransport:false },
-  "B'": { label:"B'반",   time:'09:00-18:00', cls:'shift-bp',      hours:9,  isTransport:false },
   'C':  { label:'C반',    time:'10:00-19:00', cls:'shift-c',       hours:9,  isTransport:true  },
-  'S':  { label:'S반',    time:'09:00-18:00', cls:'shift-s',       hours:9,  isTransport:false },
-  'D':  { label:'D반',    time:'08:00-17:00', cls:'shift-d',       hours:9,  isTransport:true  },
   'E':  { label:'이브닝', time:'13:00-22:00', cls:'shift-evening', hours:9,  isTransport:false },
   'N':  { label:'야간',   time:'22:00-08:00', cls:'shift-night',   hours:10, isTransport:false },
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
@@ -847,9 +837,26 @@ const SAT_KITCHEN_SMALL = 10; // 5명 근무 주의 주방 — 한경숙
 // 재활은 주기 1·3주차(6명 주) = 석혁준, 2·4주차(7명 주) = 이민옥.
 // 표에서 12/5·12/19는 이태욱이 대신 들어갔는데 그건 수동 대체로 본다.
 const SAT_REHAB = [2, 19, 2, 19];      // [1주차, 2주차, 3주차, 4주차] → 석혁준(2) / 이민옥(19)
-const SAT_REHAB_POOL = [1, 2, 19];     // 이태욱 · 석혁준 · 이민옥 — 토요일엔 이 중 1명만 근무한다
-// 간호/SW는 토요일에 한 자리다. 간호사 · 사회복지사 · 방문요양 사회복지사가 순번대로 선다.
-const SAT_NURSE_SW = [3, 13, 17];      // 이의영(간호사) → 이세화(사회복지사) → 전일환(방문요양)
+// 토요일은 직종 그룹마다 한 자리씩이다. 각 그룹에서 1명만 근무하고 나머지는 휴무.
+//   보건의료   — 간호사 · 간호조무사 · 물리치료사 · 작업치료사
+//   홀지원     — 사회복지사 · 사무원 (전일환은 방문요양 소속 사회복지사)
+//   요양보호사 — 요양보호사 전원 (기존 '주방' 자리)
+const SAT_GROUPS = {
+  medical: { title: '보건의료', desc: '간호사·간호조무사·물리치료사·작업치료사',
+             match: x => ['nurse', 'pt', 'ot'].includes(x.type) || /간호조무/.test(x.role) },
+  support: { title: '홀지원',   desc: '사회복지사·사무원',
+             match: x => x.type === 'sw' || x.type === 'home' || /사무|사회복지/.test(x.role) },
+  care:    { title: '요양보호사', desc: '요양보호사',
+             match: x => x.type === 'care' },
+};
+function satGroupPool(key) {
+  return STAFF.filter(x => isScheduled(x) && SAT_GROUPS[key].match(x)
+    && isStaffActiveInDays(x, getMonthDays())).map(x => x.id);
+}
+
+const SAT_REHAB_POOL = [1, 2, 19];     // 보건의료 자리를 도는 인원 — 이태욱 · 석혁준 · 이민옥
+// 홀지원 자리는 사회복지사 두 명이 번갈아 선다. (간호사는 보건의료 자리로 옮겼다)
+const SAT_NURSE_SW = [13, 17];         // 이세화(사회복지사) ↔ 전일환(방문요양 사회복지사)
 
 // 임의 날짜(연·월 포함)의 토요일 편성. 대체휴무가 달을 넘나들기 때문에 연·월을 받는다.
 function getSaturdayRosterAt(y, m, d) {
@@ -888,6 +895,20 @@ function buildSatKitchenMap(days) {
   return map;
 }
 
+// ▶ 자동배치가 돌리는 주간 근무조. 직종별 고정 배치는 두지 않는다.
+const DAY_SHIFTS = ['A', 'B', 'C'];
+
+// ▶ 없어진 근무조(A'·B'·S·D)를 쓰던 저장본을 열었을 때 같은 시간대의 남은 근무조로 옮긴다
+const LEGACY_SHIFTS = { "A'": 'B', "B'": 'B', 'S': 'B', 'D': 'A' };   // 09-18 → B반 / 08-17 → A반
+function migrateShiftCodes() {
+  let n = 0;
+  Object.keys(scheduleData).forEach(k => {
+    const v = LEGACY_SHIFTS[scheduleData[k]];
+    if (v) { scheduleData[k] = v; n++; }
+  });
+  return n;
+}
+
 // ▶ 법정 인력배치기준 (노인복지법 시행규칙 별표9 요지 · 설정값으로 관리)
 //   규정이 바뀌면 이 객체만 수정하면 됩니다. 착수/운영 전 관할 지자체·공단 최신 기준을 반드시 재확인하세요.
 const STAFFING_RULES = {
@@ -920,6 +941,43 @@ let weekStart = 1;
 
 // ── STORAGE ──────────────────────────────────────────────────────
 function getSaveKey() { return `rihawon_${currentYear}_${currentMonth}`; }
+
+// ▶ 직원 명부는 달마다 달라지는 값이 아니다. 월 저장본에 넣으면 과거 달을 열 때
+//   옛 명부로 되돌아가므로 월과 무관한 별도 키에 보관한다.
+const STAFF_KEY = 'rihawon_staff';
+let staffRosterLoaded = false;      // 별도 키에서 명부를 읽었으면 true (구형 staffLeave 복원을 막는다)
+
+function staffRosterPayload() {
+  // transDays는 그 달 근무표에서 매번 계산하는 값이라 명부에 담지 않는다
+  return JSON.stringify({
+    version: 1,
+    nextId: smNextId,
+    staff: STAFF.map(x => { const { transDays, ...rest } = x; return rest; }),
+  });
+}
+
+function applyStaffRoster(raw) {
+  let data;
+  try { data = JSON.parse(raw); } catch (e) { return false; }
+  if (!data || !Array.isArray(data.staff) || !data.staff.length) return false;
+  STAFF.length = 0;
+  data.staff.forEach(x => STAFF.push(Object.assign({ transDays: 0 }, x)));
+  if (data.nextId) smNextId = Math.max(smNextId, data.nextId);
+  staffRosterLoaded = true;
+  return true;
+}
+
+function loadStaffRoster() {
+  const raw = localStorage.getItem(STAFF_KEY);
+  return raw ? applyStaffRoster(raw) : false;
+}
+
+// 직원 정보를 고치거나 추가·삭제할 때마다 호출한다
+function persistStaffRoster() {
+  localStorage.setItem(STAFF_KEY, staffRosterPayload());
+  staffRosterLoaded = true;
+  cloudPushStaff();
+}
 const TRANSPORT_PROGRAM_URL = '/transport/';
 const TRANSPORT_BRIDGE_KEY = 'rihawon_transport_bridge';
 
@@ -1055,7 +1113,9 @@ function loadData() {
   shortTermWeeks = new Set(data.shortTermWeeks || []);
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   migrateSaturdayServiceDays();
-  if (data.staffLeave) {
+  migrateShiftCodes();
+  // 구형 저장본 호환 — 별도 명부가 아직 없을 때만 퇴사일을 되살린다
+  if (data.staffLeave && !staffRosterLoaded) {
     data.staffLeave.forEach(sl => {
       const s = STAFF.find(x=>x.id===sl.id);
       if (s) {
@@ -1104,10 +1164,11 @@ function autoSave() {
 
 // ── INIT ─────────────────────────────────────────────────────────
 function init() {
+  loadStaffRoster();                 // 저장된 직원 명부를 근무표보다 먼저 반영한다
   document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth}월`;
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   renderWeekSelector();
-  renderStaffList();
+  recalcTransDays();
   renderLawPanel();
   renderTable();
   updateStats();
@@ -1191,30 +1252,16 @@ function calcTransDays(sid) {
   }).length;
 }
 
-function renderStaffList() {
+// 사이드바 직원 목록은 표 왼쪽 열과 중복이라 없앴다. 송영 횟수 재계산만 남긴다.
+function recalcTransDays() {
   STAFF.forEach(s => { s.transDays = calcTransDays(s.id); });
-  const el = document.getElementById('staff-list');
-  const staff = getVisibleStaff();
-  el.innerHTML = staff.map(s => {
-    const used = calcUsedLeave(s.id);
-    const rem = s.annualLeave - used;
-    const leaveCls = rem <= 0 ? 'leave-none' : rem <= 3 ? 'leave-low' : 'leave-ok';
-    const licIcon = s.hasLicense ? '<span class="license-icon" title="운전면허 보유">🚗</span>' : '';
-    const retireBadge = s.retirementDate ? `<span style="color:var(--warn)">퇴사 ${s.retirementDate.slice(5)}</span>` : '';
-    return `
-    <div class="staff-item" id="si-${s.id}">
-      <div class="staff-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
-      <div class="staff-info">
-        <div class="staff-name">${s.name} ${licIcon}</div>
-        <div class="staff-meta">
-          <span class="leave-badge ${leaveCls}">연차 ${rem}일</span>
-          <span style="color:var(--text3)">송영 ${s.transDays}회</span>
-          ${retireBadge}
-        </div>
-      </div>
-      <div class="staff-hrs">${calcStaffHours(s.id)}h</div>
-    </div>`;
-  }).join('');
+}
+
+// 잔여 연차 = 연간 부여일수 − 이번 달 사용한 연차(H)
+function leaveBadge(s) {
+  const rem = s.annualLeave - calcUsedLeave(s.id);
+  const cls = rem <= 0 ? 'leave-none' : rem <= 3 ? 'leave-low' : 'leave-ok';
+  return `<span class="leave-badge ${cls}" title="연 ${s.annualLeave}일 중 이번 달 ${calcUsedLeave(s.id)}일 사용">잔여 ${rem}일</span>`;
 }
 
 function calcStaffHours(sid) {
@@ -1241,7 +1288,7 @@ function computeCompliance(days = getDays()) {
 
   days.filter(isServiceDay).forEach(d => {
     const users = getDailyUsers(d);
-    const working = STAFF.filter(s => isStaffActiveOnDay(s, d) && isDayWorking(scheduleData[`${s.id}-${d}`]));
+    const working = STAFF.filter(s => isScheduled(s) && isStaffActiveOnDay(s, d) && isDayWorking(scheduleData[`${s.id}-${d}`]));
     if (working.length === 0) return;                    // 미편성일은 제외
     const careCount = working.filter(s => s.type === 'care').length;
     // ▶ 0명 미배치도 부족으로 집계 (기존 careWorking>0 가드가 전원 미배치를 놓치던 버그 수정)
@@ -1254,7 +1301,7 @@ function computeCompliance(days = getDays()) {
 
   // ── 하루 휴무 인원 상한 검증 (월~금) ──
   days.filter(d => { const w = getDow(d); return w >= 1 && w <= 5; }).forEach(d => {
-    const off = STAFF.filter(x => isStaffActiveOnDay(x, d) && ['O','H'].includes(scheduleData[`${x.id}-${d}`])).length;
+    const off = STAFF.filter(x => isScheduled(x) && isStaffActiveOnDay(x, d) && ['O','H'].includes(scheduleData[`${x.id}-${d}`])).length;
     if (off > MAX_DAILY_OFF) { offOverDays++; offOverList.push(`${d}일 ${off}명`); }
   });
 
@@ -1345,8 +1392,12 @@ function isStaffActiveOnDay(staff, day) {
 function isStaffActiveInDays(staff, days = getDays()) {
   return days.some(day => isStaffActiveOnDay(staff, day));
 }
+// 운전원은 근무표 편성 대상이 아니다. 다만 직원 관리와 송영표 연동에는 그대로 쓰이므로
+// STAFF에서 지우지 않고 근무표를 그릴 때만 걸러낸다.
+function isScheduled(staff) { return staff.type !== 'driver'; }
+
 function getVisibleStaff(days = getDays()) {
-  return STAFF.filter(staff => isStaffActiveInDays(staff, days));
+  return STAFF.filter(staff => isScheduled(staff) && isStaffActiveInDays(staff, days));
 }
 function cleanRetiredScheduleData(staff = null) {
   const ids = staff ? new Set([staff.id]) : new Set(STAFF.filter(s => s.retirementDate).map(s => s.id));
@@ -1416,6 +1467,10 @@ function renderTable() {
           <div class="sc-name">${s.name}${licBadge}</div>
           <div class="sc-meta">${s.role}${retireMeta}</div>
         </div>
+        <div class="sc-side">
+          ${leaveBadge(s)}
+          <span class="sc-hrs" title="이번 달 근무시간 · 송영 ${s.transDays}회">${calcStaffHours(s.id)}h</span>
+        </div>
       </div>`;
     tr.appendChild(tdName);
 
@@ -1450,7 +1505,7 @@ function renderTable() {
         : '';
 
       if (sh) {
-        const info = SHIFTS[sh];
+        const info = SHIFTS[sh] || { label: sh, time: '', cls: 'shift-off' };
         const warnClass = licenseWarn ? 'no-license-warn' : '';
         td.innerHTML = `
           <div class="shift-cell ${info.cls} ${warnClass}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${licenseWarn?'⚠ 운전면허 없음':''}">
@@ -1868,32 +1923,43 @@ function resetSatPlan() {
   satPlan = {}; renderSatModal();
 }
 function renderSatModal() {
-  const carePool = activeIds(STAFF.filter(x => x.type === 'care').map(x => x.id));
-  let rows = `<div class="asg-row head" style="grid-template-columns:74px 46px 1fr 1fr 1fr 1.2fr;">
-    <span>날짜</span><span>주기</span><span>재활</span><span>간호/SW</span><span>주방</span><span>휴무</span></div>`;
+  const cols = 'grid-template-columns:84px 52px 1fr 1fr 1fr;';
+  const g = SAT_GROUPS;
+  let rows = `<div class="asg-row head" style="${cols}">
+    <span>날짜</span><span>주기</span>
+    <span title="${g.medical.desc}">${g.medical.title}</span>
+    <span title="${g.support.desc}">${g.support.title}</span>
+    <span title="${g.care.desc}">${g.care.title}</span></div>`;
   getMonthDays().filter(d => getDow(d) === 6).forEach(d => {
     const r = getSaturdayRoster(d); if (!r) return;
     const pl = satPlan[d] || {};
-    rows += `<div class="asg-row" style="grid-template-columns:74px 46px 1fr 1fr 1fr 1.2fr;">
+    rows += `<div class="asg-row" style="${cols}">
       <span>${d}일 (토)</span><span style="color:var(--text3);">${r.cycleWeek}주차</span>
-      <select class="${pl.rehab ? 'manual' : ''}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(activeIds(SAT_REHAB_POOL), r.rehab)}</select>
-      <select class="${pl.nurseSw ? 'manual' : ''}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(activeIds(SAT_NURSE_SW), r.nurseSw)}</select>
-      <select class="${pl.kitchen ? 'manual' : ''}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(carePool, r.kitchen)}</select>
-      <span style="color:var(--text3);">${r.off.map(nameOf).join(', ')}</span>
+      <select class="${pl.rehab ? 'manual' : ''}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab)}</select>
+      <select class="${pl.nurseSw ? 'manual' : ''}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw)}</select>
+      <select class="${pl.kitchen ? 'manual' : ''}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen)}</select>
     </div>`;
   });
-  document.getElementById('sat-modal-body').innerHTML = rows;
+  document.getElementById('sat-modal-body').innerHTML = rows +
+    `<div class="asg-note">${g.medical.title} = ${g.medical.desc} · ${g.support.title} = ${g.support.desc} · ${g.care.title} = ${g.care.desc}</div>`;
 }
 
 // ── 자동배치 전 인원 확인 ──────────────────────────────────────────
 const DOW_KO = ['일','월','화','수','목','금','토'];
 function activeIds(ids) {
-  return ids.filter(id => { const st = STAFF.find(x => x.id === id); return st && isStaffActiveInDays(st, getMonthDays()); });
+  return ids.filter(id => {
+    const st = STAFF.find(x => x.id === id);
+    return st && isScheduled(st) && isStaffActiveInDays(st, getMonthDays());
+  });
 }
 function opts(pool, sel) {
-  return `<option value="">— 없음 —</option>` + pool.map(id => {
+  // 지금 값이 목록에 없으면(직종 변경·저장본 등) 맨 뒤에 붙여 준다 — '없음'으로 잘못 보이지 않게
+  const list = sel && !pool.includes(sel) ? [...pool, sel] : pool;
+  return `<option value="">— 없음 —</option>` + list.map(id => {
     const st = STAFF.find(x => x.id === id);
-    return st ? `<option value="${id}" ${sel === id ? 'selected' : ''}>${st.name}</option>` : '';
+    if (!st) return '';
+    const outside = !pool.includes(id) ? ' (다른 직종)' : '';
+    return `<option value="${id}" ${sel === id ? 'selected' : ''}>${st.name}${outside}</option>`;
   }).join('');
 }
 function nameOf(id) { const st = STAFF.find(x => x.id === id); return st ? st.name : '—'; }
@@ -1921,7 +1987,8 @@ function renderAssignPreview() {
 
   // 2) 주말근무
   const satBody = `<div class="asg-row head" style="grid-template-columns:70px 1fr 1fr 1fr 1.2fr;">
-      <span>날짜</span><span>재활</span><span>간호/SW</span><span>주방</span><span>휴무</span></div>` +
+      <span>날짜</span><span>${SAT_GROUPS.medical.title}</span><span>${SAT_GROUPS.support.title}</span>
+      <span>${SAT_GROUPS.care.title}</span><span>휴무</span></div>` +
     getMonthDays().filter(d => getDow(d) === 6).map(d => {
       const r = getSaturdayRoster(d); if (!r) return '';
       const pl = satPlan[d] || {};
@@ -2031,11 +2098,6 @@ function autoFill() {
   const days = getDays();
   const weekDays = days.filter(isServiceDay);
   const activeStaff = getVisibleStaff(days);
-  const careStaff = activeStaff.filter(s => s.type==='care');
-
-  // CW(케어워커) 순환 패턴 — 면허 유무에 따라 분리
-  const licCare  = careStaff.filter(s => s.hasLicense);
-  const noLicCare = careStaff.filter(s => !s.hasLicense);
 
   // ─── 단기보호 주간 이브닝·야간 배정 ──────────────────────────────
   // key: "staffId-day", value: 'E' | 'N'. 야간 다음날 휴무는 3단계(11시간 휴게)가 처리한다.
@@ -2055,10 +2117,10 @@ function autoFill() {
     const r = getSaturdayRoster(d);
     if (!r) return;
     r.off.forEach(id => { satOff[`${id}-${d}`] = true; });
-    // 재활은 토요일에 1명만 근무한다 — 담당이 아닌 나머지는 휴무
-    SAT_REHAB_POOL.filter(id => id !== r.rehab).forEach(id => { satOff[`${id}-${d}`] = true; });
-    // 간호/SW도 한 자리 — 담당이 아닌 나머지는 휴무
-    SAT_NURSE_SW.filter(id => id !== r.nurseSw).forEach(id => { satOff[`${id}-${d}`] = true; });
+    // 보건의료·홀지원은 그룹마다 한 자리다 — 담당이 아닌 나머지는 휴무
+    // (요양보호사 그룹의 휴무는 위의 4주 주기 세트가 정한다)
+    satGroupPool('medical').filter(id => id !== r.rehab).forEach(id => { satOff[`${id}-${d}`] = true; });
+    satGroupPool('support').filter(id => id !== r.nurseSw).forEach(id => { satOff[`${id}-${d}`] = true; });
   });
 
   // ─── 대체휴무 · 희망휴무 배정 ─────────────────────────────────────
@@ -2115,7 +2177,7 @@ function autoFill() {
     if (base.getDay() !== 6) continue;
     const r = getSaturdayRosterAt(base.getFullYear(), base.getMonth() + 1, base.getDate());
     if (!r) continue;
-    const crew = [...r.working, r.rehab];
+    const crew = [...r.working, r.rehab, r.nurseSw];   // 요양보호사 + 보건의료 + 홀지원 담당
     const week = [2, 3, 4, 5, 6].map(k => new Date(base.getFullYear(), base.getMonth(), base.getDate() + k));
     if (!week.some(inThisMonth)) continue;
 
@@ -2181,35 +2243,11 @@ function autoFill() {
       if (forcedOff[key]) { scheduleData[key] = forcedOff[key]; return; }  // 대체휴무 · 희망휴무
       if (satOff[key]) { scheduleData[key] = 'O'; return; }  // 토요일 로테이션 휴무
 
-      if (s.type === 'nurse')  { scheduleData[key] = "A'"; return; }
-      if (s.type === 'sw')     { scheduleData[key] = 'C';  return; }
-      if (s.type === 'driver') { scheduleData[key] = 'D';  return; }
-      if (s.type === 'home')   { scheduleData[key] = 'B';  return; }
-
-      if (s.type === 'pt') {
-        const rot = ['C', 'C', "B'", 'B', 'C'];
-        scheduleData[key] = rot[weekDays.indexOf(d) % rot.length];
-        return;
-      }
-      if (s.type === 'ot') {
-        const rot = ["A'", 'B', "B'", "B'", 'B'];
-        scheduleData[key] = rot[weekDays.indexOf(d) % rot.length];
-        return;
-      }
-
-      if (s.type === 'care') {
-        if (s.role && s.role.includes('주방')) { scheduleData[key] = 'B'; return; }   // 주방 담당은 B반 고정(이름 하드코딩 제거)
-        const dayIdx = weekDays.indexOf(d);
-        if (s.hasLicense) {
-          const licIdx = licCare.findIndex(x => x.id === s.id);
-          const rot = ['A', "A'", 'B', "B'", 'A', "A'", 'B'];
-          scheduleData[key] = rot[(licIdx * 2 + dayIdx) % rot.length];
-        } else {
-          const noIdx = noLicCare.findIndex(x => x.id === s.id);
-          const rot = ["A'", 'B', "B'", 'C', "A'", 'B'];
-          scheduleData[key] = rot[(noIdx * 2 + dayIdx) % rot.length];
-        }
-      }
+      // 직종에 묶인 고정 반은 없다. 전원이 A·B·C를 돌아가며 맡는다.
+      // 직원 순번만큼 어긋나게 시작해 같은 날 세 반이 고르게 차도록 한다.
+      const staffIdx = activeStaff.findIndex(x => x.id === s.id);
+      const dayIdx = weekDays.indexOf(d);
+      scheduleData[key] = DAY_SHIFTS[(staffIdx + dayIdx) % DAY_SHIFTS.length];
     });
 
     // 일요일 → 휴무 (토요일은 서비스 제공)
@@ -2315,12 +2353,9 @@ function updateSummary() {
   }));
   bar.innerHTML = `
     <div class="sum-card"><div class="sum-val">${total}</div><div class="sum-lbl">총 배치</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['A']}</div><div class="sum-lbl">A반</div><div class="sum-sub">08:00~</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt["A'"]}</div><div class="sum-lbl">A'반</div><div class="sum-sub">09:00~</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['B']}</div><div class="sum-lbl">B반</div><div class="sum-sub">09:00~</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt["B'"]}</div><div class="sum-lbl">B'반</div><div class="sum-sub">09:00~</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['C']}</div><div class="sum-lbl">C반</div><div class="sum-sub">10:00~</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['S']+cnt['D']}</div><div class="sum-lbl">S/D반</div><div class="sum-sub">사무·운전</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['A']}</div><div class="sum-lbl">A반</div><div class="sum-sub">08:00-17:00</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['B']}</div><div class="sum-lbl">B반</div><div class="sum-sub">09:00-18:00</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['C']}</div><div class="sum-lbl">C반</div><div class="sum-sub">10:00-19:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['N']+cnt['E']}</div><div class="sum-lbl">야간/이브닝</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>`;
 }
@@ -2446,8 +2481,8 @@ function refresh() {
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   renderWeekSelector();
   renderNightAssignPreview();   // 저장본을 불러왔을 때도 단기보호 배정 미리보기가 뜨도록
+  recalcTransDays();            // 표에 송영 횟수를 쓰므로 그리기 전에 계산한다
   renderTable();
-  renderStaffList();
   updateStats();
   updateSummary();
   renderLawPanel();
@@ -2555,7 +2590,7 @@ function renderSmList() {
       <div class="sm-li-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
       <div class="sm-li-info">
         <div class="sm-li-name">${s.name}${s.hasLicense?' 🚗':''}</div>
-        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}</div>
+        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}${isScheduled(s) ? '' : ' · 근무표 제외'}</div>
       </div>
     </div>`).join('') +
     `<div class="sm-list-item new-item" onclick="smNewStaff()">＋ 새 직원 추가</div>`;
@@ -2767,6 +2802,7 @@ function smSaveStaff() {
   }
 
   document.getElementById('stat-staff').textContent = getVisibleStaff().length;
+  persistStaffRoster();
   renderSmList();
   smSelectStaff(smEditingId);
   autoSave();
@@ -2784,6 +2820,7 @@ function smDeleteStaff(id) {
 
   smEditingId = null;
   document.getElementById('stat-staff').textContent = getVisibleStaff().length;
+  persistStaffRoster();
   renderSmList();
   renderSmEmpty();
   showToast('삭제됐습니다', '');
@@ -2800,6 +2837,7 @@ document.getElementById('night-modal').addEventListener('click', function(e){ if
 // firebase-config.js 가 자리표시자면 CLOUD.enabled=false → 아래 함수들은 모두 no-op(로컬 전용).
 const CENTER = (window.FIREBASE_CENTER_ID || 'rihawon');
 function schedDocPath(){ return `centers/${CENTER}/schedules/${currentYear}_${currentMonth}`; }
+function staffDocPath(){ return `centers/${CENTER}/staff/roster`; }
 function setCloudStatus(t){ const el=document.getElementById('cloud-status'); if(el) el.textContent=t; }
 
 function renderAuthUI(user){
@@ -2825,6 +2863,27 @@ async function doLogin(){
 function doLogout(){ if(window.CLOUD && window.CLOUD.signOut) window.CLOUD.signOut(); }
 
 let _cloudPushTimer=null;
+
+// 직원 명부는 달과 무관하므로 문서도 따로 둔다
+async function cloudPullStaff(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  try{
+    const raw=await window.CLOUD.loadDoc(staffDocPath());
+    if(raw && raw.payload){
+      if(applyStaffRoster(raw.payload)) localStorage.setItem(STAFF_KEY, raw.payload);
+    } else if(localStorage.getItem(STAFF_KEY)){
+      await cloudPushStaff();                            // 클라우드에 없으면 로컬 명부를 최초 업로드
+    }
+  }catch(e){ console.warn('[cloud] 직원 명부 pull 실패', e); }
+}
+async function cloudPushStaff(){
+  if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
+  try{
+    await window.CLOUD.saveDoc(staffDocPath(),
+      { payload: staffRosterPayload(), updatedAt:new Date().toISOString(), by:(window.CLOUD.user.email||'') });
+  }catch(e){ console.warn('[cloud] 직원 명부 push 실패', e); }
+}
+
 async function cloudPullMonth(){
   if(!window.CLOUD || !window.CLOUD.enabled || !window.CLOUD.user) return;
   setCloudStatus('불러오는 중…');
@@ -2860,7 +2919,7 @@ function cloudInit(){
   renderAuthUI(window.CLOUD ? window.CLOUD.user : null);
   window.addEventListener('cloud-auth', e=>{
     renderAuthUI(e.detail.user);
-    if(e.detail.user) cloudPullMonth();
+    if(e.detail.user) cloudPullStaff().then(cloudPullMonth);   // 명부를 먼저 맞추고 근무표를 읽는다
   });
 }
 function whenCloud(cb){
