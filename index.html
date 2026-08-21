@@ -147,6 +147,10 @@
   .day-th .day-num { font-size: 13px; font-weight: 700; display: block; }
   .day-th .day-name { font-size: 10px; }
   .day-th.shortterm-day .day-num { color: var(--info); }
+  /* 인원 부족한 날 — 머리글에 표시하고 열 전체를 옅게 물들인다 */
+  .day-th.day-short { border-bottom: 3px solid var(--warn); cursor: help; }
+  .day-th .day-warn { display: block; font-size: 9px; font-weight: 700; color: var(--warn); line-height: 1.1; }
+  .schedule-table td.short-col { background-color: #fff6ed; }
   .today-col { background: #f0f7f2 !important; }
   .shortterm-col { background: #eaf4fb !important; }
 
@@ -208,7 +212,7 @@
   .shift-empty { background: transparent; border: 1.5px dashed var(--border2); color: var(--text3); font-size: 16px; }
   .shift-empty:hover { border-color: var(--accent); color: var(--accent); }
   .violation { box-shadow: 0 0 0 2px var(--warn) inset; }
-  .no-license-warn { box-shadow: 0 0 0 2px var(--over) inset; }
+  .drive-badge { position: absolute; bottom: 1px; right: 1px; font-size: 8px; line-height: 1; pointer-events: none; }
 
   /* COUNT / USER ROW */
   .count-row td, .user-row td { background: var(--surface2) !important; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text2); padding: 4px 3px; }
@@ -452,7 +456,8 @@
       <div class="legend-item"><div class="legend-dot" style="background:#1f7a4d;"></div>M 목욕 메인 (화·금 3인 / 수 1인, 오후)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#74b295;"></div>S1·S2 목욕 보조</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방담당</div>
-      <div class="legend-item"><div style="width:10px;height:10px;border:2px solid var(--warn);border-radius:2px;flex-shrink:0;"></div>인원부족 경고</div>
+      <div class="legend-item">🚗 운전 가능 직원의 송영 시간대 (A·C반)</div>
+      <div class="legend-item"><div style="width:10px;height:10px;border-bottom:3px solid var(--warn);flex-shrink:0;"></div>⚠ 인원부족 — 날짜에 마우스를 올리면 사유가 보입니다</div>
     </div>
   </aside>
 
@@ -1307,6 +1312,46 @@ function isDayWorking(sh) { return sh && !['O','H','HH','N','E'].includes(sh); }
 
 // ── 법정 배치기준 종합 검증 (주간·야간) — renderLawPanel/updateStats 공용 ──
 // 반환: 각 위반 "일수" 및 휴게 위반 "건수". 아직 편성되지 않은(근무 0명) 영업일은 검증 대상에서 제외.
+// 그날 인원이 기준에 못 미치는 항목들. 사이드바 법령검증과 표의 경고 표시가 같은 판단을 쓰도록
+// 여기 한곳에서만 계산한다. 반환은 [{code, text}].
+function dayIssues(day) {
+  const out = [];
+  const work = code => STAFF.filter(s => isScheduled(s) && isStaffActiveOnDay(s, day)
+    && (code ? scheduleData[`${s.id}-${day}`] === code : isDayWorking(scheduleData[`${s.id}-${day}`])));
+
+  if (isServiceDay(day)) {
+    const working = work();
+    if (working.length > 0) {                          // 아직 안 짠 날은 판단하지 않는다
+      const users = getDailyUsers(day);
+      const care = working.filter(s => s.type === 'care').length;
+      const need = Math.ceil(users / STAFFING_RULES.carePerUsers);
+      if (care < need) out.push({ code:'care', text:`요양보호사 ${care}명 (이용자 ${users}명 → ${need}명 필요)` });
+      if (users >= STAFFING_RULES.nurseMinUsers && !working.some(s => s.type === 'nurse'))
+        out.push({ code:'nurse', text:`간호(조무)사 미배치 (이용자 ${users}명)` });
+      if (users >= STAFFING_RULES.swMinUsers && !working.some(s => s.type === 'sw'))
+        out.push({ code:'sw', text:`사회복지사 미배치 (이용자 ${users}명)` });
+      if (users >= STAFFING_RULES.therapistMinUsers && !working.some(s => s.type === 'pt' || s.type === 'ot'))
+        out.push({ code:'therapist', text:`물리/작업치료사 미배치 (이용자 ${users}명)` });
+    }
+  }
+
+  const dow = getDow(day);
+  if (dow >= 1 && dow <= 5) {
+    const off = STAFF.filter(x => isScheduled(x) && isStaffActiveOnDay(x, day)
+      && ['O','H'].includes(scheduleData[`${x.id}-${day}`])).length;
+    if (off > MAX_DAILY_OFF) out.push({ code:'off', text:`휴무 ${off}명 (상한 ${MAX_DAILY_OFF}명)` });
+    if (isShortTermDay(day) && work('N').length < STAFFING_RULES.nightMinStaff)
+      out.push({ code:'night', text:'단기보호 야간 담당 미배치' });
+  }
+
+  if (BATH_DOWS.includes(dow)) {
+    const a = getBathAssignment(day);
+    if (a && a.list.length < BATH_MIN_STAFF)
+      out.push({ code:'bath', text:`목욕 ${a.list.length}명 (최소 ${BATH_MIN_STAFF}명)` });
+  }
+  return out;
+}
+
 function computeCompliance(days = getDays()) {
   const totalDays = new Date(currentYear, currentMonth, 0).getDate();
   let careShortDays = 0, nurseMissDays = 0, swMissDays = 0, therapistMissDays = 0;
@@ -1314,50 +1359,27 @@ function computeCompliance(days = getDays()) {
   let bathShortDays = 0, offOverDays = 0;
   const offOverList = [];
 
-  days.filter(isServiceDay).forEach(d => {
-    const users = getDailyUsers(d);
-    const working = STAFF.filter(s => isScheduled(s) && isStaffActiveOnDay(s, d) && isDayWorking(scheduleData[`${s.id}-${d}`]));
-    if (working.length === 0) return;                    // 미편성일은 제외
-    const careCount = working.filter(s => s.type === 'care').length;
-    // ▶ 0명 미배치도 부족으로 집계 (기존 careWorking>0 가드가 전원 미배치를 놓치던 버그 수정)
-    if (careCount < Math.ceil(users / STAFFING_RULES.carePerUsers)) careShortDays++;
-    // 간호/사회복지/치료사는 이용현원이 기준 이상일 때만 필수
-    if (users >= STAFFING_RULES.nurseMinUsers   && !working.some(s => s.type === 'nurse')) nurseMissDays++;
-    if (users >= STAFFING_RULES.swMinUsers      && !working.some(s => s.type === 'sw'))    swMissDays++;
-    if (users >= STAFFING_RULES.therapistMinUsers && !working.some(s => s.type === 'pt' || s.type === 'ot')) therapistMissDays++;
+  days.forEach(d => {
+    dayIssues(d).forEach(it => {
+      if (it.code === 'care')      careShortDays++;
+      if (it.code === 'nurse')     nurseMissDays++;
+      if (it.code === 'sw')        swMissDays++;
+      if (it.code === 'therapist') therapistMissDays++;
+      if (it.code === 'night')     nightShortDays++;
+      if (it.code === 'bath')      bathShortDays++;
+      if (it.code === 'off')     { offOverDays++; offOverList.push(`${d}일 ${it.text}`); }
+    });
   });
 
-  // ── 하루 휴무 인원 상한 검증 (월~금) ──
-  days.filter(d => { const w = getDow(d); return w >= 1 && w <= 5; }).forEach(d => {
-    const off = STAFF.filter(x => isScheduled(x) && isStaffActiveOnDay(x, d) && ['O','H'].includes(scheduleData[`${x.id}-${d}`])).length;
-    if (off > MAX_DAILY_OFF) { offOverDays++; offOverList.push(`${d}일 ${off}명`); }
-  });
-
-  // ── 목욕 인원 검증 (화·금 3인 정원 중 최소 2인) ──
-  //    수요일 목욕은 정원 1인이라 이 기준에서 제외한다.
-  days.filter(d => BATH_DOWS.includes(getDow(d))).forEach(d => {
-    const a = getBathAssignment(d);
-    if (a && a.list.length < BATH_MIN_STAFF) bathShortDays++;
-  });
-
-  // ── 야간(단기보호) 검증 ──
+  // ── 11시간 휴게 위반 ──
   days.forEach(d => {
     STAFF.forEach(s => {
-      if (!isStaffActiveOnDay(s, d)) return;
+      if (!isScheduled(s) || !isStaffActiveOnDay(s, d)) return;
       const sh = scheduleData[`${s.id}-${d}`];
-      // 11시간 휴게: N/E 근무 다음날이 주간근무면 위반
       if ((sh === 'N' || sh === 'E') && d + 1 <= totalDays && isDayWorking(scheduleData[`${s.id}-${d + 1}`])) {
         restViolations++;
       }
     });
-    // 야간 인력: 단기보호 주간 평일 밤에 야간(N) 담당이 최소기준 미만
-    if (isShortTermDay(d)) {
-      const dow = getDow(d);
-      if (dow >= 1 && dow <= 5) {
-        const nightCount = STAFF.filter(s => isStaffActiveOnDay(s, d) && scheduleData[`${s.id}-${d}`] === 'N').length;
-        if (nightCount < STAFFING_RULES.nightMinStaff) nightShortDays++;
-      }
-    }
   });
 
   return { careShortDays, nurseMissDays, swMissDays, therapistMissDays, nightShortDays, restViolations, bathShortDays, offOverDays, offOverList };
@@ -1457,6 +1479,7 @@ function renderTable() {
   const days = getDays();
   const bathMap = buildBathMap(days);
   const kitchenMap = buildSatKitchenMap(days);
+  const shortDays = new Set(days.filter(d => dayIssues(d).length));
   const tbody = document.getElementById('table-body');
   const thead = document.getElementById('table-head');
 
@@ -1473,8 +1496,12 @@ function renderTable() {
     const isST = isShortTermDay(d);
     const th = document.createElement('th');
     const dowNames = ['일','월','화','수','목','금','토'];
-    th.innerHTML = `<span class="day-num">${d}</span><span class="day-name">${dowNames[dow]}${isST&&!isSunday?'🌙':''}</span>`;
-    th.className = 'day-th'+(isSunday?' weekend':'')+(isTod?' today':'')+(isST&&!isSunday?' shortterm-day':'');
+    const issues = dayIssues(d);
+    th.innerHTML = `<span class="day-num">${d}</span><span class="day-name">${dowNames[dow]}${isST&&!isSunday?'🌙':''}</span>`
+      + (issues.length ? `<span class="day-warn">⚠${issues.length}</span>` : '');
+    th.className = 'day-th'+(isSunday?' weekend':'')+(isTod?' today':'')+(isST&&!isSunday?' shortterm-day':'')
+      + (issues.length ? ' day-short' : '');
+    if (issues.length) th.title = `${d}일 인원 부족\n· ` + issues.map(x => x.text).join('\n· ');
     if (isTod) th.style.background='#e8f5ee';
     headRow.appendChild(th);
   });
@@ -1509,6 +1536,7 @@ function renderTable() {
       const isST = isShortTermDay(d);
       if (isToday(d)) td.classList.add('today-col');
       if (isST && !isSunday) td.classList.add('shortterm-col');
+      if (shortDays.has(d)) td.classList.add('short-col');
 
       const key = `${s.id}-${d}`;
       const sh = scheduleData[key];
@@ -1518,8 +1546,9 @@ function renderTable() {
         return;
       }
 
-      // 면허 없는 직원이 운전 필요 시프트이면 경고
-      const licenseWarn = sh && SHIFTS[sh] && SHIFTS[sh].isTransport && !s.hasLicense;
+      // 운전원은 근무표 밖이라 면허 없음을 경고할 이유가 없다.
+      // 대신 운전 가능한 직원이 송영 시간대(A·C반)에 있으면 참고용으로 표시한다.
+      const canDrive = !!sh && !!SHIFTS[sh] && SHIFTS[sh].isTransport && s.hasLicense;
 
       // 목욕 담당 배지 (M=메인 / S1·S2=보조)
       const isWish = !!wishOff[key];
@@ -1534,12 +1563,13 @@ function renderTable() {
 
       if (sh) {
         const info = SHIFTS[sh] || { label: sh, time: '', cls: 'shift-off' };
-        const warnClass = licenseWarn ? 'no-license-warn' : '';
+        const driveBadge = canDrive
+          ? `<span class="drive-badge" title="운전 가능 · ${info.label} 송영 시간대">🚗</span>` : '';
         td.innerHTML = `
-          <div class="shift-cell ${info.cls} ${warnClass}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${licenseWarn?'⚠ 운전면허 없음':''}">
+          <div class="shift-cell ${info.cls}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${canDrive?'송영 가능':''}">
             <span class="sh-label">${info.label}</span>
             ${info.time ? `<span class="sh-time">${info.time}</span>` : ''}
-            ${bathBadge}${wishBadge}
+            ${bathBadge}${wishBadge}${driveBadge}
           </div>`;
       } else if (isSunday && !isST) {
         td.innerHTML = `<div class="shift-cell shift-off" onclick="onCellClick(${s.id},${d})"><span class="sh-label">OFF</span></div>`;
@@ -1594,6 +1624,8 @@ function renderTable() {
       else if (careW >= minCare) cls = 'ok-count';
       td.textContent = working > 0 ? `${working}명` : '—';
       td.className = cls;
+      const iss = dayIssues(d);
+      if (iss.length) { td.title = iss.map(x => x.text).join(' · '); td.style.cursor = 'help'; }
       if (isToday(d)) td.style.background='#d5f0e0';
     }
     countRow.appendChild(td);
@@ -1725,9 +1757,10 @@ function openModal(staffId, day) {
     const sh = scheduleData[`${sx.id}-${day}`];
     return sx.hasLicense && isDayWorking(sh);
   }).length;
-  if (!s.hasLicense) {
+  // 면허 없음은 경고가 아니다(운전원이 따로 있다). 운전 가능한 직원에게만 송영 참고 정보를 띄운다.
+  if (s.hasLicense) {
     driveEl.style.display = '';
-    driveEl.innerHTML = `⚠ <strong>${s.name}</strong>님은 운전면허가 없습니다. A·C·D반 선택 시 송영 담당 불가 — 오늘 면허 보유 배치 인원: <strong>${licenseWorkingToday}명</strong>`;
+    driveEl.innerHTML = `🚗 <strong>${s.name}</strong>님은 운전 가능합니다. A반(08-17)·C반(10-19)이 송영 시간대입니다 — 이날 운전 가능 배치 인원: <strong>${licenseWorkingToday}명</strong>`;
   } else {
     driveEl.style.display='none';
   }
@@ -2358,7 +2391,8 @@ function updateStats() {
     nightCount += STAFF.filter(s => isStaffActiveOnDay(s, d) && (scheduleData[`${s.id}-${d}`]==='N' || scheduleData[`${s.id}-${d}`]==='E')).length;
   });
 
-  document.getElementById('stat-warn').textContent = comp.careShortDays;
+  // 표의 ⚠ 표시와 같은 기준 — 한 항목이라도 걸린 날의 수
+  document.getElementById('stat-warn').textContent = getDays().filter(d => dayIssues(d).length).length;
   document.getElementById('stat-over').textContent = over;
   document.getElementById('stat-night').textContent = nightCount;
   const weekday = getMonthDays().find(d => { const dw = getDow(d); return dw >= 1 && dw <= 5; });
