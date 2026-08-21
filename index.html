@@ -129,6 +129,7 @@
   /* INFO BAR */
   .info-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .info-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
+  .info-chip.warn { background: var(--warn-light); border-color: var(--warn); color: var(--warn); }
 
   /* TABLE */
   .schedule-wrap { overflow-x: auto; }
@@ -450,7 +451,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-off-bg);border:1px solid var(--shift-off);"></div>휴무(OFF)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#1f7a4d;"></div>M 목욕 메인 (화·금 3인 / 수 1인, 오후)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#74b295;"></div>S1·S2 목욕 보조</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방 담당</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방담당</div>
       <div class="legend-item"><div style="width:10px;height:10px;border:2px solid var(--warn);border-radius:2px;flex-shrink:0;"></div>인원부족 경고</div>
     </div>
   </aside>
@@ -472,10 +473,7 @@
       </div>
     </div>
 
-    <div class="info-bar" id="info-bar">
-      <div class="info-chip">🚗 <strong id="ic-license">면허자 -명</strong></div>
-      <div class="info-chip">🌙 <strong id="ic-night">단기보호 미설정</strong></div>
-      <div class="info-chip">📋 <strong id="ic-leave">연차 현황</strong></div>
+    <div class="info-bar" id="info-bar" style="display:none;">
     </div>
 
     <div class="schedule-wrap">
@@ -846,7 +844,7 @@ const SAT_GROUPS = {
              match: x => ['nurse', 'pt', 'ot'].includes(x.type) || /간호조무/.test(x.role) },
   support: { title: '홀지원',   desc: '사회복지사·사무원',
              match: x => x.type === 'sw' || x.type === 'home' || /사무|사회복지/.test(x.role) },
-  care:    { title: '요양보호사', desc: '요양보호사',
+  care:    { title: '주방담당', desc: '요양보호사 중 그날 주방을 맡는 1명',
              match: x => x.type === 'care' },
 };
 function satGroupPool(key) {
@@ -897,6 +895,36 @@ function buildSatKitchenMap(days) {
 
 // ▶ 자동배치가 돌리는 주간 근무조. 직종별 고정 배치는 두지 않는다.
 const DAY_SHIFTS = ['A', 'B', 'C'];
+
+// 직원 순번과 평일 순번을 더해 A·B·C를 돌린다. 주간/월간 어느 화면에서 돌려도
+// 같은 결과가 나오도록 언제나 그 달 전체를 기준으로 센다.
+function dayShiftFor(staffId, day) {
+  const active = getVisibleStaff(getMonthDays());
+  const si = active.findIndex(x => x.id === staffId);
+  const di = getMonthDays().filter(isServiceDay).indexOf(day);
+  if (si < 0 || di < 0) return 'B';
+  return DAY_SHIFTS[(si + di) % DAY_SHIFTS.length];
+}
+
+// 토요일 담당을 바꾸면 그날 배치를 즉시 다시 쓴다.
+// (연차·반차는 손대지 않는다 — 사람이 따로 정한 값이다)
+function applySaturdayToSchedule(day) {
+  const r = getSaturdayRoster(day);
+  if (!r) return;
+  const off = new Set(r.off);
+  satGroupPool('medical').forEach(id => { if (id !== r.rehab) off.add(id); });
+  satGroupPool('support').forEach(id => { if (id !== r.nurseSw) off.add(id); });
+  off.delete(r.kitchen);                                   // 주방 담당은 그날 근무한다
+
+  new Set([...SAT_TEAM, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen])
+    .forEach(id => {
+      const st = STAFF.find(x => x.id === id);
+      if (!st || !isScheduled(st) || !isStaffActiveOnDay(st, day)) return;
+      const key = `${id}-${day}`;
+      if (scheduleData[key] === 'H' || scheduleData[key] === 'HH') return;
+      scheduleData[key] = off.has(id) ? 'O' : dayShiftFor(id, day);
+    });
+}
 
 // ▶ 없어진 근무조(A'·B'·S·D)를 쓰던 저장본을 열었을 때 같은 시간대의 남은 근무조로 옮긴다
 const LEGACY_SHIFTS = { "A'": 'B', "B'": 'B', 'S': 'B', 'D': 'A' };   // 09-18 → B반 / 08-17 → A반
@@ -1501,7 +1529,7 @@ function renderTable() {
       const bathBadge = bathRole
         ? `<span class="bath-badge ${bathRole === 'M' ? '' : 'sub'}" title="목욕 ${bathRole === 'M' ? '메인' : '보조'} · 오후">${bathRole}</span>`
         : kitchenMap[key]
-        ? `<span class="bath-badge kitchen" title="토요일 주방 담당">주방</span>`
+        ? `<span class="bath-badge kitchen" title="토요일 주방담당">주방</span>`
         : '';
 
       if (sh) {
@@ -2036,6 +2064,8 @@ function setSatPlan(day, slot, value) {
   const pl = satPlan[day] || {};
   if (value) pl[slot] = Number(value); else delete pl[slot];
   if (!pl.rehab && !pl.nurseSw && !pl.kitchen) delete satPlan[day]; else satPlan[day] = pl;
+  applySaturdayToSchedule(day);        // 바꾼 담당을 근무표에 바로 반영한다
+  renderTable(); updateStats(); updateSummary(); renderLawPanel();
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 
@@ -2244,10 +2274,7 @@ function autoFill() {
       if (satOff[key]) { scheduleData[key] = 'O'; return; }  // 토요일 로테이션 휴무
 
       // 직종에 묶인 고정 반은 없다. 전원이 A·B·C를 돌아가며 맡는다.
-      // 직원 순번만큼 어긋나게 시작해 같은 날 세 반이 고르게 차도록 한다.
-      const staffIdx = activeStaff.findIndex(x => x.id === s.id);
-      const dayIdx = weekDays.indexOf(d);
-      scheduleData[key] = DAY_SHIFTS[(staffIdx + dayIdx) % DAY_SHIFTS.length];
+      scheduleData[key] = dayShiftFor(s.id, d);
     });
 
     // 일요일 → 휴무 (토요일은 서비스 제공)
@@ -2360,14 +2387,14 @@ function updateSummary() {
     <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>`;
 }
 
+// 면허 총원과 연차 잔여 합계는 표 왼쪽 열에 개인별로 다 보이므로 따로 띄우지 않는다.
+// 단기보호 주간은 안 정해두면 이브닝·야간이 아예 안 생기므로 그때만 알린다.
 function updateInfoBar() {
-  const visibleStaff = getVisibleStaff();
-  const licCount = visibleStaff.filter(s=>s.hasLicense).length;
-  document.getElementById('ic-license').textContent = `면허 보유 ${licCount}명`;
-  const stCount = shortTermWeeks.size;
-  document.getElementById('ic-night').textContent = stCount>0 ? `단기보호 ${stCount}주 설정` : '단기보호 미설정';
-  const totalLeave = visibleStaff.reduce((acc,s)=>acc+(s.annualLeave-calcUsedLeave(s.id)),0);
-  document.getElementById('ic-leave').textContent = `연차 잔여 합계 ${totalLeave}일`;
+  const bar = document.getElementById('info-bar');
+  if (shortTermWeeks.size > 0) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = `<div class="info-chip warn">🌙 <strong>단기보호 주간 미설정</strong>
+    <span style="font-weight:400;">— 이번 달에 단기보호가 없으면 그대로 두세요</span></div>`;
 }
 
 // ── MONTH / VIEW NAV ──────────────────────────────────────────────
