@@ -492,6 +492,9 @@
       <div class="sidebar-label">범례</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A반 08:00-17:00 (조기등원·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B반 09:00-18:00 (정규)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-ap-bg);border:1px solid var(--shift-ap);"></div>A'반 08:30-17:30 (A반 30분 늦게)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-bp-bg);border:1px solid var(--shift-bp);"></div>B'반 09:30-18:30 (B반 30분 늦게)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-s-bg);border:1px solid var(--shift-s);"></div>송영 08:00-17:00 (운전원은 D반)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C반 10:00-19:00 (오후케어·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-d-bg);border:1px solid var(--shift-d);"></div>D반 08:00-17:00 (운전원·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-evening-bg);border:1px solid var(--shift-evening);"></div>E(이브닝) 13:00-22:00</div>
@@ -719,7 +722,7 @@
 const STAFF = [
   { id:1,  name:'이태욱', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:2,  name:'석혁준', role:'작업치료사',      short:'OT',  type:'ot',     contract:40, color:'#7d3c98', bg:'#f0e6fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
-  { id:3,  name:'이의영', role:'간호사',          short:'RN',  type:'nurse',  contract:40, color:'#5b4fcf', bg:'#ede9fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
+  { id:3,  name:'이의영', role:'간호사',          short:'RN',  type:'nurse',  contract:40, color:'#5b4fcf', bg:'#ede9fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false, retirementDate:'2026-07-31' },   // 8월 근무표에 없음 — 정확한 퇴사일 확인 필요
   { id:4,  name:'김길찬', role:'요양보호사(CW)',  short:'CW',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:5,  name:'황정자', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:true  },
   { id:6,  name:'이미숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:true  },
@@ -729,7 +732,7 @@ const STAFF = [
   { id:10, name:'한경숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:15, transDays:0, nightShift:true  },
   { id:11, name:'박상근', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:12, name:'정윤정', role:'요양보호사(주방)',short:'주방', type:'care',  contract:40, color:'#196f3d', bg:'#d5f5e3', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
-  { id:13, name:'이세화', role:'사회복지사',      short:'SW',  type:'sw',     contract:40, color:'#c0672d', bg:'#fdf0e6', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
+  { id:13, name:'이세화', role:'사회복지사',      short:'SW',  type:'sw',     contract:40, color:'#c0672d', bg:'#fdf0e6', hasLicense:false, annualLeave:15, transDays:0, nightShift:false, leaves:[{type:'기타', from:'2026-08-01', to:'2026-12-31'}] },   // 휴직 — 2027-01-01 복귀 예정. 시작일은 8월 표 기준
   { id:14, name:'민영세', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:15, name:'정순석', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:16, name:'노재일', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
@@ -741,9 +744,12 @@ const STAFF = [
 // ▶ 근무코드 (실제 리하원 근무 코드 반영)
 const SHIFTS = {
   'A':  { label:'A반',    time:'08:00-17:00', cls:'shift-a',       hours:9,  isTransport:true  },
+  "A'": { label:"A'반",   time:'08:30-17:30', cls:'shift-ap',      hours:9,  isTransport:false },  // A반보다 30분 늦게
   'B':  { label:'B반',    time:'09:00-18:00', cls:'shift-b',       hours:9,  isTransport:false },
+  "B'": { label:"B'반",   time:'09:30-18:30', cls:'shift-bp',      hours:9,  isTransport:false },  // B반보다 30분 늦게
   'C':  { label:'C반',    time:'10:00-19:00', cls:'shift-c',       hours:9,  isTransport:true  },
-  'D':  { label:'D반',    time:'08:00-17:00', cls:'shift-d',       hours:9,  isTransport:true  },   // 운전원 전용(송영)
+  'S':  { label:'송영',   time:'08:00-17:00', cls:'shift-s',       hours:9,  isTransport:true  },  // 송영 근무
+  'D':  { label:'D반',    time:'08:00-17:00', cls:'shift-d',       hours:9,  isTransport:true  },   // 운전원의 송영 근무
   'E':  { label:'이브닝', time:'13:00-22:00', cls:'shift-evening', hours:9,  isTransport:false },
   'N':  { label:'야간',   time:'22:00-08:00', cls:'shift-night',   hours:10, isTransport:false },
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
@@ -1042,15 +1048,36 @@ function applySaturdayToSchedule(day) {
     });
 }
 
-// ▶ 없어진 근무조(A'·B'·S·D)를 쓰던 저장본을 열었을 때 같은 시간대의 남은 근무조로 옮긴다
-const LEGACY_SHIFTS = { "A'": 'B', "B'": 'B', 'S': 'B' };   // 09-18 → B반
-function migrateShiftCodes() {
-  let n = 0;
-  Object.keys(scheduleData).forEach(k => {
-    const v = LEGACY_SHIFTS[scheduleData[k]];
-    if (v) { scheduleData[k] = v; n++; }
+// ▶ 2026년 8월 실제 근무표 — 센터에서 받은 PDF를 그대로 옮긴 것.
+//   PDF의 '총 근무자 수'와 대조해 31일 중 30일이 일치했다(12일은 반차 집계 차이).
+//   운전원의 송영 근무(S)는 요청대로 D로 표기했다.
+const SEED_2026_08 = {
+   1: "O,O,O,O,O,O,O,O,O,B',B',S,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,H,O,O,H",                                                // 이태욱
+   2: "S,O,O,B',C,S,C,O,O,C,C,B',C,C,S,O,S,C,B',B',C,O,O,C,C,O,C,C,S,O,B",                                              // 석혁준
+   4: "S,O,S,C,C,B',O,S,O,A,B,C,A',B',O,O,O,O,C,C,O,S,O,B,H,C,A',S,S,O,C",                                              // 김길찬
+   5: "O,O,O,B,B',O,S,S,O,A',A',A',E,N,O,O,O,O,A,A',A',S,O,H,B,A,B,A,O,O,B'",                                           // 황정자
+   6: "S,O,A,O,A,B,A,S,O,O,C,C,C,E,S,O,S,A',A',A',O,O,O,H,B,B',C,B,S,O,A",                                              // 이미숙
+   7: "S,O,B',A',C,O,H,O,O,E,N,O,S,A,S,O,S,B',C,H,B',S,O,A',A',O,A,A',S,O,B",                                           // 전은숙
+   9: "B,O,C,C,O,B,C,O,O,A,A,E,N,O,B,O,S,C,H,C,C,S,O,A,A,A,O,A,B,O,C",                                                  // 모연숙
+  10: "O,O,H,A,A,A,B,B,O,C,E,N,O,C,S,O,O,A,O,A,A,B,O,C,C,C,O,C,S,O,A",                                                  // 한경숙
+  11: "O,O,C,C,O,C,C,O,O,C,C,C,C,S,S,O,O,C,C,C,C,O,O,C,C,S,C,C,O,O,C",                                                  // 박상근
+  12: "O,O,B,B,B,H,H,O,O,B,B,B,B,B,O,O,B,B,B,B,B,O,O,B,B,B,B,B,O,O,B",                                                  // 정윤정
+  13: "O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O",                                                  // 이세화
+  14: "O,O,D,D,D,D,D,D,O,D,D,D,D,D,O,O,D,D,D,D,D,D,O,D,H,D,D,H,O,O,H",                                                  // 민영세
+  15: "D,O,D,D,D,D,D,O,O,D,D,HH,D,D,D,O,O,H,D,D,D,O,O,D,D,D,D,D,D,O,D",                                                 // 정순석
+  16: "D,O,D,D,D,D,D,O,O,D,D,D,D,D,O,O,O,D,D,D,D,O,O,D,D,D,D,D,D,O,D",                                                  // 노재일
+  17: "O,O,B,B,B,B,B,O,O,B,B,B,B,B,O,O,O,B,B,B,B,O,O,B,B,B,B,B,O,O,B",                                                  // 전일환
+  18: "S,O,A,A',A',C,A,S,O,N,O,A,A,A,O,O,S,S,A,B,A,O,O,B',B',O,B',B',S,O,A'",                                           // 조민경
+  19: "O,O,A',O,A',A',A',S,O,A',A',A',A',A',O,O,O,A',A',O,A',S,O,A',A',A',A',A',O,O,B",                                 // 이민옥
+};
+
+// 시드를 이번 달 근무표로 펼친다
+function applySeed(map) {
+  Object.entries(map).forEach(([id, line]) => {
+    line.split(',').forEach((code, i) => {
+      if (code) scheduleData[`${id}-${i + 1}`] = code;
+    });
   });
-  return n;
 }
 
 // ▶ 법정 인력배치기준 (노인복지법 시행규칙 별표9 요지 · 설정값으로 관리)
@@ -1242,6 +1269,13 @@ function loadData() {
   const raw = localStorage.getItem(key);
   if (!raw) {
     wishOff = {}; overtime = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {};
+    if (currentYear === 2026 && currentMonth === 8) {          // 센터에서 받은 실제 8월 근무표
+      scheduleData = {}; applySeed(SEED_2026_08);
+      applyUsersFromPrevMonth({ overwrite:false, silent:true });
+      refresh();
+      showToast('2026년 8월 실제 근무표를 불러왔습니다', 'ok');
+      return;
+    }
     applyUsersFromPrevMonth({ overwrite:false, silent:true });
     refresh();
     showToast('저장된 데이터가 없어 전월 마지막주 기준 이용자 수를 자동 입력했습니다', 'info');
@@ -1259,7 +1293,6 @@ function loadData() {
   shortTermWeeks = new Set(data.shortTermWeeks || []);
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   migrateSaturdayServiceDays();
-  migrateShiftCodes();
   // 구형 저장본 호환 — 별도 명부가 아직 없을 때만 퇴사일을 되살린다
   if (data.staffLeave && !staffRosterLoaded) {
     data.staffLeave.forEach(sl => {
