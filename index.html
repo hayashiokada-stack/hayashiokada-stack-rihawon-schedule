@@ -127,7 +127,6 @@
   .view-btn.active { background: var(--accent); color: #fff; }
 
   /* INFO BAR */
-  .seed-btn { margin-left: 10px; font-size: 11px; background: var(--warn-light); border-color: var(--warn); color: var(--warn); }
   .info-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .info-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
   .info-chip.warn { background: var(--warn-light); border-color: var(--warn); color: var(--warn); }
@@ -519,7 +518,6 @@
         <button onclick="changeMonth(-1)">‹</button>
         <div class="month-title" id="month-title"></div>
         <button onclick="changeMonth(1)">›</button>
-        <button class="hbtn seed-btn" id="btn-seed" style="display:none;" onclick="loadSeedMonth()">📄 센터 원본 불러오기</button>
       </div>
       <div class="toolbar-right">
         <div class="view-toggle">
@@ -2639,20 +2637,6 @@ const RESET_ITEMS = [
   { key:'wish',     label:'희망 휴무일',          desc:'직원이 신청한 휴무 — 다시 받아야 합니다', on:false },
 ];
 
-// 저장본·클라우드본이 이미 있으면 자동 시드가 건너뛰므로, 직접 불러올 수 있게 한다
-function loadSeedMonth() {
-  const f = seedForMonth();
-  if (!f) return;
-  const n = Object.keys(scheduleData).length;
-  if (n && !confirm(`${currentYear}년 ${currentMonth}월에 이미 입력된 ${n}칸을 센터 원본으로 덮어쓸까요?\n연장근무·희망휴무·담당 배정은 그대로 둡니다.`)) return;
-  scheduleData = {};
-  applySeed(f());
-  cleanRetiredScheduleData();
-  refresh();
-  autoSave();
-  showToast(`${currentYear}년 ${currentMonth}월 센터 원본을 불러왔습니다`, 'ok');
-}
-
 function clearAll() {
   document.getElementById('reset-opts').innerHTML = RESET_ITEMS.map(it => `
     <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
@@ -2862,17 +2846,11 @@ function onCellClick(staffId, day) {
   if (wishMode) toggleWish(staffId, day); else openModal(staffId, day);
 }
 
-function updateSeedButton() {
-  const b = document.getElementById('btn-seed');
-  if (b) b.style.display = seedForMonth() ? '' : 'none';
-}
-
 function refresh() {
   cleanRetiredScheduleData();
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   renderWeekSelector();
   renderNightAssignPreview();   // 저장본을 불러왔을 때도 단기보호 배정 미리보기가 뜨도록
-  updateSeedButton();
   recalcTransDays();            // 표에 송영 횟수를 쓰므로 그리기 전에 계산한다
   renderTable();
   if (currentView === 'duty') renderDutyTable();
