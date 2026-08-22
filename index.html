@@ -864,10 +864,10 @@ function buildShortTermAssign(weekStartDay, weekOrder) {
   for (let k = 0; k < 5; k++) {
     const day = weekStartDay + k;
     const plan = stPlan[day] || {};
-    const e = plan.E || NIGHT_RING[(s0 + k) % L];
-    const n = plan.N || NIGHT_RING[(s0 + k - 1 + L) % L];
-    out[`${e}-${day}`] = 'E';
-    if (n !== e) out[`${n}-${day}`] = 'N';   // 같은 사람을 E와 N에 동시에 넣지 않는다
+    const e = plan.E !== undefined ? plan.E : NIGHT_RING[(s0 + k) % L];         // null 이면 공석
+    const n = plan.N !== undefined ? plan.N : NIGHT_RING[(s0 + k - 1 + L) % L];
+    if (e != null) out[`${e}-${day}`] = 'E';
+    if (n != null && n !== e) out[`${n}-${day}`] = 'N';   // 같은 사람을 E와 N에 동시에 넣지 않는다
   }
   return out;
 }
@@ -937,14 +937,15 @@ function getSaturdayRosterAt(y, m, d) {
 
   // 이번 달 날짜에 한해 수동 지정을 덮어쓴다 (satPlan은 달마다 따로 저장되므로)
   const plan = (y === currentYear && m === currentMonth && satPlan[d]) || {};
-  if (plan.rehab) rehab = plan.rehab;
-  if (plan.nurseSw) nurseSw = plan.nurseSw;
-  if (plan.kitchen) kitchen = plan.kitchen;
+  if (plan.rehab   !== undefined) rehab   = plan.rehab;     // null 이면 공석
+  if (plan.nurseSw !== undefined) nurseSw = plan.nurseSw;
+  if (plan.kitchen !== undefined) kitchen = plan.kitchen;
 
   // 요양보호사 근무자는 여러 명이다. 수동 목록이 있으면 그걸 쓰고, 없으면 4주 주기에서 뽑는다.
   // 주방담당은 그날 반드시 근무하므로 빠져 있으면 넣어 준다.
   let working = plan.care ? plan.care.slice() : SAT_TEAM.filter(id => !off.includes(id));
-  if (!working.includes(kitchen)) working = [...working, kitchen];
+  if (kitchen != null && !working.includes(kitchen)) working = [...working, kitchen];
+  working = working.filter(id => id != null);
 
   const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const carePool = STAFF
@@ -963,7 +964,7 @@ function buildSatKitchenMap(days) {
     const r = getSaturdayRoster(d);
     if (!r) return;
     // 근무가 배정된 날에만 배지를 단다. 비어 있으면(초기화 직후 등) 달지 않는다.
-    if (!isDayWorking(scheduleData[`${r.kitchen}-${d}`])) return;
+    if (r.kitchen == null || !isDayWorking(scheduleData[`${r.kitchen}-${d}`])) return;
     map[`${r.kitchen}-${d}`] = 'K';
   });
   return map;
@@ -992,7 +993,8 @@ function applySaturdayToSchedule(day) {
   satGroupPool('support').forEach(id => { if (id !== r.nurseSw) off.add(id); });
   off.delete(r.kitchen);                                   // 주방 담당은 그날 근무한다
 
-  new Set([...r.carePool, ...r.working, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen])
+  new Set([...r.carePool, ...r.working, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen]
+    .filter(id => id != null))
     .forEach(id => {
       const st = STAFF.find(x => x.id === id);
       if (!st || !isStaffActiveOnDay(st, day)) return;
@@ -2040,8 +2042,8 @@ function renderStModal() {
       const pl = stPlan[d] || {};
       rows += `<div class="asg-row" style="grid-template-columns:100px 1fr 1fr;">
         <span>${d}일 (${DOW_KO[getDow(d)]})</span>
-        <select class="${pl.E ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value);renderStModal()">${opts(pool, duty.E)}</select>
-        <select class="${pl.N ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value);renderStModal()">${opts(pool, duty.N)}</select>
+        <select class="${pl.E !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value);renderStModal()">${opts(pool, duty.E, pl.E !== undefined)}</select>
+        <select class="${pl.N !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value);renderStModal()">${opts(pool, duty.N, pl.N !== undefined)}</select>
       </div>`;
     }
   });
@@ -2075,11 +2077,11 @@ function renderSatModal() {
         <span style="color:var(--text3);font-weight:400;">${r.cycleWeek}주차 · 근무 ${r.working.length + 2}명</span></div>
       <div class="sat-slots">
         <label>${g.medical.title}
-          <select class="${cls('rehab')}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab)}</select></label>
+          <select class="${cls('rehab')}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab, pl.rehab !== undefined)}</select></label>
         <label>${g.support.title}
-          <select class="${cls('nurseSw')}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw)}</select></label>
+          <select class="${cls('nurseSw')}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw, pl.nurseSw !== undefined)}</select></label>
         <label>${g.care.title}
-          <select class="${cls('kitchen')}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen)}</select></label>
+          <select class="${cls('kitchen')}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen, pl.kitchen !== undefined)}</select></label>
       </div>
       <div class="sat-care-row">
         <span class="sat-care-label">요양보호사${pl.care ? ' *' : ''}</span>
@@ -2119,15 +2121,21 @@ function activeIds(ids) {
     return st && isStaffActiveInDays(st, getMonthDays());
   });
 }
-function opts(pool, sel) {
+// 담당 선택지.
+//   value ''        → 그 자리를 비운다(공석)
+//   value '__auto'  → 수동 지정을 지우고 순번대로 되돌린다 (지정된 자리에서만 보인다)
+//   sel 이 null 이면 공석 상태다.
+function opts(pool, sel, overridden) {
   // 지금 값이 목록에 없으면(직종 변경·저장본 등) 맨 뒤에 붙여 준다 — '없음'으로 잘못 보이지 않게
   const list = sel && !pool.includes(sel) ? [...pool, sel] : pool;
-  return `<option value="">— 없음 —</option>` + list.map(id => {
-    const st = STAFF.find(x => x.id === id);
-    if (!st) return '';
-    const outside = !pool.includes(id) ? ' (다른 직종)' : '';
-    return `<option value="${id}" ${sel === id ? 'selected' : ''}>${st.name}${outside}</option>`;
-  }).join('');
+  return `<option value="" ${sel == null ? 'selected' : ''}>— 없음 —</option>`
+    + list.map(id => {
+        const st = STAFF.find(x => x.id === id);
+        if (!st) return '';
+        const outside = !pool.includes(id) ? ' (다른 직종)' : '';
+        return `<option value="${id}" ${sel === id ? 'selected' : ''}>${st.name}${outside}</option>`;
+      }).join('')
+    + (overridden ? `<option value="__auto">↩ 순번대로 되돌리기</option>` : '');
 }
 function nameOf(id) { const st = STAFF.find(x => x.id === id); return st ? st.name : '—'; }
 
@@ -2195,14 +2203,16 @@ function renderAssignPreview() {
 
 function setStPlan(day, slot, value) {
   const pl = stPlan[day] || {};
-  if (value) pl[slot] = Number(value); else delete pl[slot];
-  if (!pl.E && !pl.N) delete stPlan[day]; else stPlan[day] = pl;
+  if (value === '__auto') delete pl[slot];
+  else pl[slot] = value === '' ? null : Number(value);     // '' 는 공석
+  if (!Object.keys(pl).length) delete stPlan[day]; else stPlan[day] = pl;
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 function setSatPlan(day, slot, value) {
   const pl = satPlan[day] || {};
-  if (value) pl[slot] = Number(value); else delete pl[slot];
-  if (!pl.rehab && !pl.nurseSw && !pl.kitchen && !pl.care) delete satPlan[day]; else satPlan[day] = pl;
+  if (value === '__auto') delete pl[slot];
+  else pl[slot] = value === '' ? null : Number(value);     // '' 는 공석
+  if (!Object.keys(pl).length) delete satPlan[day]; else satPlan[day] = pl;
   applySaturdayToSchedule(day);        // 바꾼 담당을 근무표에 바로 반영한다
   renderTable(); updateStats(); updateSummary(); renderLawPanel();
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
@@ -2346,7 +2356,7 @@ function autoFill() {
     if (base.getDay() !== 6) continue;
     const r = getSaturdayRosterAt(base.getFullYear(), base.getMonth() + 1, base.getDate());
     if (!r) continue;
-    const crew = [...r.working, r.rehab, r.nurseSw];   // 요양보호사 + 보건의료 + 홀지원 담당
+    const crew = [...r.working, r.rehab, r.nurseSw].filter(id => id != null);   // 요양보호사 + 보건의료 + 홀지원
     const week = [2, 3, 4, 5, 6].map(k => new Date(base.getFullYear(), base.getMonth(), base.getDate() + k));
     if (!week.some(inThisMonth)) continue;
 
@@ -2606,7 +2616,7 @@ function renderBathModal() {
     const wid = getWashStaff(d);
     const manualWash = Object.prototype.hasOwnProperty.call(washPlan, d);
     const wash = isWashDay(d)
-      ? `<select class="${manualWash ? 'manual' : ''}" onchange="setWashStaff(${d},this.value)">${opts(pool(d), wid)}</select>`
+      ? `<select class="${manualWash ? 'manual' : ''}" onchange="setWashStaff(${d},this.value)">${opts(pool(d), wid, manualWash)}</select>`
       : '<span style="color:var(--text3);">—</span>';
     html += `<div class="duty-row ${bathDay && !plan.on ? 'skip' : ''}">
       <span>${d}일 (${dow[getDow(d)]})</span>
@@ -2618,7 +2628,8 @@ function renderBathModal() {
 
 // 세면대 담당 수동 지정. 빈 값을 고르면 '없음'으로 고정한다(순번으로 되돌리려면 전체 해제).
 function setWashStaff(day, value) {
-  washPlan[day] = value ? Number(value) : null;
+  if (value === '__auto') delete washPlan[day];            // 순번대로 되돌리기
+  else washPlan[day] = value === '' ? null : Number(value);
   refresh(); autoSave();
   renderBathModal();
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
