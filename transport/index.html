@@ -982,6 +982,12 @@ function load(){
   if(!DB.scheduleTemplates[4]) DB.scheduleTemplates[4] = buildDefaultThuTemplate();
   if(!DB.scheduleTemplates[5]) DB.scheduleTemplates[5] = buildDefaultFriTemplate();
   if(!DB.scheduleTemplates[6]) DB.scheduleTemplates[6] = buildDefaultSatTemplate();
+  // 토요일 템플릿은 8월 실제 송영표로 다시 만들었다. 기존 저장본에도 한 번 반영한다.
+  if(!DB.settings) DB.settings = {};
+  if(DB.settings.satTemplateVersion !== SAT_TEMPLATE_VERSION) {
+    DB.scheduleTemplates[6] = buildDefaultSatTemplate();
+    DB.settings.satTemplateVersion = SAT_TEMPLATE_VERSION;
+  }
   if(DB.vehicleColors) Object.assign(VEHICLE_COLORS, DB.vehicleColors);
   // 차량·운전원 초기 데이터 (비어있을 때만)
   if(!DB.vehicles || !DB.vehicles.length) DB.vehicles = [
@@ -1000,6 +1006,7 @@ function load(){
     {id:'d-nojae',   name:'노재일', role:'운전원', phone:'', color:'#d97706', hasLicense:true, active:true, note:''},
     {id:'d-parksang',name:'박상근', role:'운전원', phone:'', color:'#d97706', hasLicense:true, active:true, note:''},
     {id:'d-hwangjeo',name:'황정자', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''},
+    {id:'d-jeoneunsuk',name:'전은숙', role:'운전원', phone:'', color:'#0891b2', hasLicense:true, active:true, note:''},
     {id:'d-seokhyuk',name:'석혁준', role:'운전원', phone:'', color:'#dc2626', hasLicense:true, active:true, note:''}
   ];
   reconcileVehicleRoster();
@@ -1050,6 +1057,11 @@ function syncBeneficiaryClients(silent){
     const name = (src.name||'').trim();
     if (!name) return;
     let client = DB.clients.find(c => (c.name||'').trim() === name);
+    const isNew = !client;
+    if (isNew) {
+      client = { id: uid(), vehicleId: '', lat: '', lng: '' };
+      DB.clients.push(client);
+    }
     const common = {
       name,
       gender: src.gender || '',
@@ -1064,41 +1076,27 @@ function syncBeneficiaryClients(silent){
       birthDate: src.birthDate || '',
       sourceRow: src.sourceRow || ''
     };
-    if (client) {
-      Object.assign(client, common);
-      // 아래 항목은 소스에 명시돼 있으면 덮어쓴다. 이 함수는 BENEFICIARY_SOURCE_VERSION이
-      // 바뀔 때만 도는 '재수입'이라, 명부를 새로 받은 뜻으로 본다.
-      if (src.days && src.days.length) client.days = src.days;
-      else if (!client.days || !client.days.length) client.days = [1,2,3,4,5];
-      if (src.scheduleType) client.scheduleType = src.scheduleType;
-      if (src.individual !== undefined) client.individual = !!src.individual;
-      if (src.needsWheelchair !== undefined) client.needsWheelchair = !!src.needsWheelchair;
-      // 희망시간은 '요청이 있을 때만' 채운다. 소스가 빈 값이면 센터결정으로 되돌린다.
-      if (src.pickupTime !== undefined) client.pickupTime = src.pickupTime;
-      if (src.dropoffTime !== undefined) client.dropoffTime = src.dropoffTime;
-      // 담당 차량은 이름으로 들어온다 — 등록된 차량과 이름이 맞을 때만 붙인다.
-      if (src.vehicleName) {
-        const v = (DB.vehicles || []).find(x => x.name === src.vehicleName);
-        if (v) client.vehicleId = v.id;
-      }
-      if (client.individual) client.vehicleId = '';
-      // 좌표는 사용자 입력값 우선, 없을 때만 소스(지오코딩) 좌표 채움
-      if ((!client.lat || !client.lng) && src.lat && src.lng) { client.lat = src.lat; client.lng = src.lng; client.geoApprox = !!src.geoApprox; }
-      updated++;
-    } else {
-      DB.clients.push({
-        id: uid(),
-        ...common,
-        vehicleId: '',
-        lat: src.lat || '',
-        lng: src.lng || '',
-        geoApprox: !!src.geoApprox,
-        days: src.days || [1,2,3,4,5],
-        pickupTime: src.pickupTime || '',
-        dropoffTime: src.dropoffTime || ''
-      });
-      added++;
+    Object.assign(client, common);
+    // 아래 항목은 소스에 명시돼 있으면 덮어쓴다. 이 함수는 BENEFICIARY_SOURCE_VERSION이
+    // 바뀔 때만 도는 '재수입'이라, 명부를 새로 받은 뜻으로 본다.
+    if (src.days && src.days.length) client.days = src.days;
+    else if (!client.days || !client.days.length) client.days = [1,2,3,4,5];
+    if (src.scheduleType) client.scheduleType = src.scheduleType;
+    if (src.individual !== undefined) client.individual = !!src.individual;
+    if (src.individualPickup !== undefined) client.individualPickup = !!src.individualPickup;
+    if (src.needsWheelchair !== undefined) client.needsWheelchair = !!src.needsWheelchair;
+    // 희망시간은 '요청이 있을 때만' 채운다. 소스가 빈 값이면 센터결정으로 되돌린다.
+    if (src.pickupTime !== undefined) client.pickupTime = src.pickupTime;
+    if (src.dropoffTime !== undefined) client.dropoffTime = src.dropoffTime;
+    // 담당 차량은 이름으로 들어온다 — 등록된 차량과 이름이 맞을 때만 붙인다.
+    if (src.vehicleName) {
+      const v = (DB.vehicles || []).find(x => x.name === src.vehicleName);
+      if (v) client.vehicleId = v.id;
     }
+    if (client.individual) client.vehicleId = '';
+    // 좌표는 사용자 입력값 우선, 없을 때만 소스(지오코딩) 좌표 채움
+    if ((!client.lat || !client.lng) && src.lat && src.lng) { client.lat = src.lat; client.lng = src.lng; client.geoApprox = !!src.geoApprox; }
+    if (isNew) added++; else updated++;
   });
   DB.settings.beneficiarySourceVersion = window.BENEFICIARY_SOURCE_VERSION || '수급자목록';
   DB.settings.beneficiarySyncedAt = new Date().toISOString();
@@ -1259,7 +1257,7 @@ function renderClients(){
         ?`${c.pickupTime||'센터결정'} / ${c.dropoffTime||'센터결정'}`
         :'<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#f1f5f9;color:#475569">센터결정</span>';
       return `<tr>
-        <td><span style="font-weight:700">${c.name}</span>${c.needsWheelchair?' <span title="휠체어 이용" style="font-size:13px">♿️</span>':''}${c.individual?' <span title="개별 등하원(차량 미이용)" style="font-size:12px;background:#fef9c3;color:#854d0e;border-radius:4px;padding:0 4px">🚶개별</span>':''}</td>
+        <td><span style="font-weight:700">${c.name}</span>${c.needsWheelchair?' <span title="휠체어 이용" style="font-size:13px">♿️</span>':''}${c.individual?' <span title="개별 등하원(차량 미이용)" style="font-size:12px;background:#fef9c3;color:#854d0e;border-radius:4px;padding:0 4px">🚶개별</span>':''}${(!c.individual&&c.individualPickup)?' <span title="개별 등원(하원은 차량)" style="font-size:12px;background:#e0f2fe;color:#075985;border-radius:4px;padding:0 4px">🚶등원</span>':''}</td>
         <td>${c.gender||''}/${c.age||''}세</td>
         <td style="max-width:150px;font-size:11px;color:var(--text-muted)">${c.addr||'-'}</td>
         <td>${hc}</td>
@@ -2047,49 +2045,41 @@ function buildDefaultFriTemplate() {
 }
 
 
+const SAT_TEMPLATE_VERSION = '2026-08-22-실제';
+
 function buildDefaultSatTemplate() {
+  // 토요일: 2026-08-22 실제 송영표 기반. 이전 값은 퇴사자(조현정)와 퇴소자(송영재)가
+  // 남아 있고 차량 4대 편성이었으나, 8월 실제 토요일은 3대로 운행한다.
   return {
     morning: [
-      { vehicle:'4호차 레이 8449', driver:'노재일/조현정', stops:[
-        { time:'08:00', clients:['김말례','한정자'] },
-        { time:'08:30', clients:['진점례','반장환'] },
-        { time:'09:00', clients:['김태윤','송영재'] },
-        { time:'09:30', clients:['최분묵','이병모'] }
-      ]},
-      { vehicle:'8호차 레이 8978', driver:'이미숙/전은숙', stops:[
-        { time:'08:00', clients:['최재수','박정순','정상연'] },
-        { time:'09:00', clients:['심영흠','송광석','이율자'] },
-        { time:'09:50', clients:['서영희'] }
-      ]},
-      { vehicle:'스타리아 2857', driver:'민영세', stops:[
-        { time:'07:00', clients:['최돈자','유경옥','김막례','최재수'] },
-        { time:'08:40', clients:['송영재'] },
-        { time:'09:20', clients:['이병모','서영희'] }
-      ]},
-      { vehicle:'3호차 카니발 6005', driver:'정순석/이태욱', stops:[
-        { time:'07:00', clients:['최돈자','유경옥','김막례','전완표'] },
-        { time:'08:50', clients:['유무산','박삼분','김동주','홍화선'] },
-        { time:'09:40', clients:['오분탁'] }
-      ]},    ],
-    indivMorning:['구자종','김대근','박영임','이화자'],
-    afternoon: [
-      { vehicle:'4호차 레이 8449', driver:'조현정', stops:[
-        { time:'15:30', clients:['정상연','최분묵'] },
-        { time:'16:50', clients:['박삼분','유무산'] },
-        { time:'17:20', clients:['송영재','이화자'] }
-      ]},
-      { vehicle:'8호차 레이 8978', driver:'이미숙', stops:[
-        { time:'17:00', clients:['김동주','홍화선','심영흠'] }
+      { vehicle:'4호차 레이 8449', driver:'전은숙', stops:[
+        { time:'09:00', clients:['박삼분','김동주'] },
+        { time:'09:30', clients:['송광석','서영희'] }
       ]},
       { vehicle:'스타리아 2857', driver:'김길찬', stops:[
-        { time:'17:40', clients:['박정순','이병모','유경옥','전완표','김막례','최재수','최돈자'] }
-      ]},
-      { vehicle:'3호차 카니발 6005', driver:'이태욱', stops:[
-        { time:'15:50', clients:['반장환','오분탁'] },
-        { time:'17:00', clients:['김말례','서영희','진점례','한정자'] },
-        { time:'17:40', clients:['송광석','김태윤','구자종','김대근'] }
+        { time:'07:00', clients:['유경옥','김막례','전완표','최재수'] },
+        { time:'08:00', clients:['유무산','이영희','박정순','이율자'] },
+        { time:'08:50', clients:['심영흠','한정자','성석준','진점례','김말례','홍화선'] },
+        { time:'09:30', clients:['오분탁'] },
+        { time:'09:40', clients:['이병모'] }
       ]},    ],
-    indivAfternoon:['박영임','이율자']
+    indivMorning:['구자종','김대근','이화자','최돈자'],
+    afternoon: [
+      { vehicle:'4호차 레이 8449', driver:'전은숙', stops:[
+        { time:'16:50', clients:['박삼분','유무산'] },
+        { time:'17:20', clients:['이율자','박정순'] }
+      ]},
+      { vehicle:'8호차 레이 8978', driver:'황정자', stops:[
+        { time:'17:00', clients:['김동주','홍화선','심영흠'] },
+        { time:'17:40', clients:['이화자'] }
+      ]},
+      { vehicle:'스타리아 2857', driver:'김길찬', stops:[
+        { time:'15:50', clients:['성석준','오분탁'] },
+        { time:'16:50', clients:['이영희','이병모','유경옥'] },
+        { time:'17:00', clients:['김말례','서영희','진점례','한정자'] },
+        { time:'17:50', clients:['전완표','김막례','최재수','최돈자','송광석','구자종','김대근'] }
+      ]},    ],
+    indivAfternoon:[]
   };
 }
 
@@ -2408,10 +2398,17 @@ function filterScheduleByDay(sch, dstr) {
                      .filter(s => s.clients.length > 0);
   });
   // 개별 목록 = 기존 개별목록 + 오늘 이용하는 모든 개별 등하원 이용자 (중복 제거)
-  const attendingIndiv = (DB.clients || [])
-    .filter(c => c.individual && c.status === 'active' && !absSet.has(c.name) && clientIsOnDay(c, dow))
+  const attends = c => c.status === 'active' && !absSet.has(c.name) && clientIsOnDay(c, dow);
+  const attendingIndiv = (DB.clients || []).filter(c => c.individual && attends(c)).map(c => c.name);
+  // 개별 등원자 = 등원만 개별, 하원은 차량. 그날 오전 차량에 이미 편성돼 있으면 편성을 따른다.
+  const onMorningVehicle = new Set();
+  (result.morning || []).forEach(v => v.stops.forEach(st => st.clients.forEach(n => onMorningVehicle.add(n))));
+  const indivPickup = (DB.clients || [])
+    .filter(c => c.individualPickup && attends(c) && !onMorningVehicle.has(c.name))
     .map(c => c.name);
-  result.indivMorning = [...new Set([...filterClients(result.indivMorning || [], false), ...attendingIndiv])];
+  // 오전 차량에 편성된 사람은 개별 등원 목록에서 뺀다 — 한 사람이 양쪽에 동시에 나올 수 없다.
+  result.indivMorning = [...new Set([...filterClients(result.indivMorning || [], false), ...attendingIndiv, ...indivPickup])]
+    .filter(n => !onMorningVehicle.has(n));
   result.indivAfternoon = [...new Set([...filterClients(result.indivAfternoon || [], false), ...attendingIndiv])];
   return result;
 }

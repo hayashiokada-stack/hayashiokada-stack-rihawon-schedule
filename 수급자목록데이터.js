@@ -1,5 +1,5 @@
 // 2026년 08월_수급자 목록.xlsx에서 변환한 앱용 이용자 데이터입니다. (좌표: OSM Nominatim 근사 지오코딩, geoApprox=true)
-window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록-실적반영";
+window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록-신규2명";
 window.BENEFICIARY_CLIENTS = [
   {
     "sourceRow": 5,
@@ -193,7 +193,7 @@ window.BENEFICIARY_CLIENTS = [
     "lat": 37.596691,
     "lng": 126.69613,
     "geoApprox": true,
-    "scheduleType": "indiv_morning",
+    "scheduleType": "custom",
     "vehicleName": "8호차 레이 8978",
     "vehByDow": {
       "1": "8호차 레이 8978",
@@ -202,7 +202,8 @@ window.BENEFICIARY_CLIENTS = [
       "4": "8호차 레이 8978",
       "5": "8호차 레이 8978",
       "6": "스타리아 2857"
-    }
+    },
+    "individualPickup": true
   },
   {
     "sourceRow": 11,
@@ -230,7 +231,7 @@ window.BENEFICIARY_CLIENTS = [
     "lat": 37.535054,
     "lng": 126.646659,
     "geoApprox": true,
-    "scheduleType": "indiv_morning",
+    "scheduleType": "custom",
     "vehicleName": "4호차 레이 8449",
     "vehByDow": {
       "1": "4호차 레이 8449",
@@ -239,7 +240,8 @@ window.BENEFICIARY_CLIENTS = [
       "4": "4호차 레이 8449",
       "5": "4호차 레이 8449",
       "6": "4호차 레이 8449"
-    }
+    },
+    "individualPickup": true
   },
   {
     "sourceRow": 12,
@@ -1501,7 +1503,7 @@ window.BENEFICIARY_CLIENTS = [
     "lat": 37.530445,
     "lng": 126.641965,
     "geoApprox": true,
-    "scheduleType": "indiv_morning",
+    "scheduleType": "custom",
     "vehicleName": "4호차 레이 8449",
     "vehByDow": {
       "1": "4호차 레이 8449",
@@ -1510,7 +1512,8 @@ window.BENEFICIARY_CLIENTS = [
       "4": "4호차 레이 8449",
       "5": "4호차 레이 8449",
       "6": "4호차 레이 8449"
-    }
+    },
+    "individualPickup": true
   },
   {
     "sourceRow": 51,
@@ -2122,5 +2125,66 @@ window.BENEFICIARY_CLIENTS = [
       "6": "8호차 레이 8978"
     },
     "scheduleType": "custom"
+  },
+  {
+    "sourceRow": null,
+    "name": "성석준",
+    "gender": "",
+    "age": null,
+    "birthDate": "",
+    "careGrade": "",
+    "phone": "",
+    "addr": "",
+    "guardian": "",
+    "special": "2026-08-18 이용 시작. 평일 등원 개별·하원 차량, 토요일은 차량 등원.",
+    "priority": "normal",
+    "status": "active",
+    "days": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "pickupTime": "",
+    "dropoffTime": "",
+    "lat": null,
+    "lng": null,
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "scheduleType": "custom",
+    "individualPickup": true
+  },
+  {
+    "sourceRow": null,
+    "name": "장송상",
+    "gender": "",
+    "age": null,
+    "birthDate": "",
+    "careGrade": "",
+    "phone": "",
+    "addr": "",
+    "guardian": "",
+    "special": "2026-08-10 이용 시작. 등원 3호차 6005·하원 스타리아 2857. 이용 요일 확인 필요.",
+    "priority": "normal",
+    "status": "active",
+    "days": [
+      1,
+      4,
+      5
+    ],
+    "pickupTime": "",
+    "dropoffTime": "",
+    "lat": null,
+    "lng": null,
+    "geoApprox": true,
+    "vehicleName": "3호차 카니발 6005",
+    "scheduleType": "custom",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005"
+    }
   }
 ];
