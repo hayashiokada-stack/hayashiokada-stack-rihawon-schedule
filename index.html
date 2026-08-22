@@ -190,6 +190,20 @@
   .asg-row select { width:100%; font-size:11px; padding:3px 4px; border:1px solid var(--border); border-radius:4px; background:var(--surface); }
   .asg-row select.manual { outline:2px solid #d08a2c; outline-offset:-2px; }
   .asg-note { font-size:10px; color:var(--text3); margin-top:6px; }
+  /* 주말근무 카드 */
+  .sat-card { border:1px solid var(--border); border-radius:8px; padding:9px 11px; margin-bottom:8px; }
+  .sat-card-head { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; margin-bottom:7px; }
+  .sat-slots { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+  .sat-slots label { font-size:10px; color:var(--text3); display:flex; flex-direction:column; gap:2px; }
+  .sat-slots select { font-size:11px; padding:3px 4px; border:1px solid var(--border); border-radius:4px; background:var(--surface); }
+  .sat-slots select.manual { outline:2px solid #d08a2c; outline-offset:-2px; }
+  .sat-care-row { display:flex; gap:8px; align-items:flex-start; border-top:1px solid var(--border); padding-top:7px; }
+  .sat-care-label { font-size:10px; color:var(--text3); flex-shrink:0; width:56px; padding-top:3px; }
+  .sat-chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .care-chip { font-size:10px; padding:2px 8px; border-radius:11px; border:1px solid var(--border); background:var(--surface); color:var(--text3); cursor:pointer; user-select:none; }
+  .care-chip:hover { border-color:var(--accent); }
+  .care-chip.on { background:var(--accent-light); border-color:var(--accent); color:var(--accent); font-weight:700; }
+  .care-chip.kitchen { background:#f8ecd8; border-color:#b5761f; color:#b5761f; font-weight:700; cursor:not-allowed; }
   .pending-row { display:grid; grid-template-columns:1fr 190px; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
   .pending-row select { font-size:11px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface); }
   /* 희망 휴무일 */
@@ -526,8 +540,8 @@
 <div class="modal-overlay" id="sat-modal" style="z-index:1300;" onclick="if(event.target===this)closePreModal('sat-modal')">
   <div class="modal" style="width:680px;max-width:96vw;">
     <h3>📅 주말(토요일) 근무</h3>
-    <div class="sub">직종 그룹마다 한 자리씩입니다. 각 칸에는 해당 직종 직원만 나옵니다.<br>
-      휴무자는 4주 주기 로테이션으로 정해지며, 개인 사정으로 쉬어야 하면 🙋 희망휴무로 신청하세요 (토요일도 받습니다).</div>
+    <div class="sub">보건의료·홀지원·주방담당은 한 자리씩이고, 요양보호사는 여러 명을 고를 수 있습니다.<br>
+      기본값은 4주 주기 로테이션이며, 바꾼 내용은 근무표에 바로 반영됩니다.</div>
     <div id="sat-modal-body" style="max-height:52vh;overflow:auto;"></div>
     <div class="modal-actions" style="margin-top:14px;">
       <button class="mbtn" onclick="resetSatPlan()">담당 되돌리기</button>
@@ -879,10 +893,19 @@ function getSaturdayRosterAt(y, m, d) {
   const plan = (y === currentYear && m === currentMonth && satPlan[d]) || {};
   if (plan.rehab) rehab = plan.rehab;
   if (plan.nurseSw) nurseSw = plan.nurseSw;
-  if (plan.kitchen) { kitchen = plan.kitchen; off = off.filter(id => id !== kitchen); }
+  if (plan.kitchen) kitchen = plan.kitchen;
 
-  const working = SAT_TEAM.filter(id => !off.includes(id));
-  return { cycleWeek: i + 1, off, working, kitchen, rehab, nurseSw };
+  // 요양보호사 근무자는 여러 명이다. 수동 목록이 있으면 그걸 쓰고, 없으면 4주 주기에서 뽑는다.
+  // 주방담당은 그날 반드시 근무하므로 빠져 있으면 넣어 준다.
+  let working = plan.care ? plan.care.slice() : SAT_TEAM.filter(id => !off.includes(id));
+  if (!working.includes(kitchen)) working = [...working, kitchen];
+
+  const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const carePool = STAFF
+    .filter(x => x.type === 'care' && (!x.retirementDate || iso <= x.retirementDate))
+    .map(x => x.id);
+  return { cycleWeek: i + 1, off: carePool.filter(id => !working.includes(id)),
+           working, kitchen, rehab, nurseSw, carePool };
 }
 // 이번 달 기준 편성. 토요일이 아니면 null.
 function getSaturdayRoster(day) { return getSaturdayRosterAt(currentYear, currentMonth, day); }
@@ -923,7 +946,7 @@ function applySaturdayToSchedule(day) {
   satGroupPool('support').forEach(id => { if (id !== r.nurseSw) off.add(id); });
   off.delete(r.kitchen);                                   // 주방 담당은 그날 근무한다
 
-  new Set([...SAT_TEAM, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen])
+  new Set([...r.carePool, ...r.working, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen])
     .forEach(id => {
       const st = STAFF.find(x => x.id === id);
       if (!st || !isStaffActiveOnDay(st, day)) return;
@@ -1978,29 +2001,64 @@ function renderStModal() {
 
 function openSaturdayModal() { renderSatModal(); document.getElementById('sat-modal').classList.add('open'); }
 function resetSatPlan() {
-  if (!confirm('이번 달 토요일 담당 수정을 되돌리고 순번 원안으로 돌아갈까요?')) return;
-  satPlan = {}; renderSatModal();
+  if (!confirm('이번 달 토요일 담당·근무자 수정을 되돌리고 순번 원안으로 돌아갈까요?')) return;
+  satPlan = {};
+  getMonthDays().filter(d => getDow(d) === 6).forEach(applySaturdayToSchedule);
+  renderTable(); updateStats(); updateSummary(); renderLawPanel(); renderSatModal();
 }
 function renderSatModal() {
-  const cols = 'grid-template-columns:84px 52px 1fr 1fr 1fr;';
   const g = SAT_GROUPS;
-  let rows = `<div class="asg-row head" style="${cols}">
-    <span>날짜</span><span>주기</span>
-    <span title="${g.medical.desc}">${g.medical.title}</span>
-    <span title="${g.support.desc}">${g.support.title}</span>
-    <span title="${g.care.desc}">${g.care.title}</span></div>`;
-  getMonthDays().filter(d => getDow(d) === 6).forEach(d => {
-    const r = getSaturdayRoster(d); if (!r) return;
+  const html = getMonthDays().filter(d => getDow(d) === 6).map(d => {
+    const r = getSaturdayRoster(d); if (!r) return '';
     const pl = satPlan[d] || {};
-    rows += `<div class="asg-row" style="${cols}">
-      <span>${d}일 (토)</span><span style="color:var(--text3);">${r.cycleWeek}주차</span>
-      <select class="${pl.rehab ? 'manual' : ''}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab)}</select>
-      <select class="${pl.nurseSw ? 'manual' : ''}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw)}</select>
-      <select class="${pl.kitchen ? 'manual' : ''}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen)}</select>
+    const cls = k => pl[k] ? 'manual' : '';
+    const chips = satGroupPool('care').map(id => {
+      const on = r.working.includes(id);
+      const isKit = id === r.kitchen;
+      return `<span class="care-chip ${on ? 'on' : ''} ${isKit ? 'kitchen' : ''}"
+        onclick="toggleSatCare(${d}, ${id})"
+        title="${isKit ? '주방담당 — 빼려면 위에서 다른 사람을 고르세요' : (on ? '클릭하면 휴무' : '클릭하면 근무')}"
+        >${nameOf(id)}${isKit ? ' 🍚' : ''}</span>`;
+    }).join('');
+    return `<div class="sat-card">
+      <div class="sat-card-head"><strong>${d}일 (토)</strong>
+        <span style="color:var(--text3);font-weight:400;">${r.cycleWeek}주차 · 근무 ${r.working.length + 2}명</span></div>
+      <div class="sat-slots">
+        <label>${g.medical.title}
+          <select class="${cls('rehab')}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab)}</select></label>
+        <label>${g.support.title}
+          <select class="${cls('nurseSw')}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw)}</select></label>
+        <label>${g.care.title}
+          <select class="${cls('kitchen')}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen)}</select></label>
+      </div>
+      <div class="sat-care-row">
+        <span class="sat-care-label">요양보호사${pl.care ? ' *' : ''}</span>
+        <div class="sat-chips">${chips}</div>
+      </div>
     </div>`;
-  });
-  document.getElementById('sat-modal-body').innerHTML = rows +
-    `<div class="asg-note">${g.medical.title} = ${g.medical.desc} · ${g.support.title} = ${g.support.desc} · ${g.care.title} = ${g.care.desc}</div>`;
+  }).join('');
+
+  document.getElementById('sat-modal-body').innerHTML = html +
+    `<div class="asg-note">${g.medical.title} = ${g.medical.desc} · ${g.support.title} = ${g.support.desc}<br>
+      요양보호사 칸은 이름을 눌러 근무·휴무를 바꿉니다. 🍚 는 그날 주방담당이고 항상 근무합니다.
+      * 는 순번 대신 직접 정한 날입니다.</div>`;
+}
+
+// 요양보호사 근무자 토글. 목록이 없으면 지금 편성을 그대로 복사해 시작한다.
+function toggleSatCare(day, staffId) {
+  const r = getSaturdayRoster(day);
+  if (!r || staffId === r.kitchen) {
+    showToast('주방담당은 그날 근무합니다. 빼려면 주방담당을 다른 사람으로 바꾸세요', 'warn');
+    return;
+  }
+  const cur = new Set((satPlan[day] && satPlan[day].care) || r.working);
+  if (cur.has(staffId)) cur.delete(staffId); else cur.add(staffId);
+  const pl = satPlan[day] || {};
+  pl.care = [...cur];
+  satPlan[day] = pl;
+  applySaturdayToSchedule(day);
+  renderTable(); updateStats(); updateSummary(); renderLawPanel(); renderSatModal();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 
 // ── 자동배치 전 인원 확인 ──────────────────────────────────────────
@@ -2094,7 +2152,7 @@ function setStPlan(day, slot, value) {
 function setSatPlan(day, slot, value) {
   const pl = satPlan[day] || {};
   if (value) pl[slot] = Number(value); else delete pl[slot];
-  if (!pl.rehab && !pl.nurseSw && !pl.kitchen) delete satPlan[day]; else satPlan[day] = pl;
+  if (!pl.rehab && !pl.nurseSw && !pl.kitchen && !pl.care) delete satPlan[day]; else satPlan[day] = pl;
   applySaturdayToSchedule(day);        // 바꾼 담당을 근무표에 바로 반영한다
   renderTable(); updateStats(); updateSummary(); renderLawPanel();
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
