@@ -887,13 +887,16 @@ function save(){localStorage.setItem('sy2_db',JSON.stringify(DB));cloudPushDebou
 
 // ── 차량 명부 표준화 (2026-08 기준 5대) ──
 // 기본 차량 배열은 빈 DB에만 적용되므로, 기존 localStorage도 이 버전으로 일회성 정리
-const VEHICLE_ROSTER_VERSION = '2026-08-차량5대-wc';
+const VEHICLE_ROSTER_VERSION = '2026-08-차량5대-정원실적반영';
+// cap 은 좌석 수가 아니라 '그 차량이 하루에 맡는 이용자 총원'이다.
+// 차량이 하루 3~7회차를 돌기 때문에 좌석 수와는 다르다.
+// 아래 값은 2026년 8월 송영표 20일치에서 관측한 최대 담당 인원에 여유를 둔 것.
 const CANONICAL_VEHICLES = [
-  {plate:'201러7733', name:'2호차 레이 7733',   note:'레이'},
-  {plate:'25마6005',  name:'3호차 카니발 6005', note:'카니발',  wheelchair:true},
-  {plate:'288보8449', name:'4호차 레이 8449',   note:'레이',    wheelchair:true},
-  {plate:'177허8978', name:'8호차 레이 8978',   note:'레이'},
-  {plate:'177허2857', name:'스타리아 2857',     note:'스타리아'}
+  {plate:'201러7733', name:'2호차 레이 7733',   note:'레이',    cap: 8, driver:''},
+  {plate:'25마6005',  name:'3호차 카니발 6005', note:'카니발',  cap:12, driver:'정순석', wheelchair:true},
+  {plate:'288보8449', name:'4호차 레이 8449',   note:'레이',    cap:13, driver:'노재일', wheelchair:true},
+  {plate:'177허8978', name:'8호차 레이 8978',   note:'레이',    cap:11, driver:''},
+  {plate:'177허2857', name:'스타리아 2857',     note:'스타리아', cap:14, driver:'민영세'}
 ];
 function reconcileVehicleRoster(){
   if(!DB.settings) DB.settings={};
@@ -908,9 +911,12 @@ function reconcileVehicleRoster(){
   DB.vehicles = CANONICAL_VEHICLES.map(cv=>{
     const ex = DB.vehicles.find(v=>v.plate===cv.plate);
     // 운전원은 사용자 선택값 보존, 휠체어 가능 여부는 기존 설정 우선(없으면 표준값)
-    if(ex) return {...ex, name:cv.name, note:cv.note, wheelchairAccessible: ex.wheelchairAccessible ?? !!cv.wheelchair};
-    return {id:uid(), name:cv.name, plate:cv.plate, note:cv.note, driver:'', wheelchairAccessible: !!cv.wheelchair,
-      cap: cv.note==='카니발'?7:(cv.note==='스타리아'?9:5), color:'#2563eb'};
+    if(ex) return {...ex, name:cv.name, note:cv.note,
+      wheelchairAccessible: ex.wheelchairAccessible ?? !!cv.wheelchair,
+      cap: cv.cap,                                  // 좌석 수가 아니라 하루 담당 인원 — 표준값으로 맞춘다
+      driver: ex.driver || cv.driver || ''};        // 사용자가 고른 운전원은 그대로 둔다
+    return {id:uid(), name:cv.name, plate:cv.plate, note:cv.note, driver: cv.driver || '',
+      wheelchairAccessible: !!cv.wheelchair, cap: cv.cap, color:'#2563eb'};
   });
   DB.settings.vehicleRosterVersion = VEHICLE_ROSTER_VERSION;
   save();
@@ -1060,9 +1066,22 @@ function syncBeneficiaryClients(silent){
     };
     if (client) {
       Object.assign(client, common);
-      if (!client.days || !client.days.length) client.days = src.days || [1,2,3,4,5];
-      if (!client.pickupTime && src.pickupTime) client.pickupTime = src.pickupTime;
-      if (!client.dropoffTime && src.dropoffTime) client.dropoffTime = src.dropoffTime;
+      // 아래 항목은 소스에 명시돼 있으면 덮어쓴다. 이 함수는 BENEFICIARY_SOURCE_VERSION이
+      // 바뀔 때만 도는 '재수입'이라, 명부를 새로 받은 뜻으로 본다.
+      if (src.days && src.days.length) client.days = src.days;
+      else if (!client.days || !client.days.length) client.days = [1,2,3,4,5];
+      if (src.scheduleType) client.scheduleType = src.scheduleType;
+      if (src.individual !== undefined) client.individual = !!src.individual;
+      if (src.needsWheelchair !== undefined) client.needsWheelchair = !!src.needsWheelchair;
+      // 희망시간은 '요청이 있을 때만' 채운다. 소스가 빈 값이면 센터결정으로 되돌린다.
+      if (src.pickupTime !== undefined) client.pickupTime = src.pickupTime;
+      if (src.dropoffTime !== undefined) client.dropoffTime = src.dropoffTime;
+      // 담당 차량은 이름으로 들어온다 — 등록된 차량과 이름이 맞을 때만 붙인다.
+      if (src.vehicleName) {
+        const v = (DB.vehicles || []).find(x => x.name === src.vehicleName);
+        if (v) client.vehicleId = v.id;
+      }
+      if (client.individual) client.vehicleId = '';
       // 좌표는 사용자 입력값 우선, 없을 때만 소스(지오코딩) 좌표 채움
       if ((!client.lat || !client.lng) && src.lat && src.lng) { client.lat = src.lat; client.lng = src.lng; client.geoApprox = !!src.geoApprox; }
       updated++;

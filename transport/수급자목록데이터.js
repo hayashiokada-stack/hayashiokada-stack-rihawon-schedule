@@ -1,5 +1,5 @@
 // 2026년 08월_수급자 목록.xlsx에서 변환한 앱용 이용자 데이터입니다. (좌표: OSM Nominatim 근사 지오코딩, geoApprox=true)
-window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록-geo";
+window.BENEFICIARY_SOURCE_VERSION = "2026-08-수급자목록-실적반영";
 window.BENEFICIARY_CLIENTS = [
   {
     "sourceRow": 5,
@@ -21,11 +21,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528934,
     "lng": 126.628057,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 6,
@@ -45,12 +54,21 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 7,
@@ -66,17 +84,22 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "normal",
     "status": "active",
     "days": [
-      1,
       2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539784,
     "lng": 126.646869,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "5": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 8,
@@ -93,16 +116,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.501704,
     "lng": 126.718213,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "2호차 레이 7733",
+    "vehByDow": {
+      "1": "2호차 레이 7733",
+      "3": "2호차 레이 7733",
+      "5": "2호차 레이 7733"
+    }
   },
   {
     "sourceRow": 9,
@@ -124,11 +152,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.530445,
     "lng": 126.641965,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 10,
@@ -148,13 +185,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.596691,
     "lng": 126.69613,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "indiv_morning",
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978",
+      "6": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 11,
@@ -174,13 +222,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.535054,
     "lng": 126.646659,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "indiv_morning",
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 12,
@@ -200,12 +259,23 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "2호차 레이 7733",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 13,
@@ -225,13 +295,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528875,
     "lng": 126.627173,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 14,
@@ -248,16 +329,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.502816,
     "lng": 126.672057,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 15,
@@ -271,7 +357,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "유복근/가족(배우자)/010-3723-9165",
     "special": "뇌경색, 심근경색, 방광암수술, 고혈압, 당뇨, 요로감염, 폐혈증\n‎-어깨가 많이 저리시고, 통증.\n-가정에서 보행은 보조기구 없이 이동하시지만 외출 시 지팡이 또는 워커로 보행하심.\n-일상생활동작 자립 또는 목욕, 이동 등 부분 도움 필요함. \n-집에서는 화장실 스스로 가시고 대소변 실수나 기저귀착용 안하심.약간의 변비 있으심.\n-예전 교회 계단, 집에서 낙상 있으셨음. \n-전체 임플란트로 평소 식사량이 많지",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -279,11 +365,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539024,
     "lng": 126.640592,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 16,
@@ -305,11 +392,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.517018,
     "lng": 126.665474,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 17,
@@ -325,17 +421,20 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "normal",
     "status": "active",
     "days": [
-      1,
       2,
-      3,
-      4,
-      5
+      4
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.518709,
     "lng": 126.710199,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "tth",
+    "vehicleName": "2호차 레이 7733",
+    "vehByDow": {
+      "2": "2호차 레이 7733",
+      "4": "2호차 레이 7733"
+    }
   },
   {
     "sourceRow": 18,
@@ -352,16 +451,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.559073,
     "lng": 126.652074,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005"
+    }
   },
   {
     "sourceRow": 19,
@@ -375,7 +479,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "양기하/가족(자녀)/010-7633-9598",
     "special": "고지혈증,심근경색증.우울증,척추협착증.고혈압,당뇨\n23.2월 화장실가다가 낙상&gt;하체근력저하원인",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -383,11 +487,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.493983,
     "lng": 126.647993,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 20,
@@ -409,11 +514,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.493983,
     "lng": 126.647993,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005"
+    }
   },
   {
     "sourceRow": 21,
@@ -430,16 +544,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.530302,
     "lng": 126.647831,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "3": "3호차 카니발 6005",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 22,
@@ -461,11 +580,14 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539226,
     "lng": 126.651922,
-    "geoApprox": true
+    "geoApprox": true,
+    "individual": true,
+    "vehicleId": "",
+    "scheduleType": "daily"
   },
   {
     "sourceRow": 23,
@@ -485,13 +607,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528539,
     "lng": 126.651661,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 24,
@@ -513,11 +646,14 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528539,
     "lng": 126.651661,
-    "geoApprox": true
+    "geoApprox": true,
+    "individual": true,
+    "vehicleId": "",
+    "scheduleType": "daily"
   },
   {
     "sourceRow": 25,
@@ -539,11 +675,14 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.527518,
     "lng": 126.638808,
-    "geoApprox": true
+    "geoApprox": true,
+    "individual": true,
+    "vehicleId": "",
+    "scheduleType": "daily"
   },
   {
     "sourceRow": 26,
@@ -563,13 +702,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.537306,
     "lng": 126.651779,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 27,
@@ -585,17 +735,20 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "normal",
     "status": "active",
     "days": [
-      1,
       2,
-      3,
-      4,
-      5
+      4
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528573,
     "lng": 126.625627,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "tth",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "2": "3호차 카니발 6005",
+      "4": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 28,
@@ -609,7 +762,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "김택수/가족(자녀)/010-2575-3575",
     "special": "치매(11-12년전 판정. 혈관성 치매로 추측), 고혈압, 고지혈증, 갑상선기능저하, 망상\n양쪽무릎인공관절\n아침식전 갑살성기능저하약, 아침식후 고혈압 고지혈증 변실금, 점심약 복용 없음 저녁약 치매약 4알, 주무시기전 정신과약 1알, 센터에서 드시는 약없음.\n틀니 사용하심. 일반식드시나 반찬은 잘게 잘라서 제공, 반찬 잘 안드셔서 보조 도움 필요\n화장실 : 뒷처리 부족, 컨디션 저하시 변실수 있으심\n보행 : 스스로가능\n목욕서비스 : 요청",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -617,11 +770,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.537805,
     "lng": 126.638668,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 29,
@@ -638,16 +792,23 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.526666,
     "lng": 126.621346,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "5": "8호차 레이 8978",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 30,
@@ -667,13 +828,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528934,
     "lng": 126.628057,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "2호차 레이 7733",
+      "2": "8호차 레이 8978",
+      "3": "2호차 레이 7733",
+      "4": "4호차 레이 8449",
+      "5": "2호차 레이 7733",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 31,
@@ -687,7 +859,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "윤재순/가족(자부)/010-5317-8898",
     "special": "치매(5년전), 허리디스크 수술(10년전)\n치매약 거부하셔서 안드심\n틀니(위), 약간의 변비, 가끔 지림증상 \n댁에서 옷갈아입기, 목욕하기를 거부하심\n자립 보행 가능",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -695,11 +867,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.531096,
     "lng": 126.643793,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 32,
@@ -721,11 +894,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525501,
     "lng": 126.727711,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 33,
@@ -739,7 +921,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "송민희/가족(자녀)/010-3959-8520",
     "special": "‎관절수술, 손가락 마디 제거수술.당뇨\n‎\n이동도움, 화장실도움, 식사도움\n월, 수, 금 주3회\n리하원가족요양 이용",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -747,10 +929,11 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "vehicleId": ""
   },
   {
     "sourceRow": 34,
@@ -764,7 +947,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "임갑순/가족(자녀)/010-2518-2114",
     "special": "",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -772,11 +955,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525978,
     "lng": 126.628474,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 35,
@@ -798,11 +982,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.535054,
     "lng": 126.646659,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "4호차 레이 8449",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005"
+    }
   },
   {
     "sourceRow": 36,
@@ -822,13 +1015,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525978,
     "lng": 126.628474,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978",
+      "6": "8호차 레이 8978"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 37,
@@ -850,10 +1054,19 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 38,
@@ -867,7 +1080,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "심영주/가족(자녀)/010-6811-6995",
     "special": "‎황반변성(양쪽눈-시력장애),심장질환(10년전 스텐트삽입), 치매(22년 8월), 청력저하\n양쪽 눈 시력 장애가 있어 사물 등 시야가 형체만 흐릿하게 보이는 정도이심.\n양쪽 귀 청력 장애로 보청귀를 착용하고 계시기 때문에 가까이에서 큰 목소리로 천천히 말하면 의사소통 가능하고 표현하심.",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -875,11 +1088,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.535054,
     "lng": 126.646659,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 39,
@@ -901,11 +1115,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528573,
     "lng": 126.646599,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 40,
@@ -919,7 +1142,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "이보라/가족(자녀)/010-6419-7195",
     "special": "‎알츠하이머 치매, 25.8월 요로감염, 폐렴\n‎\n아침, 점심, 저녁 약 복용, 아침, 점심약은 센터에서 드심.\n인지저하로 단어가 잘 떠오르지 않아서 표현이 어렵고, 컨디션 좋으실때는 정확하게 표현하시기도 함. 약간의 섬망증상.기저귀 착용",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -927,11 +1150,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.530302,
     "lng": 126.647831,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 41,
@@ -951,12 +1175,23 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 42,
@@ -976,13 +1211,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.52635,
     "lng": 126.67424,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 43,
@@ -1002,13 +1248,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528539,
     "lng": 126.651661,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 44,
@@ -1030,11 +1287,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528573,
     "lng": 126.646599,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 45,
@@ -1054,13 +1320,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.520678,
     "lng": 126.67852,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 46,
@@ -1080,13 +1357,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528442,
     "lng": 126.659097,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 47,
@@ -1106,13 +1394,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.530302,
     "lng": 126.647831,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978",
+      "6": "4호차 레이 8449"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 48,
@@ -1134,11 +1433,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539024,
     "lng": 126.640592,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "2호차 레이 7733",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "3호차 카니발 6005",
+      "3": "2호차 레이 7733",
+      "4": "4호차 레이 8449",
+      "5": "2호차 레이 7733"
+    }
   },
   {
     "sourceRow": 49,
@@ -1152,7 +1460,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "이향유/가족(배우자)/010-8142-7230",
     "special": "소뇌위축증, 기립성 저혈압, 파킨슨(23년 1월), 허리통증\n월,수,금 이용(간식 드시기 전 하원)\n균형감각 이상 및 몸떨림이 심각함(낙상 주의), 기립시 왼쪽편으로 몸이 기울어짐.",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -1160,11 +1468,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.528442,
     "lng": 126.659097,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 50,
@@ -1184,13 +1493,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.530445,
     "lng": 126.641965,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "indiv_morning",
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 51,
@@ -1212,11 +1532,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.527893,
     "lng": 126.636799,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 52,
@@ -1238,11 +1567,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.527518,
     "lng": 126.638808,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 53,
@@ -1262,13 +1600,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.512594,
     "lng": 126.665217,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "2호차 레이 7733",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 54,
@@ -1282,7 +1631,7 @@ window.BENEFICIARY_CLIENTS = [
     "guardian": "조한원/가족(자녀)/010-9005-1724",
     "special": "알츠하이머 치매, 고혈압, 고지혈증, 수두증, 당뇨전단계, 척추협착증, 허혈성대장염.\n점심(전후), 저녁(전후) 약 복용 \n기저귀 착용하셨으며, 화장실도 이용하심. 2~3시간 주기 확인\n자립 보행은 어려우신 상태로 휠체어 사용",
     "priority": "normal",
-    "status": "active",
+    "status": "leave",
     "days": [
       1,
       2,
@@ -1290,11 +1639,12 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.537805,
     "lng": 126.638668,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleId": ""
   },
   {
     "sourceRow": 55,
@@ -1311,16 +1661,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.524656,
     "lng": 126.622229,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "5": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 56,
@@ -1337,16 +1692,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525983,
     "lng": 126.630816,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 57,
@@ -1365,14 +1725,21 @@ window.BENEFICIARY_CLIENTS = [
       1,
       2,
       3,
-      4,
-      5
+      4
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539784,
     "lng": 126.646869,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 58,
@@ -1394,10 +1761,19 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": "",
-    "lng": ""
+    "lng": "",
+    "scheduleType": "daily",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "3호차 카니발 6005",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "3호차 카니발 6005",
+      "5": "3호차 카니발 6005"
+    }
   },
   {
     "sourceRow": 59,
@@ -1419,11 +1795,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.539894,
     "lng": 126.646994,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "8호차 레이 8978",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "8호차 레이 8978",
+      "3": "스타리아 2857",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 60,
@@ -1443,13 +1828,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.526666,
     "lng": 126.621346,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 61,
@@ -1466,16 +1862,21 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
-      4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.491271,
     "lng": 126.679883,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "mwf",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "3": "스타리아 2857",
+      "5": "스타리아 2857"
+    }
   },
   {
     "sourceRow": 62,
@@ -1495,13 +1896,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.491078,
     "lng": 126.735801,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "스타리아 2857",
+      "3": "스타리아 2857",
+      "4": "스타리아 2857",
+      "5": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 63,
@@ -1523,11 +1935,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.537805,
     "lng": 126.638668,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "3호차 카니발 6005",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "2": "3호차 카니발 6005",
+      "3": "3호차 카니발 6005",
+      "4": "8호차 레이 8978",
+      "5": "8호차 레이 8978"
+    }
   },
   {
     "sourceRow": 64,
@@ -1544,16 +1965,23 @@ window.BENEFICIARY_CLIENTS = [
     "status": "active",
     "days": [
       1,
-      2,
       3,
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.506422,
     "lng": 126.668191,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "8호차 레이 8978",
+      "3": "8호차 레이 8978",
+      "4": "4호차 레이 8449",
+      "5": "8호차 레이 8978"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 65,
@@ -1569,17 +1997,22 @@ window.BENEFICIARY_CLIENTS = [
     "priority": "normal",
     "status": "active",
     "days": [
-      1,
       2,
-      3,
       4,
-      5
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.508616,
     "lng": 126.669994,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "2": "스타리아 2857",
+      "4": "스타리아 2857",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 66,
@@ -1601,11 +2034,20 @@ window.BENEFICIARY_CLIENTS = [
       4,
       5
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.535888,
     "lng": 126.711174,
-    "geoApprox": true
+    "geoApprox": true,
+    "scheduleType": "daily",
+    "vehicleName": "스타리아 2857",
+    "vehByDow": {
+      "1": "스타리아 2857",
+      "2": "2호차 레이 7733",
+      "3": "스타리아 2857",
+      "4": "2호차 레이 7733",
+      "5": "4호차 레이 8449"
+    }
   },
   {
     "sourceRow": 67,
@@ -1625,13 +2067,24 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525983,
     "lng": 126.630816,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "스타리아 2857"
+    },
+    "scheduleType": "custom"
   },
   {
     "sourceRow": 68,
@@ -1651,12 +2104,23 @@ window.BENEFICIARY_CLIENTS = [
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
-    "pickupTime": "09:00",
-    "dropoffTime": "17:00",
+    "pickupTime": "",
+    "dropoffTime": "",
     "lat": 37.525754,
     "lng": 126.638956,
-    "geoApprox": true
+    "geoApprox": true,
+    "vehicleName": "4호차 레이 8449",
+    "vehByDow": {
+      "1": "4호차 레이 8449",
+      "2": "4호차 레이 8449",
+      "3": "4호차 레이 8449",
+      "4": "4호차 레이 8449",
+      "5": "4호차 레이 8449",
+      "6": "8호차 레이 8978"
+    },
+    "scheduleType": "custom"
   }
 ];
