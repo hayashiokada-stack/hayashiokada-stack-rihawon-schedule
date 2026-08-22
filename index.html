@@ -571,6 +571,19 @@
   </div>
 </div>
 
+<!-- 초기화 범위 선택 -->
+<div class="modal-overlay" id="reset-modal" style="z-index:1300;" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal" style="width:420px;">
+    <h3>🗑 이번 달 초기화</h3>
+    <div class="sub">지울 항목을 고르세요. 지운 내용은 되돌릴 수 없습니다.</div>
+    <div id="reset-opts" style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px;"></div>
+    <div class="modal-actions">
+      <button class="mbtn" onclick="closeResetModal()">취소</button>
+      <button class="mbtn primary" onclick="applyReset()">선택한 항목 지우기</button>
+    </div>
+  </div>
+</div>
+
 <!-- 결정이 필요한 항목 -->
 <div class="modal-overlay" id="pending-modal" style="z-index:1200;" onclick="if(event.target===this)closePendingModal()">
   <div class="modal" style="width:600px;max-width:96vw;">
@@ -808,7 +821,11 @@ function getWashStaff(day) {
 // `${staffId}-${day}` → 'W'  (세면대 담당)
 function buildWashMap(days) {
   const map = {};
-  days.forEach(d => { const id = getWashStaff(d); if (id) map[`${id}-${d}`] = 'W'; });
+  days.forEach(d => {
+    const id = getWashStaff(d);
+    // 근무가 배정된 날에만 배지를 단다 (담당근무표 보기는 배치와 무관하게 순번을 보여준다)
+    if (id && isDayWorking(scheduleData[`${id}-${d}`])) map[`${id}-${d}`] = 'W';
+  });
   return map;
 }
 
@@ -818,7 +835,8 @@ function buildBathMap(days) {
   days.forEach(d => {
     const a = getBathAssignment(d);
     if (!a) return;
-    a.list.forEach((id, i) => { map[`${id}-${d}`] = BATH_ROLES[i]; });
+    a.list.filter(id => isDayWorking(scheduleData[`${id}-${d}`]))
+      .forEach((id, i) => { map[`${id}-${d}`] = BATH_ROLES[i]; });
   });
   return map;
 }
@@ -944,8 +962,8 @@ function buildSatKitchenMap(days) {
   days.forEach(d => {
     const r = getSaturdayRoster(d);
     if (!r) return;
-    const sh = scheduleData[`${r.kitchen}-${d}`];
-    if (sh && !isDayWorking(sh)) return;      // 주방 담당이 그날 쉬면 배지를 달지 않는다
+    // 근무가 배정된 날에만 배지를 단다. 비어 있으면(초기화 직후 등) 달지 않는다.
+    if (!isDayWorking(scheduleData[`${r.kitchen}-${d}`])) return;
     map[`${r.kitchen}-${d}`] = 'K';
   });
   return map;
@@ -2446,12 +2464,43 @@ function autoFill() {
   }
 }
 
+// 무엇을 지울지 고르게 한다. 예전에는 근무 배치만 지워서, 목욕·세면대·주말
+// 담당 배지가 그대로 남아 "초기화가 안 된다"고 보였다.
+const RESET_ITEMS = [
+  { key:'schedule', label:'근무 배치',            desc:'표에 들어간 근무코드 전부',            on:true  },
+  { key:'duty',     label:'목욕 · 세면대 담당',   desc:'실시 여부와 담당자 지정',              on:true  },
+  { key:'sat',      label:'주말 담당',            desc:'토요일 보건의료·홀지원·주방·요양보호사', on:true  },
+  { key:'st',       label:'단기보호 담당',        desc:'이브닝·야간 수동 지정',                on:true  },
+  { key:'stweek',   label:'단기보호 주간 설정',   desc:'이번 달 단기보호 주간 선택',           on:false },
+  { key:'wish',     label:'희망 휴무일',          desc:'직원이 신청한 휴무 — 다시 받아야 합니다', on:false },
+];
+
 function clearAll() {
-  if (!confirm('이번 달 근무표를 모두 초기화할까요?')) return;
-  scheduleData = {};
+  document.getElementById('reset-opts').innerHTML = RESET_ITEMS.map(it => `
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+      <input type="checkbox" id="rs-${it.key}" ${it.on ? 'checked' : ''} style="margin-top:2px;">
+      <span><strong style="font-size:12px;">${it.label}</strong>
+        <span style="display:block;font-size:10px;color:var(--text3);">${it.desc}</span></span>
+    </label>`).join('');
+  document.getElementById('reset-modal').classList.add('open');
+}
+function closeResetModal() { document.getElementById('reset-modal').classList.remove('open'); }
+
+function applyReset() {
+  const on = k => document.getElementById('rs-' + k).checked;
+  const done = [];
+  if (on('schedule')) { scheduleData = {}; done.push('근무 배치'); }
+  if (on('duty'))     { bathPlan = {}; washPlan = {}; done.push('목욕·세면대 담당'); }
+  if (on('sat'))      { satPlan = {}; done.push('주말 담당'); }
+  if (on('st'))       { stPlan = {}; done.push('단기보호 담당'); }
+  if (on('stweek'))   { shortTermWeeks = new Set(); done.push('단기보호 주간'); }
+  if (on('wish'))     { wishOff = {}; done.push('희망 휴무일'); }
+
+  closeResetModal();
+  if (!done.length) { showToast('선택한 항목이 없습니다', 'warn'); return; }
   refresh();
-  showToast('초기화되었습니다 (희망휴무는 유지됩니다)');
   autoSave();
+  showToast(`${done.join(' · ')} 지웠습니다`, 'ok');
 }
 
 // ── STATS ────────────────────────────────────────────────────────
