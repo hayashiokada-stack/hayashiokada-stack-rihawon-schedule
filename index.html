@@ -344,6 +344,9 @@
   .sm-edit-panel.empty-state { display:flex; align-items:center; justify-content:center; color:var(--text3); font-size:13px; flex-direction:column; gap:8px; }
   .sm-section-title { font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:var(--text3); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
   .sm-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .sf-leave-row { display:grid; grid-template-columns:110px 1fr 12px 1fr 32px; gap:6px; align-items:center; margin-bottom:6px; }
+  .sf-leave-row .sm-input { font-size:11px; padding:4px 6px; }
+  .sf-leave-row .sf-lv-del { padding:3px 8px; font-size:11px; }
   .sm-form-group { display:flex; flex-direction:column; gap:4px; }
   .sm-form-group.full { grid-column:1/-1; }
   .sm-label { font-size:11px; font-weight:500; color:var(--text2); }
@@ -1509,9 +1512,31 @@ function getDailyKey(day) { return `${currentYear}-${currentMonth}-${day}`; }
 function getIsoDate(day) { return `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`; }
 function isServiceDay(day) { return getDow(day) !== 0; } // 일요일만 휴무, 토요일은 서비스 제공
 function getDailyUsers(day) { return Number(dailyUsers[getDailyKey(day)]) || (getDow(day) === 6 ? 20 : 28); }
+// ▶ 장기휴가(육아휴직·병가 등). staff.leaves = [{type, from, to}]
+//   to 가 비어 있으면 복귀일 미정 — 그 뒤로 계속 휴가 중으로 본다.
+const LEAVE_TYPES = ['육아휴직', '병가', '출산휴가', '가족돌봄휴직', '기타'];
+
+function staffLeaveOn(staff, iso) {
+  if (!staff || !Array.isArray(staff.leaves)) return null;
+  return staff.leaves.find(lv => lv && lv.from && iso >= lv.from && (!lv.to || iso <= lv.to)) || null;
+}
+
 function isStaffActiveOnDay(staff, day) {
-  if (!staff?.retirementDate) return true;
-  return getIsoDate(day) <= staff.retirementDate;
+  if (!staff) return true;
+  const iso = getIsoDate(day);
+  if (staff.retirementDate && iso > staff.retirementDate) return false;
+  return !staffLeaveOn(staff, iso);
+}
+
+// 그날 근무표에서 빠지는 이유 — 셀에 무엇으로 표시할지 정한다
+function inactiveReason(staff, day) {
+  const iso = getIsoDate(day);
+  if (staff.retirementDate && iso > staff.retirementDate)
+    return { label: '퇴사', title: `${staff.retirementDate} 이후 근무표 제외` };
+  const lv = staffLeaveOn(staff, iso);
+  if (lv) return { label: lv.type || '휴직',
+                   title: `${lv.type || '장기휴가'} ${lv.from} ~ ${lv.to || '복귀일 미정'}` };
+  return null;
 }
 function isStaffActiveInDays(staff, days = getDays()) {
   return days.some(day => isStaffActiveOnDay(staff, day));
@@ -1519,8 +1544,10 @@ function isStaffActiveInDays(staff, days = getDays()) {
 function getVisibleStaff(days = getDays()) {
   return STAFF.filter(staff => isStaffActiveInDays(staff, days));
 }
+// 퇴사일 이후·장기휴가 기간의 근무 배치를 지운다
 function cleanRetiredScheduleData(staff = null) {
-  const ids = staff ? new Set([staff.id]) : new Set(STAFF.filter(s => s.retirementDate).map(s => s.id));
+  const ids = staff ? new Set([staff.id])
+    : new Set(STAFF.filter(s => s.retirementDate || (s.leaves && s.leaves.length)).map(s => s.id));
   if (ids.size === 0) return 0;
   let removed = 0;
   Object.keys(scheduleData).forEach(key => {
@@ -1585,7 +1612,12 @@ function renderTable() {
     const tr = document.createElement('tr');
     const tdName = document.createElement('td');
     const licBadge = s.hasLicense ? '<span style="font-size:9px;margin-left:3px;color:#7a6b2d;">🚗</span>' : '';
-    const retireMeta = s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : '';
+    const onLeave = s.leaves && s.leaves.length
+      ? s.leaves.filter(lv => lv && lv.from && (!lv.to || getIsoDate(getMonthDays()[0]) <= lv.to))
+      : [];
+    const leaveMeta = onLeave.length
+      ? ` · <span style="color:var(--warn)">${onLeave[0].type || '휴직'} ${onLeave[0].from.slice(5)}~${onLeave[0].to ? onLeave[0].to.slice(5) : ''}</span>` : '';
+    const retireMeta = (s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : '') + leaveMeta;
     tdName.innerHTML = `
       <div class="staff-cell staff-link" onclick="openStaffModal(${s.id})" title="${s.name} 직원 정보 열기">
         <div class="sc-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
@@ -1612,7 +1644,8 @@ function renderTable() {
       const key = `${s.id}-${d}`;
       const sh = scheduleData[key];
       if (!isStaffActiveOnDay(s, d)) {
-        td.innerHTML = `<div class="shift-cell shift-off" style="opacity:.45;cursor:not-allowed" title="${s.retirementDate} 이후 근무표 제외"><span class="sh-label">퇴사</span></div>`;
+        const why = inactiveReason(s, d) || { label: '제외', title: '' };
+        td.innerHTML = `<div class="shift-cell shift-off" style="opacity:.45;cursor:not-allowed" title="${why.title}"><span class="sh-label">${why.label}</span></div>`;
         tr.appendChild(td);
         return;
       }
@@ -2840,7 +2873,7 @@ function renderSmList() {
       <div class="sm-li-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
       <div class="sm-li-info">
         <div class="sm-li-name">${s.name}${s.hasLicense?' 🚗':''}</div>
-        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}</div>
+        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}${(s.leaves&&s.leaves.length) ? ` · <span style="color:var(--warn)">${s.leaves[0].type||'휴직'}</span>` : ''}</div>
       </div>
     </div>`).join('') +
     `<div class="sm-list-item new-item" onclick="smNewStaff()">＋ 새 직원 추가</div>`;
@@ -2928,6 +2961,10 @@ function renderSmForm(s) {
       </div>
     </div>
 
+    <div class="sm-section-title">장기 휴가 <span style="font-weight:400;font-size:10px;color:var(--text3);">— 육아휴직·병가 등. 해당 기간은 근무표에서 빠집니다</span></div>
+    <div id="sf-leaves"></div>
+    <button class="mbtn" style="font-size:11px;padding:4px 10px;margin-bottom:14px;" onclick="smAddLeave()">+ 휴가 추가</button>
+
     <div class="sm-section-title">추가 설정</div>
     <div class="sm-toggle-row">
       <span class="sm-toggle-label">🚗 운전면허 보유 (송영 근무 가능)</span>
@@ -2957,6 +2994,8 @@ function renderSmForm(s) {
       </div>
     </div>
   `;
+
+  smRenderLeaves(s && Array.isArray(s.leaves) ? s.leaves : []);
 
   // 숨겨진 컬러 값 저장
   document.getElementById('sm-edit-panel').dataset.color = curColor;
@@ -2994,6 +3033,50 @@ function smSelectColor(color, bg, el, auto=false) {
   smPreviewUpdate();
 }
 
+// ── 장기 휴가 편집 ────────────────────────────────────────────────
+function smRenderLeaves(list) {
+  const el = document.getElementById('sf-leaves');
+  if (!el) return;
+  el.innerHTML = (list.length ? list : []).map((lv, i) => `
+    <div class="sf-leave-row" data-i="${i}">
+      <select class="sm-input sf-lv-type">
+        ${LEAVE_TYPES.map(t => `<option ${((lv.type||'육아휴직')===t)?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input class="sm-input sf-lv-from" type="date" value="${lv.from||''}" title="시작일">
+      <span style="color:var(--text3);">~</span>
+      <input class="sm-input sf-lv-to" type="date" value="${lv.to||''}" title="복귀일 — 비워 두면 미정">
+      <button class="mbtn sf-lv-del" title="삭제" onclick="smRemoveLeave(${i})">✕</button>
+    </div>`).join('')
+    || `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">등록된 장기 휴가가 없습니다.</div>`;
+}
+
+function smCollectLeaves() {
+  return [...document.querySelectorAll('#sf-leaves .sf-leave-row')].map(row => ({
+    type: row.querySelector('.sf-lv-type').value,
+    from: row.querySelector('.sf-lv-from').value,
+    to:   row.querySelector('.sf-lv-to').value,
+  })).filter(lv => lv.from);          // 시작일 없는 줄은 버린다
+}
+
+function smAddLeave() {
+  const list = smCollectLeaves();
+  list.push({ type: '육아휴직', from: '', to: '' });
+  smRenderLeaves(list);
+  // 방금 추가한 빈 줄은 collect에서 걸러지므로 화면에만 남겨 둔다
+  const rows = document.querySelectorAll('#sf-leaves .sf-leave-row');
+  if (rows.length) rows[rows.length - 1].querySelector('.sf-lv-from').focus();
+}
+
+function smRemoveLeave(i) {
+  const rows = [...document.querySelectorAll('#sf-leaves .sf-leave-row')];
+  const list = rows.filter((_, k) => k !== i).map(row => ({
+    type: row.querySelector('.sf-lv-type').value,
+    from: row.querySelector('.sf-lv-from').value,
+    to:   row.querySelector('.sf-lv-to').value,
+  }));
+  smRenderLeaves(list);
+}
+
 function smPreviewUpdate() {
   const panel = document.getElementById('sm-edit-panel');
   const name = document.getElementById('sf-name')?.value || '새 직원';
@@ -3028,6 +3111,7 @@ function smSaveStaff() {
   const contract = parseInt(document.getElementById('sf-contract').value);
   const annualLeave = parseInt(document.getElementById('sf-leave').value) || 15;
   const retirementDate = document.getElementById('sf-retirement').value || '';
+  const leaves = smCollectLeaves();
   const hasLicense = document.getElementById('sf-license').checked;
   const nightShift = document.getElementById('sf-nightshift').checked;
   const color = panel.dataset.color || '#2d7a5b';
@@ -3038,7 +3122,7 @@ function smSaveStaff() {
 
   if (smEditingId === null) {
     // 신규 추가
-    const newStaff = { id:smNextId++, name, role, short, type, contract, color, bg, hasLicense, annualLeave, transDays:0, nightShift, retirementDate };
+    const newStaff = { id:smNextId++, name, role, short, type, contract, color, bg, hasLicense, annualLeave, transDays:0, nightShift, retirementDate, leaves };
     STAFF.push(newStaff);
     smEditingId = newStaff.id;
     showToast(`✅ ${name}님이 추가되었습니다`, 'ok');
@@ -3046,7 +3130,7 @@ function smSaveStaff() {
     // 수정
     const s = STAFF.find(x=>x.id===smEditingId);
     if (!s) return;
-    Object.assign(s, { name, role, short, type, contract, color, bg, hasLicense, annualLeave, nightShift, retirementDate });
+    Object.assign(s, { name, role, short, type, contract, color, bg, hasLicense, annualLeave, nightShift, retirementDate, leaves });
     const removed = cleanRetiredScheduleData(s);
     showToast(removed ? `💾 ${name}님 정보 저장 · 퇴사일 이후 ${removed}개 배치 제외` : `💾 ${name}님 정보가 수정됐습니다`, 'ok');
   }
