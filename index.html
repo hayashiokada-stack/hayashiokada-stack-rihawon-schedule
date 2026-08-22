@@ -178,6 +178,23 @@
   .bath-row.skip { opacity:0.42; }
   .bath-row select { width:100%; font-size:11px; padding:3px 4px; border:1px solid var(--border); border-radius:4px; background:var(--surface); }
   .bath-row .manual { outline:2px solid #d08a2c; outline-offset:-2px; }
+  .duty-row { display:grid; grid-template-columns:90px 40px 1fr 1fr 1fr 1fr; gap:6px; align-items:center; padding:4px 0; border-bottom:1px solid var(--border); font-size:11px; }
+  .duty-row.head { font-weight:700; color:var(--text2); border-bottom:1px solid var(--text3); }
+  .duty-row.skip { opacity:0.45; }
+  .duty-row select { width:100%; font-size:11px; padding:3px 4px; border:1px solid var(--border); border-radius:4px; background:var(--surface); }
+  .duty-row select.manual { outline:2px solid #d08a2c; outline-offset:-2px; }
+  /* 담당근무표 보기 */
+  .duty-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; font-size:12px; color:var(--text2); }
+  .duty-head strong { font-size:14px; color:var(--text); }
+  .duty-head span { flex:1; font-size:11px; color:var(--text3); }
+  .duty-table { width:100%; border-collapse:separate; border-spacing:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; font-size:12px; }
+  .duty-table th { background:var(--surface2); font-size:11px; color:var(--text2); padding:8px 6px; border-bottom:1px solid var(--border); }
+  .duty-table td { padding:7px 6px; text-align:center; border-bottom:1px solid var(--border); }
+  .duty-table tr:last-child td { border-bottom:none; }
+  .duty-table .duty-date { text-align:left; padding-left:12px; font-weight:600; width:130px; }
+  .duty-table .duty-empty { color:var(--text3); }
+  .duty-table .duty-warn { color:var(--warn); }
+  .duty-table tr.duty-today td { background:#e8f5ee; }
   /* 자동배치 전 인원 확인 */
   .asg-sec { border:1px solid var(--border); border-radius:8px; margin-bottom:10px; overflow:hidden; }
   .asg-sec > summary { cursor:pointer; padding:8px 12px; font-size:12px; font-weight:700; background:var(--surface2); list-style:none; }
@@ -226,6 +243,7 @@
   .shift-empty { background: transparent; border: 1.5px dashed var(--border2); color: var(--text3); font-size: 16px; }
   .shift-empty:hover { border-color: var(--accent); color: var(--accent); }
   .violation { box-shadow: 0 0 0 2px var(--warn) inset; }
+  .wash-badge { position: absolute; top: 1px; left: 1px; min-width: 12px; height: 11px; padding: 0 2px; border-radius: 3px; font-size: 7px; font-weight: 800; line-height: 11px; color: #fff; background: #3f7fa6; box-shadow: 0 0 0 1px rgba(255,255,255,0.85); pointer-events: none; }
   .drive-badge { position: absolute; bottom: 1px; right: 1px; font-size: 8px; line-height: 1; pointer-events: none; }
 
   /* COUNT / USER ROW */
@@ -471,6 +489,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:#1f7a4d;"></div>M 목욕 메인 (화·금 3인 / 수 1인, 오후)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#74b295;"></div>S1·S2 목욕 보조</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방담당</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3f7fa6;"></div>세 세면대 담당 (매일 1명)</div>
       <div class="legend-item">🚗 운전 가능 직원의 송영 시간대 (A·C반)</div>
       <div class="legend-item"><div style="width:10px;height:10px;border-bottom:3px solid var(--warn);flex-shrink:0;"></div>⚠ 인원부족 — 날짜에 마우스를 올리면 사유가 보입니다</div>
     </div>
@@ -487,6 +506,7 @@
         <div class="view-toggle">
           <button class="view-btn active" id="vbtn-month" onclick="setView('month')">월간</button>
           <button class="view-btn" id="vbtn-week" onclick="setView('week')">주간</button>
+          <button class="view-btn" id="vbtn-duty" onclick="setView('duty')">담당</button>
         </div>
         <button class="hbtn" onclick="prevWeek()" id="btn-prev-week" style="display:none;">‹주</button>
         <button class="hbtn" onclick="nextWeek()" id="btn-next-week" style="display:none;">주›</button>
@@ -496,12 +516,13 @@
     <div class="info-bar" id="info-bar" style="display:none;">
     </div>
 
-    <div class="schedule-wrap">
+    <div class="schedule-wrap" id="schedule-wrap">
       <table class="schedule-table" id="schedule-table">
         <thead id="table-head"></thead>
         <tbody id="table-body"></tbody>
       </table>
     </div>
+    <div id="duty-wrap" style="display:none;"></div>
     <div class="summary-bar" id="summary-bar"></div>
   </main>
 </div>
@@ -566,13 +587,13 @@
 <!-- 목욕 담당 편집 -->
 <div class="modal-overlay" id="bath-modal" style="z-index:1300;" onclick="if(event.target===this)closeBathModal()">
   <div class="modal" style="width:640px;max-width:96vw;">
-    <h3>🛁 목욕 담당</h3>
-    <div class="sub">목욕은 고객 요구가 있는 날만 실시합니다. <strong>기본값은 미실시</strong>이니 실시할 날만 체크하세요.<br>
-      체크하면 로테이션 순번(화·금 3인 / 수 박상근)이 자동으로 들어가고, 담당자는 직접 바꿀 수 있습니다.</div>
+    <h3>🛁 담당 배정 — 목욕 · 세면대</h3>
+    <div class="sub"><strong>목욕</strong>은 화·수·금, 메인 1명 + 보조 2명. 고객 요구가 있는 날만 체크하고 담당자를 직접 고릅니다(기본 미실시).<br>
+      <strong>세면대</strong>는 영업일마다 1명이며 요양보호사 순번으로 자동 배정됩니다. 바꾸고 싶은 날만 직접 고르세요.</div>
     <div id="bath-modal-body" style="max-height:52vh;overflow:auto;"></div>
     <div class="modal-actions" style="margin-top:14px;">
-      <button class="mbtn" onclick="setAllBath(true)">전체 실시</button>
-      <button class="mbtn" onclick="resetBathPlan()">전체 해제</button>
+      <button class="mbtn" onclick="setAllBath(true)">목욕 전체 실시</button>
+      <button class="mbtn" onclick="resetBathPlan()">전체 되돌리기</button>
       <button class="mbtn primary" onclick="closeBathModal()">닫기</button>
     </div>
   </div>
@@ -695,21 +716,31 @@ const SHIFTS = {
   'HH': { label:'반차',   time:'',            cls:'shift-halfday', hours:4,  isTransport:false },
 };
 
-// ▶ 목욕 담당 로테이션
-//   화·금 = 3인(메인 M / 보조1 S1 / 보조2 S2) — 6인 링에서 연속 3명 슬라이딩 윈도우, 목욕일마다 1칸 전진
-//   수    = 1인(메인 M)                       — 박상근 단독
-//   기준점은 2026년 10~12월 실제 로테이션표에서 역산했다. 순번은 달을 넘어가도 끊기지 않고 이어진다.
-const BATH_RING = [9, 5, 6, 10, 7, 18];  // 모연숙 → 황정자 → 이미숙 → 한경숙 → 전은숙 → 조민경
-const BATH_WED  = 11;                    // 수요일 목욕은 박상근 단독
-const BATH_DOWS = [2, 5];                // 화, 금
-const BATH_ROLES = ['M', 'S1', 'S2'];
-const BATH_ANCHOR     = { y:2026, m:10, d:2, idx:4 };  // 2026-10-02(금) → 링 4번(전은숙)부터
-const BATH_MIN_STAFF  = 2;               // 화·금 목욕 최소 투입 인원
-
-// ▶ 목욕은 고객 요구가 있는 날만 실시한다. 기본값은 미실시 — 켠 날에만 담당이 배정된다.
-//   bathPlan[day] = { on:true }                    → 그날 실시 (담당은 로테이션 순번)
-//   bathPlan[day] = { on:true, staff:[id, ...] }   → 실시 + 담당자 직접 지정
+// ▶ 목욕 담당 — 화·수·금, 3인(메인 M / 보조1 S1 / 보조2 S2), 요양보호사만.
+//   순번을 돌리지 않고 관리자가 직접 배정한다. 고객 요구가 있는 날만 실시하며 기본값은 미실시.
+//   bathPlan[day] = { on:true, staff:[id, id, id] }   (staff 칸은 비어 있을 수 있다)
+const BATH_DOWS      = [2, 3, 5];        // 화, 수, 금
+const BATH_SIZE      = 3;                // 메인 1 + 보조 2
+const BATH_ROLES     = ['M', 'S1', 'S2'];
+const BATH_MIN_STAFF = 2;                // 실시하는 날 최소 투입 인원
 let bathPlan = {};
+
+// ▶ 세면대 담당 — 영업일마다 1명, 요양보호사만, 매번 실시.
+//   요양보호사 전원이 순번대로 돌고, 그날 쉬는 사람은 건너뛴다.
+//   washPlan[day] = staffId | null   (수동 지정. null이면 '없음'으로 고정)
+const WASH_DOWS   = [1, 2, 3, 4, 5, 6];              // 월~토
+const WASH_ANCHOR = { y: 2026, m: 1, d: 1, idx: 0 }; // 순번 기준점
+let washPlan = {};
+
+function isBathDay(day) { return BATH_DOWS.includes(getDow(day)); }
+function isWashDay(day) { return WASH_DOWS.includes(getDow(day)); }
+function carePoolOn(day) {
+  return STAFF.filter(x => x.type === 'care' && isStaffActiveOnDay(x, day)).map(x => x.id);
+}
+function canWorkOn(id, day) {
+  const sh = scheduleData[`${id}-${day}`];
+  return !sh || isDayWorking(sh);      // 아직 안 짠 칸은 가능으로 본다
+}
 
 // ▶ 단기보호·토요일 담당자 수동 지정. 자동배치 전 확인 팝업에서 고른 값이 여기 들어간다.
 //   stPlan[day]  = { E:staffId, N:staffId }
@@ -737,51 +768,48 @@ function countDowBetween(fromMs, toMs, dows) {
   return sign * n;
 }
 
-// 해당 날짜의 목욕 순번 원안. 목욕일이 아니면 null.
-// order는 우선순위 순으로 정렬된 후보 전원 — 앞에서부터 size명을 채운다.
-function getBathRotation(day) {
-  const dow = getDow(day);
-  const ms = new Date(currentYear, currentMonth - 1, day).getTime();
-  if (dow === 3) return { size:1, order:[BATH_WED] };
-  if (BATH_DOWS.includes(dow)) {
-    const a = BATH_ANCHOR;
-    const n = countDowBetween(new Date(a.y, a.m - 1, a.d).getTime(), ms, BATH_DOWS);
-    const s = (((a.idx + n) % BATH_RING.length) + BATH_RING.length) % BATH_RING.length;
-    return { size:3, order: BATH_RING.map((_, i) => BATH_RING[(s + i) % BATH_RING.length]) };
+// 그날 목욕 배치. 실시하지 않는 날이면 null.
+//   list  = 실제로 투입 가능한 사람(그날 근무 중인 배정자)
+//   slots = 배정된 그대로의 3칸 (빈 칸은 null) — 편집 화면이 쓴다
+function getBathAssignment(day) {
+  if (!isBathDay(day)) return null;
+  const plan = bathPlan[day];
+  if (!plan || !plan.on) return null;
+  const slots = (plan.staff || []).slice(0, BATH_SIZE);
+  while (slots.length < BATH_SIZE) slots.push(null);
+  const list = slots.filter(id => {
+    const st = id && STAFF.find(x => x.id === id);
+    return st && isStaffActiveOnDay(st, day) && canWorkOn(id, day);
+  });
+  return { size: BATH_SIZE, slots, list, short: Math.max(0, BATH_MIN_STAFF - list.length) };
+}
+
+// 그날 세면대 담당 1명. 영업일이 아니면 null.
+// 수동 지정이 있으면 그걸 쓰고, 없으면 요양보호사 순번에서 그날 근무 가능한 첫 사람을 쓴다.
+function getWashStaff(day) {
+  if (!isWashDay(day)) return null;
+  if (Object.prototype.hasOwnProperty.call(washPlan, day)) {
+    const id = washPlan[day];
+    return id && STAFF.find(x => x.id === id) ? id : null;
+  }
+  const pool = carePoolOn(day);
+  if (!pool.length) return null;
+  const a = WASH_ANCHOR;
+  const n = countDowBetween(new Date(a.y, a.m - 1, a.d).getTime(),
+                            new Date(currentYear, currentMonth - 1, day).getTime(), WASH_DOWS);
+  const start = (((a.idx + n) % pool.length) + pool.length) % pool.length;
+  for (let k = 0; k < pool.length; k++) {
+    const id = pool[(start + k) % pool.length];
+    if (canWorkOn(id, day)) return id;
   }
   return null;
 }
 
-// 켜지 않은 날의 로테이션 원안 (편집 화면에서 회색으로 미리 보여주는 용도)
-function bathRotationPreview(day) {
-  const rot = getBathRotation(day);
-  return rot ? rot.order.slice(0, rot.size) : [];
-}
-
-// 목욕 배치 확정 — 그날 단기보호(E/N)·휴무·연차이거나 미재직인 사람은 건너뛰고 링의 다음 순번을 쓴다.
-//   수동 지정(bathPlan)이 있으면 로테이션보다 우선한다.
-function getBathAssignment(day) {
-  const rot = getBathRotation(day);
-  if (!rot) return null;
-  const plan = bathPlan[day];
-  if (!plan || !plan.on) return null;   // 요구가 있어 켠 날만 실시한다
-  if (plan && plan.staff && plan.staff.length) {
-    const manual = plan.staff.filter(id => {
-      const st = id && STAFF.find(x => x.id === id);
-      return st && isStaffActiveOnDay(st, day);
-    });
-    return { size: manual.length, list: manual, short: 0, manual: true };
-  }
-  const list = [];
-  rot.order.forEach(id => {
-    if (list.length >= rot.size) return;
-    const s = STAFF.find(x => x.id === id);
-    if (!s || !isStaffActiveOnDay(s, day)) return;
-    const sh = scheduleData[`${id}-${day}`];
-    if (sh && !isDayWorking(sh)) return;   // E·N·O·H·HH → 목욕 투입 불가
-    list.push(id);
-  });
-  return { size: rot.size, list, short: rot.size - list.length };
+// `${staffId}-${day}` → 'W'  (세면대 담당)
+function buildWashMap(days) {
+  const map = {};
+  days.forEach(d => { const id = getWashStaff(d); if (id) map[`${id}-${d}`] = 'W'; });
+  return map;
 }
 
 // `${staffId}-${day}` → 'M' | 'S1' | 'S2'
@@ -800,7 +828,7 @@ function buildBathMap(days) {
 //   월요일 야간은 그 직전 이브닝 담당 — 즉 지난달 단기보호 주간의 마지막 이브닝 담당이다.
 //   순번은 달이 바뀌어도 이어진다(단기보호 주간 1회당 5칸 전진).
 //   NIGHT_RING이 순서의 기준이다. 직원의 nightShift 플래그는 표시용일 뿐 순서를 정하지 않는다.
-const NIGHT_RING = BATH_RING;
+const NIGHT_RING = [9, 5, 6, 10, 7, 18];   // 모연숙 → 황정자 → 이미숙 → 한경숙 → 전은숙 → 조민경
 const NIGHT_ANCHOR = { y:2026, m:12, idx:3 };   // 2026-12 단기보호 주간 월요일 이브닝 = 한경숙
 
 // 이번 달 weekOrder번째(0부터) 단기보호 주간의 월요일 이브닝 담당이 링에서 몇 번인지
@@ -1139,7 +1167,7 @@ function openTransportProgram(tab = 'today') {
 function persistData() {
   const key = getSaveKey();
   cleanRetiredScheduleData();
-  const payload = { scheduleData, wishOff, bathPlan, stPlan, satPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
+  const payload = { scheduleData, wishOff, bathPlan, washPlan, stPlan, satPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
   localStorage.setItem(key, JSON.stringify(payload));
   cloudPushMonthDebounced();          // ▶ 로그인 상태면 클라우드에도 반영(자동)
 }
@@ -1155,7 +1183,7 @@ function loadData() {
   const key = getSaveKey();
   const raw = localStorage.getItem(key);
   if (!raw) {
-    wishOff = {}; bathPlan = {}; stPlan = {}; satPlan = {};
+    wishOff = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {};
     applyUsersFromPrevMonth({ overwrite:false, silent:true });
     refresh();
     showToast('저장된 데이터가 없어 전월 마지막주 기준 이용자 수를 자동 입력했습니다', 'info');
@@ -1165,6 +1193,7 @@ function loadData() {
   scheduleData = data.scheduleData || {};
   wishOff = data.wishOff || {};
   bathPlan = migrateBathPlan(data.bathPlan || {});
+  washPlan = data.washPlan || {};
   stPlan = data.stPlan || {};
   satPlan = data.satPlan || {};
   dailyUsers = data.dailyUsers || {};
@@ -1197,7 +1226,7 @@ function migrateBathPlan(plan) {
   const isOld = Object.values(plan).some(v => v && v.off !== undefined);
   if (!isOld) return plan;
   const out = {};
-  getMonthDays().filter(d => getBathRotation(d)).forEach(d => {
+  getMonthDays().filter(isBathDay).forEach(d => {
     const old = plan[d] || {};
     if (old.off) return;                       // 그때 껐던 날 → 계속 미실시
     out[d] = { on: true };
@@ -1499,6 +1528,7 @@ function isShortTermDay(day) {
 function renderTable() {
   const days = getDays();
   const bathMap = buildBathMap(days);
+  const washMap = buildWashMap(days);
   const kitchenMap = buildSatKitchenMap(days);
   const shortDays = new Set(days.filter(d => dayIssues(d).length));
   const tbody = document.getElementById('table-body');
@@ -1575,6 +1605,8 @@ function renderTable() {
       const isWish = !!wishOff[key];
       const wishCls = isWish ? ' wish' : '';
       const wishBadge = isWish ? '<span class="wish-badge" title="희망 휴무일">🙋</span>' : '';
+      const washBadge = washMap[key]
+        ? '<span class="wash-badge" title="세면대 담당">세</span>' : '';
       const bathRole = bathMap[key];
       const bathBadge = bathRole
         ? `<span class="bath-badge ${bathRole === 'M' ? '' : 'sub'}" title="목욕 ${bathRole === 'M' ? '메인' : '보조'} · 오후">${bathRole}</span>`
@@ -1590,12 +1622,12 @@ function renderTable() {
           <div class="shift-cell ${info.cls}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${canDrive?'송영 가능':''}">
             <span class="sh-label">${info.label}</span>
             ${info.time ? `<span class="sh-time">${info.time}</span>` : ''}
-            ${bathBadge}${wishBadge}${driveBadge}
+            ${bathBadge}${washBadge}${wishBadge}${driveBadge}
           </div>`;
       } else if (isSunday && !isST) {
         td.innerHTML = `<div class="shift-cell shift-off" onclick="onCellClick(${s.id},${d})"><span class="sh-label">OFF</span></div>`;
       } else {
-        td.innerHTML = `<div class="shift-cell shift-empty${wishCls}" onclick="onCellClick(${s.id},${d})">+${bathBadge}${wishBadge}</div>`;
+        td.innerHTML = `<div class="shift-cell shift-empty${wishCls}" onclick="onCellClick(${s.id},${d})">+${bathBadge}${washBadge}${wishBadge}</div>`;
       }
       tr.appendChild(td);
     });
@@ -2116,7 +2148,7 @@ function renderAssignPreview() {
   html += sec('📅 주말(토요일) 근무', satBody, openBtn('openSaturdayModal', '📅 주말근무 설정 열기'));
 
   // 3) 목욕
-  const bdays = getMonthDays().filter(d => getBathRotation(d));
+  const bdays = getMonthDays().filter(isBathDay);
   const onDays = bdays.filter(d => (bathPlan[d] || {}).on);
   const bathBody = onDays.length
     ? onDays.map(d => {
@@ -2505,36 +2537,42 @@ function closeBathModal() {
   if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 function resetBathPlan() {
-  if (!confirm('이번 달 목욕 실시 설정과 담당자 수정을 모두 지울까요? (전부 미실시로 돌아갑니다)')) return;
-  bathPlan = {};
+  if (!confirm('이번 달 목욕 배정과 세면대 수동 지정을 모두 지울까요?\n목욕은 전부 미실시, 세면대는 순번으로 돌아갑니다.')) return;
+  bathPlan = {}; washPlan = {};
   renderBathModal(); refresh(); autoSave();
 }
 
 function renderBathModal() {
-  const dowNames = ['일','월','화','수','목','금','토'];
-  const pool = bathEditableStaff();
-  const days = getMonthDays().filter(d => getBathRotation(d));
-  let html = `<div class="bath-row head"><span>날짜</span><span>실시</span><span>메인</span><span>보조 1</span><span>보조 2</span></div>`;
-  days.forEach(d => {
+  const dow = ['일','월','화','수','목','금','토'];
+  const pool = d => satGroupPool('care');
+  let html = `<div class="duty-row head"><span>날짜</span><span>목욕</span><span>메인</span><span>보조 1</span><span>보조 2</span><span>세면대</span></div>`;
+  getMonthDays().filter(d => isBathDay(d) || isWashDay(d)).forEach(d => {
+    const bathDay = isBathDay(d);
     const plan = bathPlan[d] || {};
-    const rot = getBathRotation(d);
-    const auto = plan.staff ? null : getBathAssignment(d);
-    const cur = plan.staff || (auto ? auto.list : bathRotationPreview(d));
-    const cells = [0, 1, 2].map(i => {
-      if (i >= rot.size) return '<span style="color:var(--text3);font-size:10px;">—</span>';
-      const opts = pool.map(st =>
-        `<option value="${st.id}" ${cur[i] === st.id ? 'selected' : ''}>${st.name}</option>`).join('');
-      return `<select class="${plan.staff ? 'manual' : ''}" ${plan.on ? '' : 'disabled'}
-                onchange="setBathStaff(${d}, ${i}, this.value)">
-                <option value="">— 없음 —</option>${opts}</select>`;
-    }).join('');
-    html += `<div class="bath-row ${plan.on ? '' : 'skip'}">
-      <span>${d}일 (${dowNames[getDow(d)]})</span>
-      <input type="checkbox" ${plan.on ? 'checked' : ''} onchange="setBathOn(${d}, this.checked)">
-      ${cells}
-    </div>`;
+    const asg = getBathAssignment(d);
+    const slots = asg ? asg.slots : [null, null, null];
+    const cells = [0, 1, 2].map(i => !bathDay
+      ? '<span style="color:var(--text3);">—</span>'
+      : `<select ${plan.on ? '' : 'disabled'} onchange="setBathStaff(${d},${i},this.value)">${opts(pool(d), slots[i])}</select>`).join('');
+    const wid = getWashStaff(d);
+    const manualWash = Object.prototype.hasOwnProperty.call(washPlan, d);
+    const wash = isWashDay(d)
+      ? `<select class="${manualWash ? 'manual' : ''}" onchange="setWashStaff(${d},this.value)">${opts(pool(d), wid)}</select>`
+      : '<span style="color:var(--text3);">—</span>';
+    html += `<div class="duty-row ${bathDay && !plan.on ? 'skip' : ''}">
+      <span>${d}일 (${dow[getDow(d)]})</span>
+      <span>${bathDay ? `<input type="checkbox" ${plan.on ? 'checked' : ''} onchange="setBathOn(${d}, this.checked)">` : '—'}</span>
+      ${cells}${wash}</div>`;
   });
   document.getElementById('bath-modal-body').innerHTML = html;
+}
+
+// 세면대 담당 수동 지정. 빈 값을 고르면 '없음'으로 고정한다(순번으로 되돌리려면 전체 해제).
+function setWashStaff(day, value) {
+  washPlan[day] = value ? Number(value) : null;
+  refresh(); autoSave();
+  renderBathModal();
+  if (document.getElementById('checklist-modal').classList.contains('open')) renderAssignPreview();
 }
 
 function setBathOn(day, on) {
@@ -2545,7 +2583,7 @@ function setBathOn(day, on) {
 
 // 이번 달 목욕일을 한 번에 켜고 끈다
 function setAllBath(on) {
-  getMonthDays().filter(d => getBathRotation(d)).forEach(d => {
+  getMonthDays().filter(isBathDay).forEach(d => {
     if (on) bathPlan[d] = Object.assign({}, bathPlan[d], { on: true });
     else delete bathPlan[d];
   });
@@ -2554,13 +2592,9 @@ function setAllBath(on) {
 }
 
 function setBathStaff(day, slot, value) {
-  const rot = getBathRotation(day);
   const plan = bathPlan[day] || {};
-  // 아직 켜지 않은 날이면 로테이션 원안을 바탕으로 시작한다 — 나머지 칸이 비지 않도록
-  const auto = plan.staff ? null : getBathAssignment(day);
-  const base = plan.staff || (auto ? auto.list : bathRotationPreview(day));
-  const list = base.slice(0, rot.size);
-  while (list.length < rot.size) list.push(null);
+  const list = (plan.staff || []).slice(0, BATH_SIZE);
+  while (list.length < BATH_SIZE) list.push(null);
   const id = value ? Number(value) : null;
   if (id !== null) {
     const dup = list.findIndex((v, i) => v === id && i !== slot);
@@ -2602,6 +2636,7 @@ function refresh() {
   renderNightAssignPreview();   // 저장본을 불러왔을 때도 단기보호 배정 미리보기가 뜨도록
   recalcTransDays();            // 표에 송영 횟수를 쓰므로 그리기 전에 계산한다
   renderTable();
+  if (currentView === 'duty') renderDutyTable();
   updateStats();
   updateSummary();
   renderLawPanel();
@@ -2614,7 +2649,7 @@ function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth>12) { currentMonth=1; currentYear++; }
   if (currentMonth<1) { currentMonth=12; currentYear--; }
-  scheduleData={}; wishOff={}; bathPlan={}; stPlan={}; satPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
+  scheduleData={}; wishOff={}; bathPlan={}; washPlan={}; stPlan={}; satPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
   document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth}월`;
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   refresh();
@@ -2624,12 +2659,48 @@ function changeMonth(dir) {
 
 function setView(v) {
   currentView=v;
-  document.getElementById('vbtn-month').classList.toggle('active',v==='month');
-  document.getElementById('vbtn-week').classList.toggle('active',v==='week');
+  ['month','week','duty'].forEach(k =>
+    document.getElementById('vbtn-'+k).classList.toggle('active', v===k));
   document.getElementById('btn-prev-week').style.display = v==='week'?'':'none';
   document.getElementById('btn-next-week').style.display = v==='week'?'':'none';
-  if (v==='month') weekStart=1;
-  renderTable();
+  document.getElementById('schedule-wrap').style.display = v==='duty'?'none':'';
+  document.getElementById('summary-bar').style.display   = v==='duty'?'none':'';
+  document.getElementById('duty-wrap').style.display     = v==='duty'?'':'none';
+  if (v!=='week') weekStart=1;
+  if (v==='duty') renderDutyTable(); else renderTable();
+}
+
+// 담당근무표 — 목욕(메인·보조2)과 세면대를 날짜별로 한 장에 모아 보여준다
+function renderDutyTable() {
+  const dow = ['일','월','화','수','목','금','토'];
+  const rows = getMonthDays().filter(d => isBathDay(d) || isWashDay(d)).map(d => {
+    const asg = getBathAssignment(d);
+    const bath = asg ? asg.slots : null;
+    const wid = getWashStaff(d);
+    const cell = id => id ? nameOf(id) : '<span class="duty-empty">—</span>';
+    const bathCells = !isBathDay(d)
+      ? '<td colspan="3" class="duty-empty">해당 없음</td>'
+      : !asg
+        ? '<td colspan="3" class="duty-empty">미실시</td>'
+        : [0,1,2].map(i => `<td>${cell(bath[i])}</td>`).join('');
+    const shortMark = asg && asg.list.length < BATH_MIN_STAFF
+      ? ` <span class="duty-warn" title="최소 ${BATH_MIN_STAFF}명 필요">⚠</span>` : '';
+    return `<tr class="${isToday(d)?'duty-today':''}">
+      <td class="duty-date">${d}일 <span style="color:var(--text3)">(${dow[getDow(d)]})</span>${shortMark}</td>
+      ${bathCells}
+      <td>${isWashDay(d) ? cell(wid) : '<span class="duty-empty">—</span>'}</td></tr>`;
+  }).join('');
+
+  document.getElementById('duty-wrap').innerHTML = `
+    <div class="duty-head">
+      <strong>${currentYear}년 ${currentMonth}월 담당근무표</strong>
+      <span>목욕 = 화·수·금 요구가 있는 날만 · 세면대 = 영업일 매일 1명</span>
+      <button class="hbtn" onclick="openBathModal()">🛁 담당 배정 열기</button>
+    </div>
+    <table class="duty-table">
+      <thead><tr><th>날짜</th><th>목욕 메인</th><th>목욕 보조 1</th><th>목욕 보조 2</th><th>세면대</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 function prevWeek() { weekStart = Math.max(1, weekStart-7); renderTable(); }
