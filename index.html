@@ -449,6 +449,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A반 08:00-17:00 (조기등원·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B반 09:00-18:00 (정규)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C반 10:00-19:00 (오후케어·송영)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-d-bg);border:1px solid var(--shift-d);"></div>D반 08:00-17:00 (운전원·송영)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-evening-bg);border:1px solid var(--shift-evening);"></div>E(이브닝) 13:00-22:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-night-bg);border:1px solid var(--shift-night);"></div>N(야간) 22:00-08:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-holiday-bg);border:1px solid var(--shift-holiday);"></div>연차 / 반차</div>
@@ -672,6 +673,7 @@ const SHIFTS = {
   'A':  { label:'A반',    time:'08:00-17:00', cls:'shift-a',       hours:9,  isTransport:true  },
   'B':  { label:'B반',    time:'09:00-18:00', cls:'shift-b',       hours:9,  isTransport:false },
   'C':  { label:'C반',    time:'10:00-19:00', cls:'shift-c',       hours:9,  isTransport:true  },
+  'D':  { label:'D반',    time:'08:00-17:00', cls:'shift-d',       hours:9,  isTransport:true  },   // 운전원 전용(송영)
   'E':  { label:'이브닝', time:'13:00-22:00', cls:'shift-evening', hours:9,  isTransport:false },
   'N':  { label:'야간',   time:'22:00-08:00', cls:'shift-night',   hours:10, isTransport:false },
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
@@ -853,7 +855,7 @@ const SAT_GROUPS = {
              match: x => x.type === 'care' },
 };
 function satGroupPool(key) {
-  return STAFF.filter(x => isScheduled(x) && SAT_GROUPS[key].match(x)
+  return STAFF.filter(x => SAT_GROUPS[key].match(x)
     && isStaffActiveInDays(x, getMonthDays())).map(x => x.id);
 }
 
@@ -924,15 +926,15 @@ function applySaturdayToSchedule(day) {
   new Set([...SAT_TEAM, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen])
     .forEach(id => {
       const st = STAFF.find(x => x.id === id);
-      if (!st || !isScheduled(st) || !isStaffActiveOnDay(st, day)) return;
+      if (!st || !isStaffActiveOnDay(st, day)) return;
       const key = `${id}-${day}`;
       if (scheduleData[key] === 'H' || scheduleData[key] === 'HH') return;
-      scheduleData[key] = off.has(id) ? 'O' : dayShiftFor(id, day);
+      scheduleData[key] = off.has(id) ? 'O' : (st.type === 'driver' ? 'D' : dayShiftFor(id, day));
     });
 }
 
 // ▶ 없어진 근무조(A'·B'·S·D)를 쓰던 저장본을 열었을 때 같은 시간대의 남은 근무조로 옮긴다
-const LEGACY_SHIFTS = { "A'": 'B', "B'": 'B', 'S': 'B', 'D': 'A' };   // 09-18 → B반 / 08-17 → A반
+const LEGACY_SHIFTS = { "A'": 'B', "B'": 'B', 'S': 'B' };   // 09-18 → B반
 function migrateShiftCodes() {
   let n = 0;
   Object.keys(scheduleData).forEach(k => {
@@ -1316,7 +1318,7 @@ function isDayWorking(sh) { return sh && !['O','H','HH','N','E'].includes(sh); }
 // 여기 한곳에서만 계산한다. 반환은 [{code, text}].
 function dayIssues(day) {
   const out = [];
-  const work = code => STAFF.filter(s => isScheduled(s) && isStaffActiveOnDay(s, day)
+  const work = code => STAFF.filter(s => isStaffActiveOnDay(s, day)
     && (code ? scheduleData[`${s.id}-${day}`] === code : isDayWorking(scheduleData[`${s.id}-${day}`])));
 
   if (isServiceDay(day)) {
@@ -1337,7 +1339,7 @@ function dayIssues(day) {
 
   const dow = getDow(day);
   if (dow >= 1 && dow <= 5) {
-    const off = STAFF.filter(x => isScheduled(x) && isStaffActiveOnDay(x, day)
+    const off = STAFF.filter(x => isStaffActiveOnDay(x, day)
       && ['O','H'].includes(scheduleData[`${x.id}-${day}`])).length;
     if (off > MAX_DAILY_OFF) out.push({ code:'off', text:`휴무 ${off}명 (상한 ${MAX_DAILY_OFF}명)` });
     if (isShortTermDay(day) && work('N').length < STAFFING_RULES.nightMinStaff)
@@ -1374,7 +1376,7 @@ function computeCompliance(days = getDays()) {
   // ── 11시간 휴게 위반 ──
   days.forEach(d => {
     STAFF.forEach(s => {
-      if (!isScheduled(s) || !isStaffActiveOnDay(s, d)) return;
+      if (!isStaffActiveOnDay(s, d)) return;
       const sh = scheduleData[`${s.id}-${d}`];
       if ((sh === 'N' || sh === 'E') && d + 1 <= totalDays && isDayWorking(scheduleData[`${s.id}-${d + 1}`])) {
         restViolations++;
@@ -1442,12 +1444,8 @@ function isStaffActiveOnDay(staff, day) {
 function isStaffActiveInDays(staff, days = getDays()) {
   return days.some(day => isStaffActiveOnDay(staff, day));
 }
-// 운전원은 근무표 편성 대상이 아니다. 다만 직원 관리와 송영표 연동에는 그대로 쓰이므로
-// STAFF에서 지우지 않고 근무표를 그릴 때만 걸러낸다.
-function isScheduled(staff) { return staff.type !== 'driver'; }
-
 function getVisibleStaff(days = getDays()) {
-  return STAFF.filter(staff => isScheduled(staff) && isStaffActiveInDays(staff, days));
+  return STAFF.filter(staff => isStaffActiveInDays(staff, days));
 }
 function cleanRetiredScheduleData(staff = null) {
   const ids = staff ? new Set([staff.id]) : new Set(STAFF.filter(s => s.retirementDate).map(s => s.id));
@@ -2010,7 +2008,7 @@ const DOW_KO = ['일','월','화','수','목','금','토'];
 function activeIds(ids) {
   return ids.filter(id => {
     const st = STAFF.find(x => x.id === id);
-    return st && isScheduled(st) && isStaffActiveInDays(st, getMonthDays());
+    return st && isStaffActiveInDays(st, getMonthDays());
   });
 }
 function opts(pool, sel) {
@@ -2306,8 +2304,9 @@ function autoFill() {
       if (forcedOff[key]) { scheduleData[key] = forcedOff[key]; return; }  // 대체휴무 · 희망휴무
       if (satOff[key]) { scheduleData[key] = 'O'; return; }  // 토요일 로테이션 휴무
 
-      // 직종에 묶인 고정 반은 없다. 전원이 A·B·C를 돌아가며 맡는다.
-      scheduleData[key] = dayShiftFor(s.id, d);
+      // 운전원만 송영 시간에 맞춘 전용 근무조(D반)를 쓴다.
+      // 그 밖의 직종은 고정 없이 A·B·C를 돌아가며 맡는다.
+      scheduleData[key] = s.type === 'driver' ? 'D' : dayShiftFor(s.id, d);
     });
 
     // 일요일 → 휴무 (토요일은 서비스 제공)
@@ -2417,6 +2416,7 @@ function updateSummary() {
     <div class="sum-card"><div class="sum-val">${cnt['A']}</div><div class="sum-lbl">A반</div><div class="sum-sub">08:00-17:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['B']}</div><div class="sum-lbl">B반</div><div class="sum-sub">09:00-18:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['C']}</div><div class="sum-lbl">C반</div><div class="sum-sub">10:00-19:00</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['D']}</div><div class="sum-lbl">D반</div><div class="sum-sub">운전원 08:00-17:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['N']+cnt['E']}</div><div class="sum-lbl">야간/이브닝</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>`;
 }
@@ -2651,7 +2651,7 @@ function renderSmList() {
       <div class="sm-li-dot" style="background:${s.bg};color:${s.color}">${s.short}</div>
       <div class="sm-li-info">
         <div class="sm-li-name">${s.name}${s.hasLicense?' 🚗':''}</div>
-        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}${isScheduled(s) ? '' : ' · 근무표 제외'}</div>
+        <div class="sm-li-role">${s.role} · ${s.contract}h${s.retirementDate ? ` · 퇴사 ${s.retirementDate}` : ''}</div>
       </div>
     </div>`).join('') +
     `<div class="sm-list-item new-item" onclick="smNewStaff()">＋ 새 직원 추가</div>`;
