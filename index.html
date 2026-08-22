@@ -150,6 +150,7 @@
   /* 인원 부족한 날 — 머리글에 표시하고 열 전체를 옅게 물들인다 */
   .day-th.day-short { border-bottom: 3px solid var(--warn); cursor: help; }
   .day-th .day-warn { display: block; font-size: 9px; font-weight: 700; color: var(--warn); line-height: 1.1; }
+  .day-th .day-ot { display: block; font-size: 8px; font-weight: 700; color: #8a4fbf; line-height: 1.1; }
   .schedule-table td.short-col { background-color: #fff6ed; }
   .today-col { background: #f0f7f2 !important; }
   .shortterm-col { background: #eaf4fb !important; }
@@ -281,6 +282,14 @@
   .mbtn:hover { background: var(--surface2); }
   .mbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .mbtn.primary:hover { background: var(--accent2); }
+  .ot-row { display:flex; align-items:center; gap:6px; margin:12px 0 4px; padding-top:10px; border-top:1px solid var(--border); }
+  .ot-label { font-size:11px; font-weight:600; color:var(--text2); }
+  .ot-input { width:64px; text-align:center; font-size:12px; padding:4px 6px; border:1px solid var(--border); border-radius:5px; background:var(--surface); }
+  .ot-unit { font-size:11px; color:var(--text2); }
+  .ot-step { padding:3px 9px; font-size:12px; line-height:1; }
+  .ot-hint { margin-left:auto; font-size:10px; color:var(--text3); }
+  .ot-badge { position:absolute; bottom:1px; left:50%; transform:translateX(-50%); font-size:7px; font-weight:800; line-height:10px; padding:0 3px; border-radius:3px; color:#fff; background:#8a4fbf; box-shadow:0 0 0 1px rgba(255,255,255,0.85); pointer-events:none; white-space:nowrap; }
+  .ot-badge.early { background:#b08ad4; }   /* 출근을 당긴 경우 — 연한 색 */
   .modal-leave-info { background: var(--surface2); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; font-size: 11px; color: var(--text2); }
   .modal-leave-info strong { color: var(--text); }
 
@@ -493,6 +502,8 @@
       <div class="legend-item"><div class="legend-dot" style="background:#74b295;"></div>S1·S2 목욕 보조</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방담당</div>
       <div class="legend-item"><div class="legend-dot" style="background:#3f7fa6;"></div>세 세면대 담당 (매일 1명)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8a4fbf;"></div>+2h 퇴근 연장</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b08ad4;"></div>+1h 출근 당김 (둘 다 근무시간 증가)</div>
       <div class="legend-item">🚗 운전 가능 직원의 송영 시간대 (A·C반)</div>
       <div class="legend-item"><div style="width:10px;height:10px;border-bottom:3px solid var(--warn);flex-shrink:0;"></div>⚠ 인원부족 — 날짜에 마우스를 올리면 사유가 보입니다</div>
     </div>
@@ -538,6 +549,14 @@
     <div class="modal-leave-info" id="modal-leave-info" style="display:none;"></div>
     <div class="drive-info" id="modal-drive-info" style="display:none;"></div>
     <div class="shift-options" id="modal-options"></div>
+    <div class="ot-row" id="modal-ot-row">
+      <span class="ot-label">연장근무</span>
+      <button class="mbtn ot-step" onclick="stepOT(-0.5)">−</button>
+      <input class="ot-input" id="modal-ot" type="number" step="0.5" min="-4" max="8" value="0">
+      <span class="ot-unit">시간</span>
+      <button class="mbtn ot-step" onclick="stepOT(0.5)">＋</button>
+      <span class="ot-hint">음수 = 출근을 당김. 어느 쪽이든 근무시간은 늘어납니다</span>
+    </div>
     <div class="modal-actions">
       <button class="mbtn" onclick="closeModal()">취소</button>
       <button class="mbtn primary" onclick="applyShift()">저장</button>
@@ -747,6 +766,19 @@ let bathPlan = {};
 const WASH_DOWS   = [1, 2, 3, 4, 5, 6];              // 월~토
 const WASH_ANCHOR = { y: 2026, m: 1, d: 1, idx: 0 }; // 순번 기준점
 let washPlan = {};
+
+// ▶ 연장근무 — `${staffId}-${day}` → 시간(0.5 단위).
+//   부호는 방향이다 — 양수는 퇴근을 늦추고, 음수는 출근을 당긴다.
+//   어느 쪽이든 실제 근무시간은 |값| 만큼 늘어난다.
+//   근무조는 그대로 두고 시간만 얹는다. 법령 정원은 그 시간대 인원 수라
+//   연장이 정원을 채우지는 않으므로, 인원부족 경고는 지우지 않고 보완 내역만 적는다.
+let overtime = {};
+const OT_RANGE = { min: -4, max: 8 };
+function otOf(staffId, day) { return Number(overtime[`${staffId}-${day}`]) || 0; }
+function otHours(staffId, day) { return Math.abs(otOf(staffId, day)); }   // 근무시간에 더할 값
+function otNum(h) { return Number.isInteger(h) ? String(h) : h.toFixed(1); }
+function otLabel(h) { return (h > 0 ? '연장 +' : '조기 +') + otNum(Math.abs(h)) + 'h'; }
+function otShort(h) { return '+' + otNum(Math.abs(h)) + 'h'; }
 
 function isBathDay(day) { return BATH_DOWS.includes(getDow(day)); }
 function isWashDay(day) { return WASH_DOWS.includes(getDow(day)); }
@@ -1193,7 +1225,7 @@ function openTransportProgram(tab = 'today') {
 function persistData() {
   const key = getSaveKey();
   cleanRetiredScheduleData();
-  const payload = { scheduleData, wishOff, bathPlan, washPlan, stPlan, satPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
+  const payload = { scheduleData, wishOff, overtime, bathPlan, washPlan, stPlan, satPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
   localStorage.setItem(key, JSON.stringify(payload));
   cloudPushMonthDebounced();          // ▶ 로그인 상태면 클라우드에도 반영(자동)
 }
@@ -1209,7 +1241,7 @@ function loadData() {
   const key = getSaveKey();
   const raw = localStorage.getItem(key);
   if (!raw) {
-    wishOff = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {};
+    wishOff = {}; overtime = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {};
     applyUsersFromPrevMonth({ overwrite:false, silent:true });
     refresh();
     showToast('저장된 데이터가 없어 전월 마지막주 기준 이용자 수를 자동 입력했습니다', 'info');
@@ -1220,6 +1252,7 @@ function loadData() {
   wishOff = data.wishOff || {};
   bathPlan = migrateBathPlan(data.bathPlan || {});
   washPlan = data.washPlan || {};
+  overtime = data.overtime || {};
   stPlan = data.stPlan || {};
   satPlan = data.satPlan || {};
   dailyUsers = data.dailyUsers || {};
@@ -1382,7 +1415,8 @@ function calcStaffHours(sid) {
   return getDays().reduce((h, d) => {
     if (s && !isStaffActiveOnDay(s, d)) return h;
     const sh = scheduleData[`${sid}-${d}`];
-    return h + (sh && SHIFTS[sh] ? SHIFTS[sh].hours : 0);
+    if (!sh || !SHIFTS[sh]) return h;
+    return h + SHIFTS[sh].hours + otHours(sid, d);     // 연장·조기출근 모두 근무시간을 늘린다
   }, 0);
 }
 
@@ -1430,6 +1464,14 @@ function dayIssues(day) {
       out.push({ code:'bath', text:`목욕 ${a.list.length}명 (최소 ${BATH_MIN_STAFF}명)` });
   }
   return out;
+}
+
+// 그날 걸린 연장근무 합계와 내역. 인원부족을 무엇으로 메웠는지 적을 때 쓴다.
+// 연장은 그 시간대 인원 수를 늘리지 않으므로 dayIssues를 지우지는 않는다.
+function dayOvertime(day) {
+  const list = STAFF.filter(x => otOf(x.id, day) !== 0)
+    .map(x => ({ id: x.id, name: x.name, hours: otOf(x.id, day) }));
+  return { list, total: list.reduce((a, b) => a + Math.abs(b.hours), 0) };   // 늘어난 시간의 합
 }
 
 function computeCompliance(days = getDays()) {
@@ -1599,10 +1641,18 @@ function renderTable() {
     const dowNames = ['일','월','화','수','목','금','토'];
     const issues = dayIssues(d);
     th.innerHTML = `<span class="day-num">${d}</span><span class="day-name">${dowNames[dow]}${isST&&!isSunday?'🌙':''}</span>`
-      + (issues.length ? `<span class="day-warn">⚠${issues.length}</span>` : '');
+      + (issues.length
+          ? `<span class="day-warn">⚠${issues.length}${dayOvertime(d).list.length ? '<span class="day-ot">연장</span>' : ''}</span>`
+          : '');
     th.className = 'day-th'+(isSunday?' weekend':'')+(isTod?' today':'')+(isST&&!isSunday?' shortterm-day':'')
       + (issues.length ? ' day-short' : '');
-    if (issues.length) th.title = `${d}일 인원 부족\n· ` + issues.map(x => x.text).join('\n· ');
+    if (issues.length) {
+      const ot = dayOvertime(d);
+      const cover = ot.list.length
+        ? `\n\n연장으로 보완 (합계 +${otNum(ot.total)}h)\n· ` + ot.list.map(x => `${x.name} ${otLabel(x.hours)}`).join('\n· ')
+        : '';
+      th.title = `${d}일 인원 부족\n· ` + issues.map(x => x.text).join('\n· ') + cover;
+    }
     if (isTod) th.style.background='#e8f5ee';
     headRow.appendChild(th);
   });
@@ -1661,6 +1711,10 @@ function renderTable() {
       const isWish = !!wishOff[key];
       const wishCls = isWish ? ' wish' : '';
       const wishBadge = isWish ? '<span class="wish-badge" title="희망 휴무일">🙋</span>' : '';
+      const ot = otOf(s.id, d);
+      const otBadge = ot
+        ? `<span class="ot-badge ${ot < 0 ? 'early' : ''}" title="${ot > 0 ? '퇴근 ' + otNum(ot) + '시간 연장' : '출근 ' + otNum(-ot) + '시간 당김'} · 근무시간 +${otNum(Math.abs(ot))}h">${otShort(ot)}</span>`
+        : '';
       const washBadge = washMap[key]
         ? '<span class="wash-badge" title="세면대 담당">세</span>' : '';
       const bathRole = bathMap[key];
@@ -1678,7 +1732,7 @@ function renderTable() {
           <div class="shift-cell ${info.cls}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${canDrive?'송영 가능':''}">
             <span class="sh-label">${info.label}</span>
             ${info.time ? `<span class="sh-time">${info.time}</span>` : ''}
-            ${bathBadge}${washBadge}${wishBadge}${driveBadge}
+            ${bathBadge}${washBadge}${wishBadge}${driveBadge}${otBadge}
           </div>`;
       } else if (isSunday && !isST) {
         td.innerHTML = `<div class="shift-cell shift-off" onclick="onCellClick(${s.id},${d})"><span class="sh-label">OFF</span></div>`;
@@ -1734,7 +1788,12 @@ function renderTable() {
       td.textContent = working > 0 ? `${working}명` : '—';
       td.className = cls;
       const iss = dayIssues(d);
-      if (iss.length) { td.title = iss.map(x => x.text).join(' · '); td.style.cursor = 'help'; }
+      if (iss.length) {
+        const ot = dayOvertime(d);
+        td.title = iss.map(x => x.text).join(' · ')
+          + (ot.list.length ? ` / 연장 보완 +${otNum(ot.total)}h: ` + ot.list.map(x => `${x.name} ${otLabel(x.hours)}`).join(', ') : '');
+        td.style.cursor = 'help';
+      }
       if (isToday(d)) td.style.background='#d5f0e0';
     }
     countRow.appendChild(td);
@@ -1845,6 +1904,7 @@ function openModal(staffId, day) {
   }
   editTarget = { staffId, day };
   selectedShift = scheduleData[`${staffId}-${day}`] || null;
+  document.getElementById('modal-ot').value = otOf(staffId, day);
 
   const dowNames=['일','월','화','수','목','금','토'];
   document.getElementById('modal-title').textContent = `${s.name} — ${currentMonth}월 ${day}일 (${dowNames[getDow(day)]})`;
@@ -1938,6 +1998,17 @@ function applyShift() {
 
   const key = `${editTarget.staffId}-${editTarget.day}`;
   scheduleData[key] = selectedShift;
+
+  // 연장근무 — 근무하는 날에만 의미가 있다
+  let ot = parseFloat(document.getElementById('modal-ot').value) || 0;
+  ot = Math.max(OT_RANGE.min, Math.min(OT_RANGE.max, Math.round(ot * 2) / 2));
+  if (ot && isDayWorking(selectedShift)) {
+    overtime[key] = ot;
+  } else {
+    if (ot) showToast('휴무·연차인 날에는 연장근무를 넣을 수 없습니다', 'warn');
+    delete overtime[key];
+  }
+
   closeModal();
 
   // 야간/이브닝 근무 후 익일 자동 휴무 제안
@@ -2173,6 +2244,12 @@ function opts(pool, sel, overridden) {
       }).join('')
     + (overridden ? `<option value="__auto">↩ 순번대로 되돌리기</option>` : '');
 }
+function stepOT(delta) {
+  const el = document.getElementById('modal-ot');
+  const v = Math.max(OT_RANGE.min, Math.min(OT_RANGE.max, (parseFloat(el.value) || 0) + delta));
+  el.value = Number.isInteger(v) ? v : v.toFixed(1);
+}
+
 function nameOf(id) { const st = STAFF.find(x => x.id === id); return st ? st.name : '—'; }
 
 function renderAssignPreview() {
@@ -2514,6 +2591,7 @@ function autoFill() {
 // 담당 배지가 그대로 남아 "초기화가 안 된다"고 보였다.
 const RESET_ITEMS = [
   { key:'schedule', label:'근무 배치',            desc:'표에 들어간 근무코드 전부',            on:true  },
+  { key:'ot',       label:'연장근무',              desc:'셀에 붙인 연장·조기출근 시간',          on:true  },
   { key:'duty',     label:'목욕 · 세면대 담당',   desc:'실시 여부와 담당자 지정',              on:true  },
   { key:'sat',      label:'주말 담당',            desc:'토요일 보건의료·홀지원·주방·요양보호사', on:true  },
   { key:'st',       label:'단기보호 담당',        desc:'이브닝·야간 수동 지정',                on:true  },
@@ -2536,6 +2614,7 @@ function applyReset() {
   const on = k => document.getElementById('rs-' + k).checked;
   const done = [];
   if (on('schedule')) { scheduleData = {}; done.push('근무 배치'); }
+  if (on('ot'))       { overtime = {}; done.push('연장근무'); }
   if (on('duty'))     { bathPlan = {}; washPlan = {}; done.push('목욕·세면대 담당'); }
   if (on('sat'))      { satPlan = {}; done.push('주말 담당'); }
   if (on('st'))       { stPlan = {}; done.push('단기보호 담당'); }
@@ -2603,7 +2682,11 @@ function updateSummary() {
     <div class="sum-card"><div class="sum-val">${cnt['C']}</div><div class="sum-lbl">C반</div><div class="sum-sub">10:00-19:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['D']}</div><div class="sum-lbl">D반</div><div class="sum-sub">운전원 08:00-17:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['N']+cnt['E']}</div><div class="sum-lbl">야간/이브닝</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>`;
+    <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>
+    <div class="sum-card"><div class="sum-val">${(() => {
+        const t = getDays().reduce((a, d) => a + dayOvertime(d).total, 0);
+        return Number.isInteger(t) ? t : t.toFixed(1); })()}h</div>
+      <div class="sum-lbl">연장근무</div><div class="sum-sub">조기출근 포함 · 늘어난 시간</div></div>`;
 }
 
 // 면허 총원과 연차 잔여 합계는 표 왼쪽 열에 개인별로 다 보이므로 따로 띄우지 않는다.
@@ -2745,7 +2828,7 @@ function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth>12) { currentMonth=1; currentYear++; }
   if (currentMonth<1) { currentMonth=12; currentYear--; }
-  scheduleData={}; wishOff={}; bathPlan={}; washPlan={}; stPlan={}; satPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
+  scheduleData={}; wishOff={}; overtime={}; bathPlan={}; washPlan={}; stPlan={}; satPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
   document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth}월`;
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   refresh();
