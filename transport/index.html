@@ -216,13 +216,13 @@
     <span style="font-size:12px;color:#3b82f6">아래 표의 <strong>등원유형</strong> 열을 클릭하면 바로 변경됩니다.</span>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('daily')">전체 매일</button>
-      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('mwf')">전체 주3일</button>
-      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('saturday')">전체 토요일</button>
+      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('mwf')">전체 월수금</button>
+      <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('tth')">전체 화목</button>
     </div>
   </div>
   <div class="table-wrapper">
     <table><thead><tr>
-      <th>이름</th><th>성별/나이</th><th>주소</th><th>좌표</th><th>담당 차량</th><th>등원유형</th><th>희망시간</th><th>특이사항</th><th>상태</th><th>관리</th>
+      <th>이름</th><th>성별/나이</th><th>주소</th><th>좌표</th><th>차량종류</th><th>등원유형</th><th>희망시간</th><th>상태</th><th>관리</th>
     </tr></thead><tbody id="clientsTable"></tbody></table>
   </div>
 </div>
@@ -500,8 +500,8 @@
         <label class="form-label">등원 유형 *</label>
         <select class="form-control" id="cScheduleType" onchange="toggleCustomDays()">
           <option value="daily">매일 (월~금)</option>
-          <option value="mwf">주3일 (월·수·금)</option>
-          <option value="saturday">토요일</option>
+          <option value="mwf">월수금 (월·수·금)</option>
+          <option value="tth">화목 (화·목)</option>
           <option value="custom">직접 지정</option>
         </select>
         <div id="customDaysRow" style="display:none;margin-top:8px">
@@ -517,12 +517,12 @@
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">🌅 등원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
-          <input type="time" class="form-control" id="cPickup" value="09:00" onchange="if(!document.getElementById('cVehicle').value)applyVehicleRecommend()">
+          <label class="form-label">🌅 등원 희망 시간 <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">비워두면 센터결정</span></label>
+          <input type="time" class="form-control" id="cPickup" onchange="if(!document.getElementById('cVehicle').value)applyVehicleRecommend()">
         </div>
         <div class="form-group">
-          <label class="form-label">🌇 하원 희망 시간 <span style="font-size:10px;color:var(--success);text-transform:none;letter-spacing:0">자동 배치 기준</span></label>
-          <input type="time" class="form-control" id="cDropoff" value="17:00">
+          <label class="form-label">🌇 하원 희망 시간 <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">비워두면 센터결정</span></label>
+          <input type="time" class="form-control" id="cDropoff">
         </div>
       </div>
       <div class="form-group"><label class="form-label">특이사항 / 배려 사항</label><textarea class="form-control" id="cSpecial" rows="2" placeholder="예: 휠체어, 보호자 동행, 낙상 위험 등"></textarea></div>
@@ -540,8 +540,8 @@
         <div class="form-group">
           <label class="form-label">상태</label>
           <select class="form-control" id="cStatus">
-            <option value="active">이용 중</option>
-            <option value="pause">일시 중단</option>
+            <option value="active">이용중</option>
+            <option value="pause">중지</option>
             <option value="leave">퇴소</option>
           </select>
         </div>
@@ -951,6 +951,17 @@ function autoTagWheelchair(){
   save();
 }
 
+// 과거 자동 입력된 09:00/17:00 희망시간을 최초 1회 '센터결정'(빈 값)으로 되돌림
+function clearAutoFilledWishTimes(){
+  if(!DB.settings) DB.settings={};
+  if(DB.settings.wishTimeDefaultCleared) return;
+  (DB.clients||[]).forEach(c=>{
+    if(c.pickupTime==='09:00' && c.dropoffTime==='17:00'){ c.pickupTime=''; c.dropoffTime=''; }
+  });
+  DB.settings.wishTimeDefaultCleared=true;
+  save();
+}
+
 function load(){
   const s=localStorage.getItem('sy2_db');
   if(s){try{DB=JSON.parse(s);}catch(e){}}
@@ -992,6 +1003,7 @@ function load(){
     syncBeneficiaryClients(true);
   }
   autoTagWheelchair();
+  clearAutoFilledWishTimes();
 }
 
 function importRihawonBridge(){
@@ -1049,8 +1061,8 @@ function syncBeneficiaryClients(silent){
     if (client) {
       Object.assign(client, common);
       if (!client.days || !client.days.length) client.days = src.days || [1,2,3,4,5];
-      if (!client.pickupTime) client.pickupTime = src.pickupTime || '09:00';
-      if (!client.dropoffTime) client.dropoffTime = src.dropoffTime || '17:00';
+      if (!client.pickupTime && src.pickupTime) client.pickupTime = src.pickupTime;
+      if (!client.dropoffTime && src.dropoffTime) client.dropoffTime = src.dropoffTime;
       // 좌표는 사용자 입력값 우선, 없을 때만 소스(지오코딩) 좌표 채움
       if ((!client.lat || !client.lng) && src.lat && src.lng) { client.lat = src.lat; client.lng = src.lng; client.geoApprox = !!src.geoApprox; }
       updated++;
@@ -1063,8 +1075,8 @@ function syncBeneficiaryClients(silent){
         lng: src.lng || '',
         geoApprox: !!src.geoApprox,
         days: src.days || [1,2,3,4,5],
-        pickupTime: src.pickupTime || '09:00',
-        dropoffTime: src.dropoffTime || '17:00'
+        pickupTime: src.pickupTime || '',
+        dropoffTime: src.dropoffTime || ''
       });
       added++;
     }
@@ -1213,30 +1225,33 @@ function renderClients(){
   const list=DB.clients.filter(c=>!q||c.name.includes(q)||(c.addr||'').includes(q));
   fillVSelect('cVehicle');
   document.getElementById('clientsTable').innerHTML=!list.length
-    ?`<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:40px">이용자가 없습니다.</td></tr>`
+    ?`<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px">이용자가 없습니다.</td></tr>`
     :list.map(c=>{
-      const v=vc(c.vehicleId),dn=(c.days||[]).sort().map(d=>DAYS[d]).join(' ');
-      const sb=c.status==='active'?'<span class="badge badge-green">이용중</span>':c.status==='pause'?'<span class="badge badge-yellow">중단</span>':'<span class="badge badge-gray">퇴소</span>';
+      const dn=(c.days||[]).sort().map(d=>DAYS[d]).join(' ');
       const hc=c.lat&&c.lng?'<span class="badge badge-green" style="font-size:10px">✓좌표</span>':'<span class="badge badge-red" style="font-size:10px">미입력</span>';
+      const wt=(c.pickupTime||c.dropoffTime)
+        ?`${c.pickupTime||'센터결정'} / ${c.dropoffTime||'센터결정'}`
+        :'<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#f1f5f9;color:#475569">센터결정</span>';
       return `<tr>
         <td><span style="font-weight:700">${c.name}</span>${c.needsWheelchair?' <span title="휠체어 이용" style="font-size:13px">♿️</span>':''}${c.individual?' <span title="개별 등하원(차량 미이용)" style="font-size:12px;background:#fef9c3;color:#854d0e;border-radius:4px;padding:0 4px">🚶개별</span>':''}</td>
         <td>${c.gender||''}/${c.age||''}세</td>
         <td style="max-width:150px;font-size:11px;color:var(--text-muted)">${c.addr||'-'}</td>
         <td>${hc}</td>
-        <td>${v?`<span style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:${v.color}"></div>${v.name}</span>`:'<span class="text-muted">미배정</span>'}</td>
-        <td><select onchange="quickSetScheduleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.scheduleType==='mwf'?'#dbeafe':c.scheduleType==='saturday'?'#fce7f3':'#dcfce7'};cursor:pointer">
-          <option value="daily" ${(!c.scheduleType||c.scheduleType==='daily')?'selected':''}>매일(월~금)</option>
-          <option value="mwf" ${c.scheduleType==='mwf'?'selected':''}>주3일(월수금)</option>
-          <option value="saturday" ${c.scheduleType==='saturday'?'selected':''}>토요일</option>
+        <td><select onchange="quickSetVehicleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.needsWheelchair?'#ffe4e6':'#f1f5f9'};cursor:pointer">
+          <option value="normal" ${!c.needsWheelchair?'selected':''}>일반차량</option>
+          <option value="wheelchair" ${c.needsWheelchair?'selected':''}>휠체어 차량</option>
         </select></td>
-        <td style="font-size:11px">${c.pickupTime||'-'} / ${c.dropoffTime||'-'}</td>
-        <td style="font-size:11px"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;${
-          c.scheduleType==='mwf'?'background:#dbeafe;color:#1d4ed8':
-          c.scheduleType==='saturday'?'background:#fce7f3;color:#be185d':
-          'background:#dcfce7;color:#15803d'
-        }">${c.scheduleType==='mwf'?'주3일':c.scheduleType==='saturday'?'토요일':'매일'}</span></td>
-        <td style="max-width:120px;font-size:11px;color:var(--text-muted)">${(c.special||'').slice(0,30)}${(c.special||'').length>30?'...':''}</td>
-        <td>${sb}${c.priority==='high'?' <span class="badge badge-red">우선</span>':''}</td>
+        <td><select onchange="quickSetScheduleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.scheduleType==='mwf'?'#dbeafe':c.scheduleType==='tth'?'#ede9fe':'#dcfce7'};cursor:pointer">
+          <option value="daily" ${(!c.scheduleType||c.scheduleType==='daily')?'selected':''}>매일(월~금)</option>
+          <option value="mwf" ${c.scheduleType==='mwf'?'selected':''}>월수금</option>
+          <option value="tth" ${c.scheduleType==='tth'?'selected':''}>화목</option>
+        </select></td>
+        <td style="font-size:11px">${wt}</td>
+        <td><select onchange="quickSetStatus('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.status==='pause'?'#fef9c3':(c.status==='leave'||c.status==='inactive')?'#f1f5f9':'#dcfce7'};cursor:pointer">
+          <option value="active" ${(!c.status||c.status==='active')?'selected':''}>이용중</option>
+          <option value="pause" ${c.status==='pause'?'selected':''}>중지</option>
+          <option value="leave" ${(c.status==='leave'||c.status==='inactive')?'selected':''}>퇴소</option>
+        </select>${c.priority==='high'?' <span class="badge badge-red">우선</span>':''}</td>
         <td><div style="display:flex;gap:4px">
           <button class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')">수정</button>
           <button class="btn btn-sm btn-danger" onclick="delClient('${c.id}')">삭제</button>
@@ -1263,8 +1278,8 @@ function openClientModal(id){
     document.getElementById('cLng').value=c.lng||'';
     document.getElementById('cGuardian').value=c.guardian||'';
     document.getElementById('cVehicle').value=c.vehicleId||'';
-    document.getElementById('cPickup').value=c.pickupTime||'09:00';
-    document.getElementById('cDropoff').value=c.dropoffTime||'17:00';
+    document.getElementById('cPickup').value=c.pickupTime||'';
+    document.getElementById('cDropoff').value=c.dropoffTime||'';
     document.getElementById('cSpecial').value=c.special||'';
     document.getElementById('cPriority').value=c.priority||'normal';
     document.getElementById('cStatus').value=c.status||'active';
@@ -1293,11 +1308,56 @@ function quickSetScheduleType(cid, type) {
   c.scheduleType = type;
   c.days = daysFromScheduleType(type, c.days);
   save();
-  toast(`${c.name} → ${type === 'mwf' ? '주3일' : type === 'saturday' ? '토요일' : '매일'} 변경`);
+  toast(`${c.name} → ${type === 'mwf' ? '월수금' : type === 'tth' ? '화목' : '매일'} 변경`);
+}
+
+function quickSetVehicleType(cid, type) {
+  const c = DB.clients.find(x => x.id === cid);
+  if (!c) return;
+  c.needsWheelchair = type === 'wheelchair';
+  save(); renderClients();
+  toast(`${c.name} → ${c.needsWheelchair ? '휠체어 차량' : '일반차량'} 변경`);
+}
+
+function quickSetStatus(cid, status) {
+  const c = DB.clients.find(x => x.id === cid);
+  if (!c) return;
+  c.status = status;
+  if (status === 'leave') {
+    const n = stripClientFromSchedules(c.name, true);
+    if (n && confirm(`${c.name} 님이 요일 템플릿과 오늘 이후 송영일정에 ${n}건 남아 있습니다.\n함께 빼시겠습니까? (지난 날짜 기록은 그대로 둡니다.)`)) {
+      stripClientFromSchedules(c.name, false);
+      if (typeof renderToday === 'function') renderToday();
+    }
+  }
+  save(); renderClients(); renderDash();
+  toast(`${c.name} → ${status === 'pause' ? '중지' : status === 'leave' ? '퇴소' : '이용중'} 변경`);
+}
+
+// 요일 템플릿과 오늘 이후 저장된 일정에서 이용자 이름 제거(dryRun이면 건수만 반환)
+function stripClientFromSchedules(name, dryRun) {
+  let n = 0;
+  const strip = sch => {
+    if (!sch) return;
+    ['morning','afternoon'].forEach(sec => (sch[sec]||[]).forEach(v => (v.stops||[]).forEach(s => {
+      const hit = (s.clients||[]).filter(x => x === name).length;
+      n += hit;
+      if (hit && !dryRun) s.clients = s.clients.filter(x => x !== name);
+    })));
+    ['indivMorning','indivAfternoon'].forEach(k => {
+      const hit = (sch[k]||[]).filter(x => x === name).length;
+      n += hit;
+      if (hit && !dryRun) sch[k] = sch[k].filter(x => x !== name);
+    });
+  };
+  Object.values(DB.scheduleTemplates || {}).forEach(strip);
+  const today = ds();
+  Object.entries(DB.scheduleData || {}).forEach(([dstr, sch]) => { if (dstr >= today) strip(sch); });
+  return n;
 }
 
 function bulkSetScheduleType(type) {
-  const label = type === 'mwf' ? '주3일(월수금)' : type === 'saturday' ? '토요일' : '매일(월~금)';
+  const label = type === 'mwf' ? '월수금' : type === 'tth' ? '화목' : '매일(월~금)';
   if (!confirm(`이용자 전체를 "${label}"로 변경하시겠습니까?`)) return;
   DB.clients.forEach(c => {
     c.scheduleType = type;
@@ -1315,6 +1375,7 @@ function toggleCustomDays() {
 function daysFromScheduleType(type, customDays) {
   if (type === 'daily') return [1,2,3,4,5];
   if (type === 'mwf') return [1,3,5];
+  if (type === 'tth') return [2,4];
   if (type === 'saturday') return [6];
   return customDays || [];
 }
@@ -1324,6 +1385,7 @@ function clientIsOnDay(client, dow) {
   const t = client.scheduleType || 'daily';
   if (t === 'daily') return dow >= 1 && dow <= 5;
   if (t === 'mwf') return [1,3,5].includes(dow);
+  if (t === 'tth') return [2,4].includes(dow);
   if (t === 'saturday') return dow === 6;
   if (t === 'custom') return (client.days || []).includes(dow);
   return false;
@@ -2285,7 +2347,7 @@ function applyVehicleRecommend(){
 function autoInsertClientToTemplates(client) {
   // 이용자의 scheduleType에 따라 관련 요일 템플릿에 자동 삽입
   const type = client.scheduleType || 'daily';
-  const targetDows = type === 'mwf' ? [1,3,5] : type === 'saturday' ? [6] : type === 'daily' ? [1,2,3,4,5] : (client.days || []);
+  const targetDows = type === 'mwf' ? [1,3,5] : type === 'tth' ? [2,4] : type === 'saturday' ? [6] : type === 'daily' ? [1,2,3,4,5] : (client.days || []);
   const v = vc(client.vehicleId);
   if (!v) return;
 
@@ -2465,7 +2527,7 @@ function openAddScheduleClient() {
   vSel.innerHTML = allVehicles.map(v=>`<option value="${v}">${v}</option>`).join('');
   // 이용자 목록
   const cSel = document.getElementById('addSchClient');
-  const clientNames = (DB.clients||[]).filter(c=>c.status!=='inactive').map(c=>c.name).sort();
+  const clientNames = (DB.clients||[]).filter(c=>c.status!=='leave'&&c.status!=='inactive').map(c=>c.name).sort();
   cSel.innerHTML = '<option value="">-- 직접 입력 --</option>' + clientNames.map(n=>`<option value="${n}">${n}</option>`).join('');
   cSel.onchange = ()=>{ if(cSel.value) document.getElementById('addSchClientName').value=cSel.value; };
   openModal('addScheduleModal');
@@ -3217,8 +3279,10 @@ function renderMonth(){
     [1,2,3,4,5,6].forEach(d=>{
       const has=(c.days||[]).includes(d);
       wh+=`<td style="border:1px solid var(--border);padding:5px;text-align:center;background:${has?'#eff6ff':'#fafafa'}">
-        ${has?`<div style="color:var(--primary);font-weight:700;font-size:11px">${c.pickupTime||'09:00'}</div>
-               <div style="color:var(--text-muted);font-size:10px">~${c.dropoffTime||'17:00'}</div>`:'<span style="color:#d1d5db">-</span>'}
+        ${has?(c.pickupTime||c.dropoffTime
+            ?`<div style="color:var(--primary);font-weight:700;font-size:11px">${c.pickupTime||'센터결정'}</div>
+               <div style="color:var(--text-muted);font-size:10px">~${c.dropoffTime||'센터결정'}</div>`
+            :'<div style="color:var(--text-muted);font-size:10px">센터결정</div>'):'<span style="color:#d1d5db">-</span>'}
       </td>`;
     });
     wh+=`<td style="border:1px solid var(--border);padding:5px;text-align:center">
@@ -3861,9 +3925,9 @@ function openPlacementAudit() {
 
 function renderPlacementAudit() {
   const DOW_LABEL = ['일','월','화','수','목','금','토'];
-  const TYPE_LABEL = { daily:'매일(월~금)', mwf:'주3일(월수금)', saturday:'토요일', custom:'직접지정' };
-  const TYPE_COLOR = { daily:'#dcfce7', mwf:'#dbeafe', saturday:'#fce7f3', custom:'#fef3c7' };
-  const TYPE_TEXT  = { daily:'#15803d', mwf:'#1d4ed8', saturday:'#be185d', custom:'#92400e' };
+  const TYPE_LABEL = { daily:'매일(월~금)', mwf:'월수금', tth:'화목', saturday:'토요일', custom:'직접지정' };
+  const TYPE_COLOR = { daily:'#dcfce7', mwf:'#dbeafe', tth:'#ede9fe', saturday:'#fce7f3', custom:'#fef3c7' };
+  const TYPE_TEXT  = { daily:'#15803d', mwf:'#1d4ed8', tth:'#6d28d9', saturday:'#be185d', custom:'#92400e' };
 
   // 모든 템플릿에서 이름→배치 요일 수집
   const placedOn = {}; // name → Set of dow
@@ -3891,6 +3955,7 @@ function renderPlacementAudit() {
     const t = c.scheduleType || 'daily';
     if (t === 'daily') return [1,2,3,4,5];
     if (t === 'mwf') return [1,3,5];
+    if (t === 'tth') return [2,4];
     if (t === 'saturday') return [6];
     return (c.days || []).map(Number);
   }
@@ -4026,7 +4091,7 @@ function parseXlsx(e){
           phone:String(r[3]||'').trim(),addr:String(r[4]||'').trim(),
           lat:+r[5]||null,lng:+r[6]||null,guardian:String(r[7]||'').trim(),
           vehicleId:matched?matched.id:'',vehicleName:vname,days,
-          pickupTime:String(r[15]||'09:00').trim(),dropoffTime:String(r[16]||'17:00').trim(),
+          pickupTime:String(r[15]||'').trim(),dropoffTime:String(r[16]||'').trim(),
           special:String(r[17]||'').trim(),priority:String(r[18]||'normal').trim(),
           status:'active',
           _vWarn:vname&&!matched,_ok:String(r[0]||'').trim()!==''
