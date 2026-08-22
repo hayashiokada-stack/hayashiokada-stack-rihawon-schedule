@@ -213,7 +213,7 @@
   </div>
   <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span style="font-size:13px;color:#1d4ed8;font-weight:600">💡 등원유형 일괄 설정</span>
-    <span style="font-size:12px;color:#3b82f6">아래 표의 <strong>등원유형</strong> 열을 클릭하면 바로 변경됩니다.</span>
+    <span style="font-size:12px;color:#3b82f6">개인별 변경은 <strong>수정</strong> 창에서 합니다. 아래 표의 등원유형 열은 결과 표시용입니다.</span>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('daily')">전체 매일</button>
       <button class="btn btn-sm btn-secondary" onclick="bulkSetScheduleType('mwf')">전체 월수금</button>
@@ -1229,6 +1229,13 @@ function renderClients(){
     :list.map(c=>{
       const dn=(c.days||[]).sort().map(d=>DAYS[d]).join(' ');
       const hc=c.lat&&c.lng?'<span class="badge badge-green" style="font-size:10px">✓좌표</span>':'<span class="badge badge-red" style="font-size:10px">미입력</span>';
+      const sb=c.status==='pause'?'<span class="badge badge-yellow">중지</span>'
+        :(c.status==='leave'||c.status==='inactive')?'<span class="badge badge-gray">퇴소</span>'
+        :'<span class="badge badge-green">이용중</span>';
+      const st=c.scheduleType||'daily';
+      const stb=st==='mwf'?['월수금','#dbeafe','#1d4ed8']:st==='tth'?['화목','#ede9fe','#6d28d9']
+        :st==='saturday'?['토요일','#fce7f3','#be185d']:st==='custom'?['직접지정','#fef3c7','#92400e']
+        :['매일(월~금)','#dcfce7','#15803d'];
       const wt=(c.pickupTime||c.dropoffTime)
         ?`${c.pickupTime||'센터결정'} / ${c.dropoffTime||'센터결정'}`
         :'<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#f1f5f9;color:#475569">센터결정</span>';
@@ -1237,21 +1244,10 @@ function renderClients(){
         <td>${c.gender||''}/${c.age||''}세</td>
         <td style="max-width:150px;font-size:11px;color:var(--text-muted)">${c.addr||'-'}</td>
         <td>${hc}</td>
-        <td><select onchange="quickSetVehicleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.needsWheelchair?'#ffe4e6':'#f1f5f9'};cursor:pointer">
-          <option value="normal" ${!c.needsWheelchair?'selected':''}>일반차량</option>
-          <option value="wheelchair" ${c.needsWheelchair?'selected':''}>휠체어 차량</option>
-        </select></td>
-        <td><select onchange="quickSetScheduleType('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.scheduleType==='mwf'?'#dbeafe':c.scheduleType==='tth'?'#ede9fe':'#dcfce7'};cursor:pointer">
-          <option value="daily" ${(!c.scheduleType||c.scheduleType==='daily')?'selected':''}>매일(월~금)</option>
-          <option value="mwf" ${c.scheduleType==='mwf'?'selected':''}>월수금</option>
-          <option value="tth" ${c.scheduleType==='tth'?'selected':''}>화목</option>
-        </select></td>
+        <td><span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;background:${c.needsWheelchair?'#ffe4e6':'#f1f5f9'};color:${c.needsWheelchair?'#be123c':'#475569'}">${c.needsWheelchair?'휠체어 차량':'일반차량'}</span></td>
+        <td><span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;background:${stb[1]};color:${stb[2]}">${stb[0]}</span></td>
         <td style="font-size:11px">${wt}</td>
-        <td><select onchange="quickSetStatus('${c.id}',this.value)" style="font-size:11px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;background:${c.status==='pause'?'#fef9c3':(c.status==='leave'||c.status==='inactive')?'#f1f5f9':'#dcfce7'};cursor:pointer">
-          <option value="active" ${(!c.status||c.status==='active')?'selected':''}>이용중</option>
-          <option value="pause" ${c.status==='pause'?'selected':''}>중지</option>
-          <option value="leave" ${(c.status==='leave'||c.status==='inactive')?'selected':''}>퇴소</option>
-        </select>${c.priority==='high'?' <span class="badge badge-red">우선</span>':''}</td>
+        <td>${sb}${c.priority==='high'?' <span class="badge badge-red">우선</span>':''}</td>
         <td><div style="display:flex;gap:4px">
           <button class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')">수정</button>
           <button class="btn btn-sm btn-danger" onclick="delClient('${c.id}')">삭제</button>
@@ -1300,38 +1296,6 @@ function openClientModal(id){
     document.querySelectorAll('.c-day').forEach(cb=>cb.checked=false);
   }
   openModal('clientModal');
-}
-
-function quickSetScheduleType(cid, type) {
-  const c = DB.clients.find(x => x.id === cid);
-  if (!c) return;
-  c.scheduleType = type;
-  c.days = daysFromScheduleType(type, c.days);
-  save();
-  toast(`${c.name} → ${type === 'mwf' ? '월수금' : type === 'tth' ? '화목' : '매일'} 변경`);
-}
-
-function quickSetVehicleType(cid, type) {
-  const c = DB.clients.find(x => x.id === cid);
-  if (!c) return;
-  c.needsWheelchair = type === 'wheelchair';
-  save(); renderClients();
-  toast(`${c.name} → ${c.needsWheelchair ? '휠체어 차량' : '일반차량'} 변경`);
-}
-
-function quickSetStatus(cid, status) {
-  const c = DB.clients.find(x => x.id === cid);
-  if (!c) return;
-  c.status = status;
-  if (status === 'leave') {
-    const n = stripClientFromSchedules(c.name, true);
-    if (n && confirm(`${c.name} 님이 요일 템플릿과 오늘 이후 송영일정에 ${n}건 남아 있습니다.\n함께 빼시겠습니까? (지난 날짜 기록은 그대로 둡니다.)`)) {
-      stripClientFromSchedules(c.name, false);
-      if (typeof renderToday === 'function') renderToday();
-    }
-  }
-  save(); renderClients(); renderDash();
-  toast(`${c.name} → ${status === 'pause' ? '중지' : status === 'leave' ? '퇴소' : '이용중'} 변경`);
 }
 
 // 요일 템플릿과 오늘 이후 저장된 일정에서 이용자 이름 제거(dryRun이면 건수만 반환)
@@ -1407,10 +1371,20 @@ function saveClient(){
     individual:document.getElementById('cIndividual').checked,
     status:document.getElementById('cStatus').value};
   if (data.individual) data.vehicleId = '';   // 개별 등하원 → 차량 배정 없음
+  const prevStatus = editCid ? (cc(editCid)||{}).status : null;
   if(editCid){const i=DB.clients.findIndex(c=>c.id===editCid);DB.clients[i]={...DB.clients[i],...data};toast(`${name} 수정 완료`);}
   else{DB.clients.push({id:uid(),...data});toast(`${name} 추가 완료`);}
   const isNew = !editCid;
-  save(); closeModal('clientModal'); renderClients();
+  save(); closeModal('clientModal'); renderClients(); renderDash();
+  // 퇴소로 바꾼 경우 → 요일 템플릿·오늘 이후 일정에서 뺄지 확인
+  if (!isNew && prevStatus !== 'leave' && data.status === 'leave') {
+    const n = stripClientFromSchedules(name, true);
+    if (n && confirm(`${name} 님이 요일 템플릿과 오늘 이후 송영일정에 ${n}건 남아 있습니다.\n함께 빼시겠습니까? (지난 날짜 기록은 그대로 둡니다.)`)) {
+      stripClientFromSchedules(name, false);
+      save();
+      if (typeof renderToday === 'function') renderToday();
+    }
+  }
   // 신규 이용자 → 해당 차량 템플릿에 자동 배치
   if (isNew && data.vehicleId) {
     autoInsertClientToTemplates(data);
