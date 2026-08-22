@@ -917,9 +917,12 @@ const SAT_GROUPS = {
   care:    { title: '주방담당', desc: '요양보호사 중 그날 주방을 맡는 1명',
              match: x => x.type === 'care' },
 };
-function satGroupPool(key) {
+// day를 주면 그날 기준으로 거른다 — 달 중간부터 장기휴가인 직원이 후보에 남지 않게.
+// day 없이 부르면 그 달에 하루라도 재직한 사람을 모두 낸다.
+function satGroupPool(key, day) {
   return STAFF.filter(x => SAT_GROUPS[key].match(x)
-    && isStaffActiveInDays(x, getMonthDays())).map(x => x.id);
+    && (day !== undefined ? isStaffActiveOnDay(x, day) : isStaffActiveInDays(x, getMonthDays())))
+    .map(x => x.id);
 }
 
 const SAT_REHAB_POOL = [1, 2, 19];     // 보건의료 자리를 도는 인원 — 이태욱 · 석혁준 · 이민옥
@@ -992,11 +995,11 @@ function applySaturdayToSchedule(day) {
   const r = getSaturdayRoster(day);
   if (!r) return;
   const off = new Set(r.off);
-  satGroupPool('medical').forEach(id => { if (id !== r.rehab) off.add(id); });
-  satGroupPool('support').forEach(id => { if (id !== r.nurseSw) off.add(id); });
+  satGroupPool('medical', day).forEach(id => { if (id !== r.rehab) off.add(id); });
+  satGroupPool('support', day).forEach(id => { if (id !== r.nurseSw) off.add(id); });
   off.delete(r.kitchen);                                   // 주방 담당은 그날 근무한다
 
-  new Set([...r.carePool, ...r.working, ...satGroupPool('medical'), ...satGroupPool('support'), r.kitchen]
+  new Set([...r.carePool, ...r.working, ...satGroupPool('medical', day), ...satGroupPool('support', day), r.kitchen]
     .filter(id => id != null))
     .forEach(id => {
       const st = STAFF.find(x => x.id === id);
@@ -2061,7 +2064,7 @@ function resetStPlan() {
 }
 function renderStModal() {
   const weeks = [...shortTermWeeks].sort((a, b) => a - b);
-  const pool = activeIds(NIGHT_RING);
+  const poolFor = d => activeIds(NIGHT_RING, d);
   if (!weeks.length) {
     document.getElementById('st-modal-body').innerHTML =
       `<div class="asg-note" style="padding:10px 0;">위에서 단기보호 주간을 먼저 고르세요. 이번 달에 단기보호가 없으면 그대로 두면 됩니다.</div>`;
@@ -2075,8 +2078,8 @@ function renderStModal() {
       const pl = stPlan[d] || {};
       rows += `<div class="asg-row" style="grid-template-columns:100px 1fr 1fr;">
         <span>${d}일 (${DOW_KO[getDow(d)]})</span>
-        <select class="${pl.E !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value);renderStModal()">${opts(pool, duty.E, pl.E !== undefined)}</select>
-        <select class="${pl.N !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value);renderStModal()">${opts(pool, duty.N, pl.N !== undefined)}</select>
+        <select class="${pl.E !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'E',this.value);renderStModal()">${opts(poolFor(d), duty.E, pl.E !== undefined)}</select>
+        <select class="${pl.N !== undefined ? 'manual' : ''}" onchange="setStPlan(${d},'N',this.value);renderStModal()">${opts(poolFor(d), duty.N, pl.N !== undefined)}</select>
       </div>`;
     }
   });
@@ -2097,7 +2100,7 @@ function renderSatModal() {
     const r = getSaturdayRoster(d); if (!r) return '';
     const pl = satPlan[d] || {};
     const cls = k => pl[k] ? 'manual' : '';
-    const chips = satGroupPool('care').map(id => {
+    const chips = satGroupPool('care', d).map(id => {
       const on = r.working.includes(id);
       const isKit = id === r.kitchen;
       return `<span class="care-chip ${on ? 'on' : ''} ${isKit ? 'kitchen' : ''}"
@@ -2110,11 +2113,11 @@ function renderSatModal() {
         <span style="color:var(--text3);font-weight:400;">${r.cycleWeek}주차 · 근무 ${r.working.length + 2}명</span></div>
       <div class="sat-slots">
         <label>${g.medical.title}
-          <select class="${cls('rehab')}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical'), r.rehab, pl.rehab !== undefined)}</select></label>
+          <select class="${cls('rehab')}" onchange="setSatPlan(${d},'rehab',this.value);renderSatModal()">${opts(satGroupPool('medical', d), r.rehab, pl.rehab !== undefined)}</select></label>
         <label>${g.support.title}
-          <select class="${cls('nurseSw')}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support'), r.nurseSw, pl.nurseSw !== undefined)}</select></label>
+          <select class="${cls('nurseSw')}" onchange="setSatPlan(${d},'nurseSw',this.value);renderSatModal()">${opts(satGroupPool('support', d), r.nurseSw, pl.nurseSw !== undefined)}</select></label>
         <label>${g.care.title}
-          <select class="${cls('kitchen')}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care'), r.kitchen, pl.kitchen !== undefined)}</select></label>
+          <select class="${cls('kitchen')}" onchange="setSatPlan(${d},'kitchen',this.value);renderSatModal()">${opts(satGroupPool('care', d), r.kitchen, pl.kitchen !== undefined)}</select></label>
       </div>
       <div class="sat-care-row">
         <span class="sat-care-label">요양보호사${pl.care ? ' *' : ''}</span>
@@ -2148,10 +2151,10 @@ function toggleSatCare(day, staffId) {
 
 // ── 자동배치 전 인원 확인 ──────────────────────────────────────────
 const DOW_KO = ['일','월','화','수','목','금','토'];
-function activeIds(ids) {
+function activeIds(ids, day) {
   return ids.filter(id => {
     const st = STAFF.find(x => x.id === id);
-    return st && isStaffActiveInDays(st, getMonthDays());
+    return st && (day !== undefined ? isStaffActiveOnDay(st, day) : isStaffActiveInDays(st, getMonthDays()));
   });
 }
 // 담당 선택지.
@@ -2331,8 +2334,8 @@ function autoFill() {
     r.off.forEach(id => { satOff[`${id}-${d}`] = true; });
     // 보건의료·홀지원은 그룹마다 한 자리다 — 담당이 아닌 나머지는 휴무
     // (요양보호사 그룹의 휴무는 위의 4주 주기 세트가 정한다)
-    satGroupPool('medical').filter(id => id !== r.rehab).forEach(id => { satOff[`${id}-${d}`] = true; });
-    satGroupPool('support').filter(id => id !== r.nurseSw).forEach(id => { satOff[`${id}-${d}`] = true; });
+    satGroupPool('medical', d).filter(id => id !== r.rehab).forEach(id => { satOff[`${id}-${d}`] = true; });
+    satGroupPool('support', d).filter(id => id !== r.nurseSw).forEach(id => { satOff[`${id}-${d}`] = true; });
   });
 
   // ─── 대체휴무 · 희망휴무 배정 ─────────────────────────────────────
@@ -2636,7 +2639,7 @@ function resetBathPlan() {
 
 function renderBathModal() {
   const dow = ['일','월','화','수','목','금','토'];
-  const pool = d => satGroupPool('care');
+  const pool = d => satGroupPool('care', d);
   let html = `<div class="duty-row head"><span>날짜</span><span>목욕</span><span>메인</span><span>보조 1</span><span>보조 2</span><span>세면대</span></div>`;
   getMonthDays().filter(d => isBathDay(d) || isWashDay(d)).forEach(d => {
     const bathDay = isBathDay(d);
