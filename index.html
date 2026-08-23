@@ -194,9 +194,12 @@
   .duty-table th { background:var(--surface2); font-size:11px; color:var(--text2); padding:8px 6px; border-bottom:1px solid var(--border); }
   .duty-table td { padding:7px 6px; text-align:center; border-bottom:1px solid var(--border); }
   .duty-table tr:last-child td { border-bottom:none; }
-  .duty-scroll { overflow-x:auto; }
-  .duty-rot, .duty-rot-mark { font-style:italic; color:var(--text2); }
-  .duty-split { width:10px; min-width:10px; padding:0; background:var(--surface2); }
+  .duty-trans td.t-cell { text-align:left; padding:6px; }
+  .t-chip { display:inline-block; margin:2px 3px; padding:2px 9px; border-radius:11px; font-size:11px;
+            border:1px solid var(--border); background:var(--surface2); color:var(--text3);
+            cursor:pointer; user-select:none; transition:all .12s; }
+  .t-chip:hover { border-color:var(--accent); }
+  .t-chip.on { background:var(--accent-light); border-color:var(--accent); color:var(--accent); font-weight:600; }
   .duty-table .duty-date { text-align:left; padding-left:12px; font-weight:600; width:130px; }
   .duty-table .duty-empty { color:var(--text3); }
   .duty-table .duty-warn { color:var(--warn); }
@@ -793,61 +796,53 @@ function otNum(h) { return Number.isInteger(h) ? String(h) : h.toFixed(1); }
 function otLabel(h) { return (h > 0 ? '연장 +' : '조기 +') + otNum(Math.abs(h)) + 'h'; }
 function otShort(h) { return '+' + otNum(Math.abs(h)) + 'h'; }
 
-// ▶ 송영 담당 — 근무표에서 자동으로 뽑는다. 따로 입력하지 않는다.
-//   2026-08 실적: 5대 중 3대는 전담이 고정이고 7733·8978 두 대만 순환한다.
-//   전담도 오전·오후가 다르다 — 8449 는 오전 노재일, 오후 박상근.
-const TRANSPORT_VEHICLES = [
-  { name:'3호차 카니발 6005', am:15,   pm:15   },  // 정순석
-  { name:'4호차 레이 8449',   am:16,   pm:11   },  // 오전 노재일 · 오후 박상근
-  { name:'스타리아 2857',     am:14,   pm:14   },  // 민영세
-  { name:'2호차 레이 7733',   am:null, pm:null },  // 순환
-  { name:'8호차 레이 8978',   am:null, pm:null },  // 순환
-];
+// ▶ 송영 담당 — 근무표에서 후보를 뽑고, 그중 그날 나갈 사람을 지정한다.
+//   차량 배정은 하지 않는다. 그건 송영관리프로그램이 한다.
+//   transportPlan[day] = [id, ...]   키가 없으면 '후보 전원 지정'으로 본다.
+let transportPlan = {};
 
-// 그날 송영에 나갈 수 있는 사람 — 면허가 있고, 송영 시간대 근무조에 들어 있어야 한다.
+// 그날 송영에 나갈 수 있는 사람 — 면허가 있고, 송영 시간대 근무조에 들어 있고,
+// 목욕·세면대·주방에 묶여 있지 않아야 한다.
 function transportPoolOn(day) {
+  const busy = new Set();
+  ((getBathAssignment(day) || {}).list || []).forEach(id => busy.add(id));
+  const wash = getWashStaff(day);
+  if (wash) busy.add(wash);
+  const sat = getDow(day) === 6 ? getSaturdayRoster(day) : null;
+  if (sat && sat.kitchen != null) busy.add(sat.kitchen);
+
   return STAFF.filter(x => {
     if (!x.hasLicense || !isStaffActiveOnDay(x, day)) return false;
+    if (busy.has(x.id) || /주방/.test(x.role)) return false;
     const sh = scheduleData[`${x.id}-${day}`];
     return sh && SHIFTS[sh] && SHIFTS[sh].isTransport;
   }).map(x => x.id);
 }
 
-// 한 달치를 한 번에 계산한다. '덜 나간 사람 우선'이라 앞 날짜의 결과가 뒤에 영향을 준다.
-function buildTransportMap() {
-  const map = {};
-  const count = {};                                   // 이번 달 배정 횟수
-  getMonthDays().filter(isServiceDay).forEach(day => {
-    const pool = transportPoolOn(day);
-    const bath = new Set(((getBathAssignment(day) || {}).list) || []);   // 목욕 담당은 뺀다
-    map[day] = {};
-    ['am', 'pm'].forEach(half => {
-      const taken = new Set();
-      const rows = TRANSPORT_VEHICLES.map(v => {
-        const fixed = v[half];
-        if (fixed !== null && pool.includes(fixed) && !taken.has(fixed)) {
-          taken.add(fixed); count[fixed] = (count[fixed] || 0) + 1;
-          return { vehicle: v.name, id: fixed, fixed: true };
-        }
-        return { vehicle: v.name, id: null, fixed: false };
-      });
-      // 남은 차량은 덜 나간 사람부터. 동률이면 명부 순서라 결과가 항상 같다.
-      // 운전원은 전담 차량·전담 시간대에만 넣는다 — 노재일은 오전 등원만 나간다.
-      const rest = pool.filter(id => !taken.has(id) && !bath.has(id)
-                    && (STAFF.find(x => x.id === id) || {}).type !== 'driver')
-        .sort((a, b) => (count[a] || 0) - (count[b] || 0)
-                     || STAFF.findIndex(x => x.id === a) - STAFF.findIndex(x => x.id === b));
-      rows.forEach(r => {
-        if (r.id !== null) return;
-        const id = rest.shift();
-        if (id === undefined) return;
-        taken.add(id); count[id] = (count[id] || 0) + 1;
-        r.id = id;
-      });
-      map[day][half] = rows;
-    });
-  });
-  return map;
+// 그날 실제로 송영을 나가는 사람. 손대지 않았으면 후보 전원.
+function transportDutyOn(day) {
+  const pool = transportPoolOn(day);
+  if (!Object.prototype.hasOwnProperty.call(transportPlan, day)) return pool;
+  return (transportPlan[day] || []).filter(id => pool.includes(id));
+}
+
+// 담당표에서 이름을 눌렀을 때 — 지정/해제를 뒤집는다.
+function toggleTransportDuty(day, id) {
+  const pool = transportPoolOn(day);
+  const cur = new Set(transportDutyOn(day));
+  if (cur.has(id)) cur.delete(id); else cur.add(id);
+  const next = pool.filter(x => cur.has(x));
+  if (next.length === pool.length) delete transportPlan[day];   // 전원이면 기본값으로 되돌린다
+  else transportPlan[day] = next;
+  renderDutyTable();
+  autoSave();
+}
+
+function resetTransportPlan() {
+  transportPlan = {};
+  renderDutyTable();
+  autoSave();
+  showToast('송영 지정을 후보 전원으로 되돌렸습니다', 'ok');
 }
 
 function isBathDay(day) { return BATH_DOWS.includes(getDow(day)); }
@@ -1245,6 +1240,14 @@ function buildTransportBridgePayload() {
     const driver = drivers.find(d => d.sourceId === staffId);
     if (driver && value) shifts[`${driver.id}-${day}`] = value;
   });
+  // 그날 실제로 송영을 나가는 사람. 송영표는 이 명단으로 기사 목록을 좁힌다.
+  const transportDuty = {};
+  monthDays.filter(isServiceDay).forEach(day => {
+    transportDuty[day] = transportDutyOn(day)
+      .map(id => (drivers.find(d => d.sourceId === id) || {}).id)
+      .filter(Boolean);
+  });
+
   const driverSchedules = drivers.map(driver => {
     const driverShifts = {};
     Object.entries(shifts).forEach(([key, value]) => {
@@ -1265,7 +1268,8 @@ function buildTransportBridgePayload() {
     year: currentYear,
     month: currentMonth,
     drivers,
-    driverSchedules
+    driverSchedules,
+    transportDuty
   };
 }
 
@@ -1320,7 +1324,7 @@ function openTransportProgram(tab = 'today') {
 function persistData() {
   const key = getSaveKey();
   cleanRetiredScheduleData();
-  const payload = { scheduleData, wishOff, overtime, bathPlan, washPlan, stPlan, satPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
+  const payload = { scheduleData, wishOff, overtime, bathPlan, washPlan, stPlan, satPlan, transportPlan, dailyUsers: dailyUsers, shortTermWeeks: [...shortTermWeeks], staffLeave: STAFF.map(s=>({id:s.id, transDays:s.transDays, retirementDate:s.retirementDate || ''})) };
   localStorage.setItem(key, JSON.stringify(payload));
   cloudPushMonthDebounced();          // ▶ 로그인 상태면 클라우드에도 반영(자동)
 }
@@ -1336,7 +1340,7 @@ function loadData() {
   const key = getSaveKey();
   const raw = localStorage.getItem(key);
   if (!raw) {
-    wishOff = {}; overtime = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {};
+    wishOff = {}; overtime = {}; bathPlan = {}; washPlan = {}; stPlan = {}; satPlan = {}; transportPlan = {};
     const seed = seedForMonth();
     if (seed) {                                                // 센터에서 받은 실제 근무표
       scheduleData = {}; applySeed(seed());
@@ -1354,6 +1358,7 @@ function loadData() {
   scheduleData = data.scheduleData || {};
   wishOff = data.wishOff || {};
   bathPlan = migrateBathPlan(data.bathPlan || {});
+  transportPlan = data.transportPlan || {};
   washPlan = data.washPlan || {};
   overtime = data.overtime || {};
   stPlan = data.stPlan || {};
@@ -2701,6 +2706,7 @@ const RESET_ITEMS = [
   { key:'ot',       label:'연장근무',              desc:'셀에 붙인 연장·조기출근 시간',          on:true  },
   { key:'duty',     label:'목욕 · 세면대 담당',   desc:'실시 여부와 담당자 지정',              on:true  },
   { key:'sat',      label:'주말 담당',            desc:'토요일 보건의료·홀지원·주방·요양보호사', on:true  },
+  { key:'trans',    label:'송영 지정',            desc:'그날 송영 나갈 사람 지정 — 후보 전원으로 되돌립니다', on:true  },
   { key:'st',       label:'단기보호 담당',        desc:'이브닝·야간 수동 지정',                on:true  },
   { key:'stweek',   label:'단기보호 주간 설정',   desc:'이번 달 단기보호 주간 선택',           on:false },
   { key:'wish',     label:'희망 휴무일',          desc:'직원이 신청한 휴무 — 다시 받아야 합니다', on:false },
@@ -2723,6 +2729,7 @@ function applyReset() {
   if (on('schedule')) { scheduleData = {}; done.push('근무 배치'); }
   if (on('ot'))       { overtime = {}; done.push('연장근무'); }
   if (on('duty'))     { bathPlan = {}; washPlan = {}; done.push('목욕·세면대 담당'); }
+  if (on('trans'))    { transportPlan = {}; done.push('송영 지정'); }
   if (on('sat'))      { satPlan = {}; done.push('주말 담당'); }
   if (on('st'))       { stPlan = {}; done.push('단기보호 담당'); }
   if (on('stweek'))   { shortTermWeeks = new Set(); done.push('단기보호 주간'); }
@@ -2935,7 +2942,7 @@ function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth>12) { currentMonth=1; currentYear++; }
   if (currentMonth<1) { currentMonth=12; currentYear--; }
-  scheduleData={}; wishOff={}; overtime={}; bathPlan={}; washPlan={}; stPlan={}; satPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
+  scheduleData={}; wishOff={}; overtime={}; bathPlan={}; washPlan={}; stPlan={}; satPlan={}; transportPlan={}; dailyUsers={}; shortTermWeeks=new Set(); weekStart=1;
   document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth}월`;
   applyUsersFromPrevMonth({ overwrite:false, silent:true });
   refresh();
@@ -2977,21 +2984,21 @@ function renderDutyTable() {
       <td>${isWashDay(d) ? cell(wid) : '<span class="duty-empty">—</span>'}</td></tr>`;
   }).join('');
 
-  // ── 송영 — 근무표에서 자동으로 뽑는다 ────────────────────────
-  const tmap = buildTransportMap();
-  const half = (day, h) => (tmap[day] || {})[h] || [];
+  // ── 송영 — 후보를 보여주고 그중 나갈 사람을 지정한다 ──────────
   const tRows = getMonthDays().filter(isServiceDay).map(d => {
-    const cells = ['am', 'pm'].map(h =>
-      TRANSPORT_VEHICLES.map((v, i) => {
-        const r = half(d, h)[i];
-        if (!r || r.id === null) return '<td class="duty-empty">—</td>';
-        return `<td${r.fixed ? '' : ' class="duty-rot"'}>${nameOf(r.id)}</td>`;
-      }).join('')).join('<td class="duty-split"></td>');
+    const pool = transportPoolOn(d);
+    const duty = new Set(transportDutyOn(d));
+    const chips = pool.length
+      ? pool.map(id => `<span class="t-chip ${duty.has(id) ? 'on' : ''}"
+            onclick="toggleTransportDuty(${d}, ${id})"
+            title="${duty.has(id) ? '지정됨 — 누르면 뺍니다' : '제외됨 — 누르면 넣습니다'}">${nameOf(id)}</span>`).join('')
+      : '<span class="duty-empty">운전 가능한 근무자가 없습니다</span>';
+    const short = pool.length && duty.size === 0
+      ? ' <span class="duty-warn" title="아무도 지정되지 않았습니다">⚠</span>' : '';
     return `<tr class="${isToday(d) ? 'duty-today' : ''}">
-      <td class="duty-date">${d}일 <span style="color:var(--text3)">(${dow[getDow(d)]})</span></td>
-      ${cells}</tr>`;
+      <td class="duty-date">${d}일 <span style="color:var(--text3)">(${dow[getDow(d)]})</span>${short}</td>
+      <td class="t-cell">${chips}</td></tr>`;
   }).join('');
-  const vHead = TRANSPORT_VEHICLES.map(v => `<th>${v.name.replace(/^\d+호차\s/, '')}</th>`).join('');
 
   document.getElementById('duty-wrap').innerHTML = `
     <div class="duty-head">
@@ -3006,17 +3013,14 @@ function renderDutyTable() {
 
     <div class="duty-head" style="margin-top:22px;">
       <strong>송영 담당</strong>
-      <span>근무표에서 자동으로 배정됩니다 — 전담 차량은 고정, <em class="duty-rot-mark">기울임</em>은 순환 배정(송영 횟수가 적은 사람 우선)</span>
+      <span>그날 근무자 중 면허가 있고 목욕·세면대·주방에 묶이지 않은 사람입니다 —
+        이름을 눌러 <strong>오늘 나갈 사람</strong>을 정하세요. 지정된 사람만 송영표의 기사 목록에 뜹니다</span>
+      <button class="hbtn" onclick="resetTransportPlan()">↩ 전원 지정으로</button>
     </div>
-    <div class="duty-scroll">
-      <table class="duty-table">
-        <thead>
-          <tr><th rowspan="2">날짜</th><th colspan="5">🌅 오전 (등원)</th><th class="duty-split"></th><th colspan="5">🌇 오후 (하원)</th></tr>
-          <tr>${vHead}<th class="duty-split"></th>${vHead}</tr>
-        </thead>
-        <tbody>${tRows}</tbody>
-      </table>
-    </div>`;
+    <table class="duty-table duty-trans">
+      <thead><tr><th style="width:88px">날짜</th><th>송영 가능 인원</th></tr></thead>
+      <tbody>${tRows}</tbody>
+    </table>`;
 }
 
 function prevWeek() { weekStart = Math.max(1, weekStart-7); renderTable(); }

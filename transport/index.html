@@ -1041,6 +1041,13 @@ function importRihawonBridge(){
   DB.driverSchedules = (DB.driverSchedules || [])
     .filter(s => !(String(s.id || '').startsWith('rihawon-') && s.year === by && s.month === bm))
     .concat(bridge.driverSchedules || []);
+  // 근무표에서 '그날 송영 나갈 사람'으로 지정한 명단. 기사 목록을 이 사람들로 좁힌다.
+  if (bridge.transportDuty) {
+    DB.transportDuty = Object.assign({}, DB.transportDuty);
+    Object.entries(bridge.transportDuty).forEach(([day, ids]) => {
+      DB.transportDuty[`${by}-${String(bm).padStart(2,'0')}-${String(day).padStart(2,'0')}`] = ids;
+    });
+  }
   save();
 }
 
@@ -2184,6 +2191,19 @@ function vColor(name) {
   return VEHICLE_COLORS[name] || '#64748b';
 }
 
+// 그날 고를 수 있는 기사. 근무표에서 송영 지정이 넘어온 날은 그 사람들만 보여준다.
+// 이미 배정돼 있는 이름은 목록에서 사라지지 않게 남긴다.
+function driverChoices(dstr, current) {
+  const all = (DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false).map(d=>d.name);
+  const duty = (DB.transportDuty||{})[dstr];
+  if (!duty) return all;
+  const byId = new Map((DB.drivers||[]).map(d=>[d.id, d.name]));
+  const names = duty.map(id => byId.get(id)).filter(Boolean);
+  if (!names.length) return all;                       // 지정이 비었으면 전원 보여준다
+  if (current && !names.includes(current)) names.push(current);
+  return names;
+}
+
 function renderScheduleVehicleCard(vdata, type, dstr, vIdx, runNo, runTotal) {
   const col = vColor(vdata.vehicle);
   const totalClients = vdata.stops.reduce((a,s)=>a+s.clients.length,0);
@@ -2248,7 +2268,7 @@ function renderScheduleVehicleCard(vdata, type, dstr, vIdx, runNo, runTotal) {
           <select onchange="changeSchDriver('${dstr}','${type}',${vIdx},this.value)"
             style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:90px">
             <option value="">미배정</option>
-            ${(DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false).map(d=>`<option value="${d.name}" ${d.name===vdata.driver?'selected':''}>${d.name}</option>`).join('')}
+            ${driverChoices(dstr, vdata.driver).map(n=>`<option value="${n}" ${n===vdata.driver?'selected':''}>${n}</option>`).join('')}
           </select>
           <span title="동승자" style="color:#94a3b8">🧑‍🤝‍🧑</span>
           <select onchange="changeSchEscort('${dstr}','${type}',${vIdx},this.value)" title="동승자(보조 탑승)"
