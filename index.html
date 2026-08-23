@@ -2343,19 +2343,9 @@ function renderAssignPreview() {
     }).join('');
   html += sec('📅 주말(토요일) 근무', satBody, openBtn('openSaturdayModal', '📅 주말근무 설정 열기'));
 
-  // 3) 목욕
-  const bdays = getMonthDays().filter(isBathDay);
-  const onDays = bdays.filter(d => (bathPlan[d] || {}).on);
-  const bathBody = onDays.length
-    ? onDays.map(d => {
-        const asg = getBathAssignment(d);
-        return `<div class="asg-row" style="grid-template-columns:96px 1fr;">
-          <span>${d}일 (${DOW_KO[getDow(d)]})</span><span>${(asg ? asg.list.map(nameOf) : []).join(' · ') || '담당 없음'}</span></div>`;
-      }).join('')
-    : '<div class="asg-note">실시로 표시된 날이 없습니다. 목욕은 고객 요구가 있는 날만 실시합니다.</div>';
-  html += sec(`🛁 목욕 담당 — 실시 ${onDays.length} / ${bdays.length}일`, bathBody, openBtn('openBathModal', '🛁 목욕 담당 열기'));
-
-  // 4) 희망휴무
+  // 3) 희망휴무
+  // 목욕은 여기에 없다 — autoFill 이 bathPlan 을 쓰지 않으므로 배치 전 확인 대상이 아니다.
+  //   '담당' 화면에서 따로 정한다.
   const len = getMonthDays().length;
   const wishes = Object.keys(wishOff).map(k => k.split('-').map(Number))
     .filter(pair => pair[1] >= 1 && pair[1] <= len).sort((x, y) => x[1] - y[1]);
