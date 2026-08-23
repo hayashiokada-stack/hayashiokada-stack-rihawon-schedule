@@ -194,6 +194,9 @@
   .duty-table th { background:var(--surface2); font-size:11px; color:var(--text2); padding:8px 6px; border-bottom:1px solid var(--border); }
   .duty-table td { padding:7px 6px; text-align:center; border-bottom:1px solid var(--border); }
   .duty-table tr:last-child td { border-bottom:none; }
+  .duty-scroll { overflow-x:auto; }
+  .duty-rot, .duty-rot-mark { font-style:italic; color:var(--text2); }
+  .duty-split { width:10px; min-width:10px; padding:0; background:var(--surface2); }
   .duty-table .duty-date { text-align:left; padding-left:12px; font-weight:600; width:130px; }
   .duty-table .duty-empty { color:var(--text3); }
   .duty-table .duty-warn { color:var(--warn); }
@@ -725,12 +728,12 @@
 // nightShift: 단기보호 주간 야간(E→N) 순환 대상 여부
 const STAFF = [
   { id:1,  name:'이태욱', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
-  { id:2,  name:'석혁준', role:'작업치료사',      short:'OT',  type:'ot',     contract:40, color:'#7d3c98', bg:'#f0e6fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
+  { id:2,  name:'석혁준', role:'작업치료사',      short:'OT',  type:'ot',     contract:40, color:'#7d3c98', bg:'#f0e6fb', hasLicense:true , annualLeave:15, transDays:0, nightShift:false },
   { id:3,  name:'이의영', role:'간호사',          short:'RN',  type:'nurse',  contract:40, color:'#5b4fcf', bg:'#ede9fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false, retirementDate:'2026-07-31' },   // 8월 근무표에 없음 — 정확한 퇴사일 확인 필요
   { id:4,  name:'김길찬', role:'요양보호사(CW)',  short:'CW',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:5,  name:'황정자', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:true  },
   { id:6,  name:'이미숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:true  },
-  { id:7,  name:'전은숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:15, transDays:0, nightShift:true  },
+  { id:7,  name:'전은숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true , annualLeave:15, transDays:0, nightShift:true  },
   { id:8,  name:'조현정', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:15, transDays:0, nightShift:false, retirementDate:'2026-07-30' },
   { id:9,  name:'모연숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:15, transDays:0, nightShift:true  },
   { id:10, name:'한경숙', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:15, transDays:0, nightShift:true  },
@@ -741,7 +744,7 @@ const STAFF = [
   { id:15, name:'정순석', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:16, name:'노재일', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:17, name:'전일환', role:'사회복지사(방문요양)', short:'SW', type:'sw', contract:40, color:'#c0672d', bg:'#fdf0e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
-  { id:18, name:'조민경', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:false, annualLeave:5,  transDays:0, nightShift:true  },
+  { id:18, name:'조민경', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true , annualLeave:5,  transDays:0, nightShift:true  },
   { id:19, name:'이민옥', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
 ];
 
@@ -789,6 +792,63 @@ function otHours(staffId, day) { return Math.abs(otOf(staffId, day)); }   // 근
 function otNum(h) { return Number.isInteger(h) ? String(h) : h.toFixed(1); }
 function otLabel(h) { return (h > 0 ? '연장 +' : '조기 +') + otNum(Math.abs(h)) + 'h'; }
 function otShort(h) { return '+' + otNum(Math.abs(h)) + 'h'; }
+
+// ▶ 송영 담당 — 근무표에서 자동으로 뽑는다. 따로 입력하지 않는다.
+//   2026-08 실적: 5대 중 3대는 전담이 고정이고 7733·8978 두 대만 순환한다.
+//   전담도 오전·오후가 다르다 — 8449 는 오전 노재일, 오후 박상근.
+const TRANSPORT_VEHICLES = [
+  { name:'3호차 카니발 6005', am:15,   pm:15   },  // 정순석
+  { name:'4호차 레이 8449',   am:16,   pm:11   },  // 오전 노재일 · 오후 박상근
+  { name:'스타리아 2857',     am:14,   pm:14   },  // 민영세
+  { name:'2호차 레이 7733',   am:null, pm:null },  // 순환
+  { name:'8호차 레이 8978',   am:null, pm:null },  // 순환
+];
+
+// 그날 송영에 나갈 수 있는 사람 — 면허가 있고, 송영 시간대 근무조에 들어 있어야 한다.
+function transportPoolOn(day) {
+  return STAFF.filter(x => {
+    if (!x.hasLicense || !isStaffActiveOnDay(x, day)) return false;
+    const sh = scheduleData[`${x.id}-${day}`];
+    return sh && SHIFTS[sh] && SHIFTS[sh].isTransport;
+  }).map(x => x.id);
+}
+
+// 한 달치를 한 번에 계산한다. '덜 나간 사람 우선'이라 앞 날짜의 결과가 뒤에 영향을 준다.
+function buildTransportMap() {
+  const map = {};
+  const count = {};                                   // 이번 달 배정 횟수
+  getMonthDays().filter(isServiceDay).forEach(day => {
+    const pool = transportPoolOn(day);
+    const bath = new Set(((getBathAssignment(day) || {}).list) || []);   // 목욕 담당은 뺀다
+    map[day] = {};
+    ['am', 'pm'].forEach(half => {
+      const taken = new Set();
+      const rows = TRANSPORT_VEHICLES.map(v => {
+        const fixed = v[half];
+        if (fixed !== null && pool.includes(fixed) && !taken.has(fixed)) {
+          taken.add(fixed); count[fixed] = (count[fixed] || 0) + 1;
+          return { vehicle: v.name, id: fixed, fixed: true };
+        }
+        return { vehicle: v.name, id: null, fixed: false };
+      });
+      // 남은 차량은 덜 나간 사람부터. 동률이면 명부 순서라 결과가 항상 같다.
+      // 운전원은 전담 차량·전담 시간대에만 넣는다 — 노재일은 오전 등원만 나간다.
+      const rest = pool.filter(id => !taken.has(id) && !bath.has(id)
+                    && (STAFF.find(x => x.id === id) || {}).type !== 'driver')
+        .sort((a, b) => (count[a] || 0) - (count[b] || 0)
+                     || STAFF.findIndex(x => x.id === a) - STAFF.findIndex(x => x.id === b));
+      rows.forEach(r => {
+        if (r.id !== null) return;
+        const id = rest.shift();
+        if (id === undefined) return;
+        taken.add(id); count[id] = (count[id] || 0) + 1;
+        r.id = id;
+      });
+      map[day][half] = rows;
+    });
+  });
+  return map;
+}
 
 function isBathDay(day) { return BATH_DOWS.includes(getDow(day)); }
 function isWashDay(day) { return WASH_DOWS.includes(getDow(day)); }
@@ -2917,6 +2977,22 @@ function renderDutyTable() {
       <td>${isWashDay(d) ? cell(wid) : '<span class="duty-empty">—</span>'}</td></tr>`;
   }).join('');
 
+  // ── 송영 — 근무표에서 자동으로 뽑는다 ────────────────────────
+  const tmap = buildTransportMap();
+  const half = (day, h) => (tmap[day] || {})[h] || [];
+  const tRows = getMonthDays().filter(isServiceDay).map(d => {
+    const cells = ['am', 'pm'].map(h =>
+      TRANSPORT_VEHICLES.map((v, i) => {
+        const r = half(d, h)[i];
+        if (!r || r.id === null) return '<td class="duty-empty">—</td>';
+        return `<td${r.fixed ? '' : ' class="duty-rot"'}>${nameOf(r.id)}</td>`;
+      }).join('')).join('<td class="duty-split"></td>');
+    return `<tr class="${isToday(d) ? 'duty-today' : ''}">
+      <td class="duty-date">${d}일 <span style="color:var(--text3)">(${dow[getDow(d)]})</span></td>
+      ${cells}</tr>`;
+  }).join('');
+  const vHead = TRANSPORT_VEHICLES.map(v => `<th>${v.name.replace(/^\d+호차\s/, '')}</th>`).join('');
+
   document.getElementById('duty-wrap').innerHTML = `
     <div class="duty-head">
       <strong>${currentYear}년 ${currentMonth}월 담당근무표</strong>
@@ -2926,7 +3002,21 @@ function renderDutyTable() {
     <table class="duty-table">
       <thead><tr><th>날짜</th><th>목욕 메인</th><th>목욕 보조 1</th><th>목욕 보조 2</th><th>세면대</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+
+    <div class="duty-head" style="margin-top:22px;">
+      <strong>송영 담당</strong>
+      <span>근무표에서 자동으로 배정됩니다 — 전담 차량은 고정, <em class="duty-rot-mark">기울임</em>은 순환 배정(송영 횟수가 적은 사람 우선)</span>
+    </div>
+    <div class="duty-scroll">
+      <table class="duty-table">
+        <thead>
+          <tr><th rowspan="2">날짜</th><th colspan="5">🌅 오전 (등원)</th><th class="duty-split"></th><th colspan="5">🌇 오후 (하원)</th></tr>
+          <tr>${vHead}<th class="duty-split"></th>${vHead}</tr>
+        </thead>
+        <tbody>${tRows}</tbody>
+      </table>
+    </div>`;
 }
 
 function prevWeek() { weekStart = Math.max(1, weekStart-7); renderTable(); }
