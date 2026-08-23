@@ -282,6 +282,8 @@
   .mbtn:hover { background: var(--surface2); }
   .mbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .mbtn.primary:hover { background: var(--accent2); }
+  .mbtn.danger { color: var(--warn); border-color: var(--warn); }
+  .mbtn.danger:hover { background: var(--warn-light); }
   .ot-row { display:flex; align-items:center; gap:6px; margin:12px 0 4px; padding-top:10px; border-top:1px solid var(--border); }
   .ot-label { font-size:11px; font-weight:600; color:var(--text2); }
   .ot-input { width:64px; text-align:center; font-size:12px; padding:4px 6px; border:1px solid var(--border); border-radius:5px; background:var(--surface); }
@@ -561,6 +563,7 @@
       <span class="ot-hint">음수 = 출근을 당김. 어느 쪽이든 근무시간은 늘어납니다</span>
     </div>
     <div class="modal-actions">
+      <button class="mbtn danger" id="modal-clear" onclick="clearShift()" style="margin-right:auto;">비우기</button>
       <button class="mbtn" onclick="closeModal()">취소</button>
       <button class="mbtn primary" onclick="applyShift()">저장</button>
     </div>
@@ -1993,6 +1996,9 @@ function openModal(staffId, day) {
       </div>`;
   }).join('');
 
+  // 비우기는 이미 들어간 근무가 있을 때만 의미가 있다
+  document.getElementById('modal-clear').style.display = selectedShift ? '' : 'none';
+
   document.getElementById('modal').classList.add('open');
 }
 
@@ -2078,6 +2084,18 @@ function closeNightModal(autoOff) {
   }
   pendingNightStaffId = null; pendingNightDay = null;
   refresh();
+  autoSave();
+}
+
+// 근무를 지워 빈 칸으로 되돌린다. 자동배치는 빈 칸만 채우므로 그 날만 다시 배치할 수 있다.
+function clearShift() {
+  if (!editTarget) return;
+  const key = `${editTarget.staffId}-${editTarget.day}`;
+  delete scheduleData[key];
+  delete overtime[key];
+  closeModal();
+  refresh();
+  showToast('빈 칸으로 되돌렸습니다', 'ok');
   autoSave();
 }
 
