@@ -943,6 +943,34 @@ function cleanRetiredVehiclesFromSchedules(){
   if(changed) save();
 }
 
+// 저장된 편성에 남아 있는 퇴사자 기사를 한 번 비운다.
+// 운전원 목록에 아예 없는 이름만 지운다 — 근무표에서 온 명단은 퇴사자를 담지 않는다.
+const DRIVER_CLEANUP_VERSION = '2026-08-퇴사자';
+function cleanRetiredDriversFromSchedules(){
+  if(!DB.settings) DB.settings={};
+  if(DB.settings.driverCleanup === DRIVER_CLEANUP_VERSION) return;
+  const known = new Set((DB.drivers||[]).map(d=>d.name));
+  if(!known.size) return;                       // 운전원 목록이 비면 판단할 수 없다
+  const removed = new Set();
+  let changed = false;
+  const clean = sch => {
+    if(!sch) return;
+    ['morning','afternoon'].forEach(t=>{
+      if(!Array.isArray(sch[t])) return;
+      sch[t].forEach(v=>{
+        ['driver','escort'].forEach(k=>{
+          if(v[k] && v[k] !== '미배정' && !known.has(v[k])){ removed.add(v[k]); v[k]=''; changed=true; }
+        });
+      });
+    });
+  };
+  Object.values(DB.scheduleTemplates||{}).forEach(clean);
+  Object.values(DB.scheduleData||{}).forEach(clean);
+  DB.settings.driverCleanup = DRIVER_CLEANUP_VERSION;
+  save();
+  if(removed.size) console.info('편성에서 뺀 퇴사자 기사:', [...removed].join(', '));
+}
+
 // 특이사항에 휠체어 언급이 있는 이용자를 최초 1회 자동 표시(서류·대여 등 오탐 제외)
 function autoTagWheelchair(){
   if(!DB.settings) DB.settings={};
@@ -1012,6 +1040,7 @@ function load(){
   reconcileVehicleRoster();
   cleanRetiredVehiclesFromSchedules();
   importRihawonBridge();
+  cleanRetiredDriversFromSchedules();   // 브릿지가 운전원을 채운 뒤에 판단한다
   if ((window.BENEFICIARY_CLIENTS||[]).length && DB.settings?.beneficiarySourceVersion !== window.BENEFICIARY_SOURCE_VERSION) {
     syncBeneficiaryClients(true);
   }
@@ -2093,7 +2122,7 @@ function buildDefaultSatTemplate() {
 function buildDefaultMonTemplate() {
   return {
     morning: [
-      { vehicle:'8호차 레이 8978', driver:'조현정', stops:[
+      { vehicle:'8호차 레이 8978', driver:'황정자', stops:[
         { time:'08:20', clients:['유정순','안상경'] },
         { time:'08:45', clients:['심영흠','진순균','이율자'] },
         { time:'09:30', clients:['김광영','최문자','임명숙'] },
@@ -2403,6 +2432,7 @@ function filterScheduleByDay(sch, dstr) {
       if (excludeIndiv && isIndiv(name)) return false; // 개별 등하원 → 차량 배차에서 제외
       const c = (DB.clients || []).find(x => x.name === name);
       if (!c) return true; // 이용자 정보 없으면 유지
+      if (c.status && c.status !== 'active') return false; // 퇴소·일시중지
       return clientIsOnDay(c, dow);
     });
   }
