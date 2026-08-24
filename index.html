@@ -39,6 +39,7 @@
     --shift-evening: #4a235a; --shift-evening-bg: #e8d5f5;
     --shift-night: #0d3d6b; --shift-night-bg: #c0d4f0;
     --shift-off: #797d7f; --shift-off-bg: #eaecee;
+    --shift-comp: #1a6b6b; --shift-comp-bg: #d9f0f0;
     --shift-holiday: #c0392b; --shift-holiday-bg: #fadbd8;
     --shift-halfday: #d35400; --shift-halfday-bg: #fef0e6;
     --over: #e67e22; --over-light: #fef5ec;
@@ -247,6 +248,7 @@
   .shift-evening { background: var(--shift-evening-bg); color: var(--shift-evening); }
   .shift-night { background: var(--shift-night-bg); color: var(--shift-night); }
   .shift-off { background: var(--shift-off-bg); color: var(--shift-off); }
+  .shift-comp { background: var(--shift-comp-bg); color: var(--shift-comp); }
   .shift-holiday { background: var(--shift-holiday-bg); color: var(--shift-holiday); }
   .shift-halfday { background: var(--shift-halfday-bg); color: var(--shift-halfday); }
   .shift-empty { background: transparent; border: 1.5px dashed var(--border2); color: var(--text3); font-size: 16px; }
@@ -510,6 +512,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-night-bg);border:1px solid var(--shift-night);"></div>N(야간) 22:00-08:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-holiday-bg);border:1px solid var(--shift-holiday);"></div>연차 / 반차</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-off-bg);border:1px solid var(--shift-off);"></div>휴무(OFF)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-comp-bg);border:1px solid var(--shift-comp);"></div>대휴</div>
       <div class="legend-item"><div class="legend-dot" style="background:#1f7a4d;"></div>M 목욕 메인 (화·금 3인 / 수 1인, 오후)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#74b295;"></div>S1·S2 목욕 보조</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b5761f;"></div>주방 토요일 주방담당</div>
@@ -763,9 +766,15 @@ const SHIFTS = {
   'E':  { label:'이브닝', time:'13:00-22:00', cls:'shift-evening', hours:9,  isTransport:false },
   'N':  { label:'야간',   time:'22:00-08:00', cls:'shift-night',   hours:10, isTransport:false },
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
+  'X':  { label:'대휴',   time:'',            cls:'shift-comp',    hours:0,  isTransport:false },  // 대체휴무 — 토요일 근무의 평일 보상
   'H':  { label:'연차',   time:'',            cls:'shift-holiday', hours:0,  isTransport:false },
-  'HH': { label:'반차',   time:'',            cls:'shift-halfday', hours:4,  isTransport:false },
+  'HH': { label:'반차',   time:'',            cls:'shift-halfday', hours:4,  isTransport:false },  // 구형 저장본 — 오전/오후 미구분
+  'HA': { label:'반차(오전)', time:'09:00-13:00', cls:'shift-halfday', hours:4, isTransport:false },
+  'HP': { label:'반차(오후)', time:'14:00-18:00', cls:'shift-halfday', hours:4, isTransport:false },
 };
+// 휴무 계열 — 인원·근무 판정에서 "그날 안 나온다"로 묶어 쓴다.
+const OFF_CODES  = ['O', 'X', 'H'];          // 종일 자리를 비우는 코드
+const HALF_CODES = ['HH', 'HA', 'HP'];       // 반나절만 나오는 코드
 
 // ▶ 목욕 담당 — 화·수·금, 3인(메인 M / 보조1 S1 / 보조2 S2), 요양보호사만.
 //   순번을 돌리지 않고 관리자가 직접 배정한다. 고객 요구가 있는 날만 실시하며 기본값은 미실시.
@@ -1076,14 +1085,21 @@ function buildSatKitchenMap(days) {
 // ▶ 자동배치가 돌리는 주간 근무조. 직종별 고정 배치는 두지 않는다.
 const DAY_SHIFTS = ['A', 'B', 'C'];
 
-// 직원 순번과 평일 순번을 더해 A·B·C를 돌린다. 주간/월간 어느 화면에서 돌려도
-// 같은 결과가 나오도록 언제나 그 달 전체를 기준으로 센다.
+// 한 사람의 근무조는 한 주 내내 같다. 매일 A→B→C로 돌면 출퇴근 시간이 날마다
+// 달라져 현장에서 못 쓴다("이번 주 B면 B, 이번 주 C면 C" — 2026-08-24 회의).
+// 그래서 날짜가 아니라 그 주(월요일 기준)를 세어 돌린다. 주가 바뀔 때만 조가 바뀐다.
+function weekIndexOf(day) {
+  let mon = day;
+  while (mon > 1 && getDow(mon) !== 1) mon--;   // 그 주의 월요일 (달 첫 주는 1일에서 멈춘다)
+  const mondays = getMonthDays().filter(d => d === 1 || getDow(d) === 1);
+  const i = mondays.indexOf(mon);
+  return i < 0 ? 0 : i;
+}
 function dayShiftFor(staffId, day) {
   const active = getVisibleStaff(getMonthDays());
   const si = active.findIndex(x => x.id === staffId);
-  const di = getMonthDays().filter(isServiceDay).indexOf(day);
-  if (si < 0 || di < 0) return 'B';
-  return DAY_SHIFTS[(si + di) % DAY_SHIFTS.length];
+  if (si < 0) return 'B';
+  return DAY_SHIFTS[(si + weekIndexOf(day)) % DAY_SHIFTS.length];
 }
 
 // 토요일 담당을 바꾸면 그날 배치를 즉시 다시 쓴다.
@@ -1102,7 +1118,7 @@ function applySaturdayToSchedule(day) {
       const st = STAFF.find(x => x.id === id);
       if (!st || !isStaffActiveOnDay(st, day)) return;
       const key = `${id}-${day}`;
-      if (scheduleData[key] === 'H' || scheduleData[key] === 'HH') return;
+      if (['H','HH','HA','HP','X'].includes(scheduleData[key])) return;
       scheduleData[key] = off.has(id) ? 'O' : (st.type === 'driver' ? 'D' : dayShiftFor(id, day));
     });
 }
@@ -1529,7 +1545,7 @@ function calcStaffHours(sid) {
 
 // ── LAW PANEL ─────────────────────────────────────────────────────
 // 주간 근무 여부 (야간/이브닝/휴무/연차 제외)
-function isDayWorking(sh) { return sh && !['O','H','HH','N','E'].includes(sh); }
+function isDayWorking(sh) { return sh && !['O','X','H','HH','HA','HP','N','E'].includes(sh); }
 
 // ── 법정 배치기준 종합 검증 (주간·야간) — renderLawPanel/updateStats 공용 ──
 // 반환: 각 위반 "일수" 및 휴게 위반 "건수". 아직 편성되지 않은(근무 0명) 영업일은 검증 대상에서 제외.
@@ -1559,7 +1575,7 @@ function dayIssues(day) {
   const dow = getDow(day);
   if (dow >= 1 && dow <= 5) {
     const off = STAFF.filter(x => isStaffActiveOnDay(x, day)
-      && ['O','H'].includes(scheduleData[`${x.id}-${day}`])).length;
+      && OFF_CODES.includes(scheduleData[`${x.id}-${day}`])).length;
     if (off > MAX_DAILY_OFF) out.push({ code:'off', text:`휴무 ${off}명 (상한 ${MAX_DAILY_OFF}명)` });
     if (isShortTermDay(day) && work('N').length < STAFFING_RULES.nightMinStaff)
       out.push({ code:'night', text:'단기보호 야간 담당 미배치' });
@@ -1693,8 +1709,23 @@ function inactiveReason(staff, day) {
 function isStaffActiveInDays(staff, days = getDays()) {
   return days.some(day => isStaffActiveOnDay(staff, day));
 }
+// ▶ 표시 순서 — 홀에서 일하는 직원이 위로 온다 (2026-08-24 회의).
+//   이름순·등록순으로 섞여 있으면 인원 기준을 눈으로 맞출 때 위아래를 오가야 한다.
+//   요양보호사 → 간호 → 치료사 순으로 올리고, 주방·사회복지사·운전원은 아래로 내린다.
+//   같은 묶음 안에서는 등록 순서를 그대로 둔다.
+function staffOrderRank(s) {
+  if (s.type === 'care') return (s.role || '').includes('주방') ? 3 : 0;
+  if (s.type === 'nurse') return 1;
+  if (s.type === 'pt' || s.type === 'ot') return 2;
+  if (s.type === 'sw') return 4;
+  if (s.type === 'driver') return 5;
+  return 6;
+}
 function getVisibleStaff(days = getDays()) {
-  return STAFF.filter(staff => isStaffActiveInDays(staff, days));
+  return STAFF.filter(staff => isStaffActiveInDays(staff, days))
+    .map((s, i) => [s, i])
+    .sort((a, b) => (staffOrderRank(a[0]) - staffOrderRank(b[0])) || (a[1] - b[1]))
+    .map(pair => pair[0]);
 }
 // 퇴사일 이후·장기휴가 기간의 근무 배치를 지운다
 function cleanRetiredScheduleData(staff = null) {
@@ -1864,12 +1895,14 @@ function renderTable() {
     if (isSunday) { td.textContent='—'; td.style.color='var(--text3)'; }
     else {
       const users = getDailyUsers(d);
-      td.innerHTML = `<input class="user-input" type="number" min="1" max="50" value="${users}" 
-        onchange="setDailyUsers(${d}, this.value)" onclick="this.select()" title="당일 이용자 수 클릭하여 수정">`;
+      td.innerHTML = `<input class="user-input" type="number" min="1" max="50" value="${users}"
+        onchange="setDailyUsers(${d}, this.value)" onclick="this.select()"
+        onkeydown="moveUserInput(event, this)"
+        title="당일 이용자 수 — ← → 또는 Enter로 옆 날짜로 이동">`;
     }
     userRow.appendChild(td);
   });
-  tbody.appendChild(userRow);
+  tbody.insertBefore(userRow, tbody.firstChild);
 
   // COUNT ROW
   const countRow = document.createElement('tr');
@@ -1905,7 +1938,22 @@ function renderTable() {
     }
     countRow.appendChild(td);
   });
-  tbody.appendChild(countRow);
+  tbody.insertBefore(countRow, userRow.nextSibling);
+}
+
+// 이용자 수 입력 칸 사이를 키보드로 옮겨 다닌다. 한 칸씩 마우스로 찾아 누르면
+// 한 달치를 넣는 데 너무 오래 걸린다 (2026-08-24 회의).
+function moveUserInput(e, el) {
+  const dir = e.key === 'ArrowLeft' ? -1
+            : (e.key === 'ArrowRight' || e.key === 'Enter') ? 1 : 0;
+  if (!dir) return;
+  e.preventDefault();
+  const cells = [...document.querySelectorAll('.user-row .user-input')];
+  const target = cells.indexOf(el) + dir;
+  if (target < 0 || target >= cells.length) return;
+  el.blur();                    // onchange가 여기서 돈다 — 표를 다시 그리므로 칸이 새로 생긴다
+  const fresh = document.querySelectorAll('.user-row .user-input')[target];
+  if (fresh) { fresh.focus(); fresh.select(); }
 }
 
 function setDailyUsers(day, val) {
@@ -2044,7 +2092,9 @@ function openModal(staffId, day) {
   // 야간/이브닝: 단기보호 주간이 아닌 경우 비활성화
   const isST = isShortTermDay(day);
   const opts = document.getElementById('modal-options');
-  opts.innerHTML = Object.entries(SHIFTS).map(([code, info]) => {
+  opts.innerHTML = Object.entries(SHIFTS)
+    .filter(([code]) => code !== 'HH' || selectedShift === 'HH')   // 구형 반차는 이미 그 값인 칸에서만 보여준다
+    .map(([code, info]) => {
     const isNightShift = code === 'N' || code === 'E';
     const disabled = isNightShift && !isST;
     const disabledStyle = disabled ? 'opacity:0.35;cursor:not-allowed;' : '';
@@ -2057,7 +2107,7 @@ function openModal(staffId, day) {
            onclick="${disabled?'showToast(\'단기보호 주간으로 설정된 날만 야간/이브닝 선택 가능합니다\',\'warn\')':'selectShift(\''+safeCode+'\', this)'}"
            style="background:var(--shift-${clsKey}-bg);color:var(--shift-${clsKey});${disabledStyle}" ${disabledTitle}>
         <div class="so-lbl">${info.label}</div>
-        <div class="so-time">${info.time || (code==='H'?'연차':code==='HH'?'반차':'종일 휴무')}</div>
+        <div class="so-time">${info.time || (code==='H'?'연차':code==='X'?'대체휴무':HALF_CODES.includes(code)?'반차':'종일 휴무')}</div>
         ${isNightShift&&!isST?'<div style="font-size:9px;margin-top:2px;opacity:0.7;">단기보호 주간만</div>':''}
       </div>`;
   }).join('');
@@ -2099,7 +2149,7 @@ function applyShift() {
     const licToday = STAFF.filter(sx => {
       if (!isStaffActiveOnDay(sx, editTarget.day)) return false;
       const sh = scheduleData[`${sx.id}-${editTarget.day}`];
-      return sx.hasLicense && sx.id!==s.id && sh && sh!=='O' && sh!=='H';
+      return sx.hasLicense && sx.id!==s.id && sh && !OFF_CODES.includes(sh);
     }).length;
     if (licToday < 1) {
       showToast(`⚠ 오늘 면허 보유자가 없어 송영 불가 상태가 됩니다!`, 'warn');
@@ -2173,6 +2223,12 @@ function closeModal() {
 // ── AUTO FILL ────────────────────────────────────────────────────
 // ─── 자동배치 체크리스트 ──────────────────────────────────────────
 function openChecklistModal() {
+  // 희망휴무 입력 모드를 켠 채로 배치하면 "찍은 게 반영이 안 된다"고 오해하기 쉽다.
+  // 확인 화면을 열기 전에 모드를 닫아, 입력이 확정된 상태에서 건수를 보여준다.
+  if (wishMode) {
+    toggleWishMode();
+    showToast('희망휴무 입력 모드를 닫고 확인 화면을 엽니다', 'info');
+  }
   const days = getDays();
   const serviceDays = days.filter(isServiceDay);
   const totalServiceDays = serviceDays.length;
@@ -2530,7 +2586,7 @@ function autoFill() {
   // ─── 대체휴무 · 희망휴무 배정 ─────────────────────────────────────
   // 토요일 근무자는 다음 주 월~금에 대체휴무 1일. 그 주에 희망휴무 신청일이 있으면 그날을 쓰고,
   // 없으면 휴무 인원이 가장 적은 날에 넣는다. 하루 MAX_DAILY_OFF명 상한을 넘기지 않는다.
-  const forcedOff = {};              // `${id}-${day}` → 'O'(대체휴무) | 'H'(연차)
+  const forcedOff = {};              // `${id}-${day}` → 'X'(대체휴무) | 'O'(휴무) | 'H'(연차)
   const offCount = {};               // day → 이미 쉬는 인원
   const bumpOff = d => { offCount[d] = (offCount[d] || 0) + 1; };
   const countOff = d => offCount[d] || 0;
@@ -2538,7 +2594,7 @@ function autoFill() {
 
   days.filter(isWeekday).forEach(d => activeStaff.forEach(s => {
     const k = `${s.id}-${d}`;
-    if (['O','H'].includes(scheduleData[k]) || shortTermOverride[k] === 'O') bumpOff(d);
+    if (OFF_CODES.includes(scheduleData[k]) || shortTermOverride[k] === 'O') bumpOff(d);
   }));
 
   const issues = [];   // 자동배치가 못 정한 항목 — 끝나고 팝업으로 물어본다
@@ -2603,7 +2659,7 @@ function autoFill() {
       const wishDay = week.map(t => t.getDate()).find(d0 =>
         week.some(t => inThisMonth(t) && t.getDate() === d0) && wishHold[`${id}-${d0}`] !== undefined);
       if (wishDay !== undefined) {
-        forcedOff[`${id}-${wishDay}`] = 'O';                     // 이미 offCount에 반영돼 있다
+        forcedOff[`${id}-${wishDay}`] = 'X';                     // 이미 offCount에 반영돼 있다
         delete wishHold[`${id}-${wishDay}`];
         return;
       }
@@ -2622,12 +2678,13 @@ function autoFill() {
       const key = `${id}-${d}`;
       if (!isStaffActiveOnDay(st, d) || scheduleData[key] || shortTermOverride[key] !== undefined
           || restOff[key] || countOff(d) >= MAX_DAILY_OFF) { askComp(); return; }
-      forcedOff[key] = 'O';
+      forcedOff[key] = 'X';
       bumpOff(d);
     });
   }
 
   // ③ 대체휴무로 소화되지 않은 희망휴무 → 연차(H). 잔여 연차가 없으면 휴무(O).
+  //    여기서 나온 건 대휴가 아니라 본인 신청분이므로 'X'를 쓰지 않는다.
   Object.keys(wishHold).forEach(k => {
     const [id, d] = k.split('-').map(Number);
     const st = STAFF.find(x => x.id === id);
@@ -2750,7 +2807,7 @@ function updateStats() {
     const [sid, day] = k.split('-').map(Number);
     const s = STAFF.find(x => x.id === sid);
     const sh=scheduleData[k];
-    return (!s || isStaffActiveOnDay(s, day)) && sh&&sh!=='O'&&sh!=='H';
+    return (!s || isStaffActiveOnDay(s, day)) && sh && !OFF_CODES.includes(sh);
   }).length;
   document.getElementById('stat-shifts').textContent = total;
 
@@ -2796,7 +2853,8 @@ function updateSummary() {
     <div class="sum-card"><div class="sum-val">${cnt['C']}</div><div class="sum-lbl">C반</div><div class="sum-sub">10:00-19:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['D']}</div><div class="sum-lbl">D반</div><div class="sum-sub">운전원 08:00-17:00</div></div>
     <div class="sum-card"><div class="sum-val">${cnt['N']+cnt['E']}</div><div class="sum-lbl">야간/이브닝</div></div>
-    <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']}</div><div class="sum-lbl">연차·반차</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['H']+cnt['HH']+cnt['HA']+cnt['HP']}</div><div class="sum-lbl">연차·반차</div></div>
+    <div class="sum-card"><div class="sum-val">${cnt['X']}</div><div class="sum-lbl">대휴</div></div>
     <div class="sum-card"><div class="sum-val">${(() => {
         const t = getDays().reduce((a, d) => a + dayOvertime(d).total, 0);
         return Number.isInteger(t) ? t : t.toFixed(1); })()}h</div>
@@ -2901,12 +2959,28 @@ function setBathStaff(day, slot, value) {
 }
 
 // 희망휴무 입력 모드 — 켜면 셀 클릭이 근무코드 편집 대신 희망휴무 토글이 된다.
+// 이번 달에 신청된 희망휴무 건수. 버튼에 그대로 띄워, 찍은 게 들어갔는지
+// 모드를 껐다 켜 보지 않아도 알 수 있게 한다 (2026-08-24 회의).
+function wishCount() {
+  const len = getMonthDays().length;
+  return Object.keys(wishOff)
+    .map(k => Number(k.split('-')[1]))
+    .filter(d => d >= 1 && d <= len).length;
+}
+function syncWishButton() {
+  const btn = document.getElementById('btn-wish');
+  if (!btn) return;
+  const n = wishCount();
+  btn.classList.toggle('primary', wishMode);
+  btn.textContent = wishMode
+    ? `🙋 희망휴무 입력 중 ${n}건 (클릭해 종료)`
+    : (n ? `🙋 희망휴무 ${n}건` : '🙋 희망휴무');
+}
+
 function toggleWishMode() {
   wishMode = !wishMode;
   document.body.classList.toggle('wish-mode', wishMode);
-  const btn = document.getElementById('btn-wish');
-  btn.classList.toggle('primary', wishMode);
-  btn.textContent = wishMode ? '🙋 희망휴무 입력 중 (클릭해 종료)' : '🙋 희망휴무 입력';
+  syncWishButton();
   showToast(wishMode ? '희망휴무 입력 모드 — 셀을 클릭해 신청일을 표시하세요' : '희망휴무 입력 모드를 껐습니다', 'info');
 }
 
@@ -2914,6 +2988,7 @@ function toggleWish(staffId, day) {
   const key = `${staffId}-${day}`;
   if (wishOff[key]) delete wishOff[key]; else wishOff[key] = true;
   refresh();
+  syncWishButton();
   autoSave();
 }
 
@@ -2934,6 +3009,7 @@ function refresh() {
   updateSummary();
   renderLawPanel();
   updateInfoBar();
+  syncWishButton();
 }
 
 function changeMonth(dir) {

@@ -602,6 +602,15 @@
         </label>
       </div>
       <div class="form-group">
+        <label class="form-label">성별</label>
+        <select class="form-control" id="drGender">
+          <option value="">미입력</option>
+          <option value="F">여</option>
+          <option value="M">남</option>
+        </select>
+        <div style="font-size:11px;color:#64748b;margin-top:3px">8449·8978은 남성 기사만 배정할 수 있습니다.</div>
+      </div>
+      <div class="form-group">
         <label class="form-label">재직 상태</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:4px">
           <input type="checkbox" id="drActive" checked style="width:16px;height:16px"> 재직 중
@@ -1666,12 +1675,14 @@ function openDriverModal(id) {
     document.getElementById('drPhone').value = d.phone || '';
     document.getElementById('drColor').value = d.color || '#2563eb';
     document.getElementById('drLicense').checked = d.hasLicense !== false;
+    document.getElementById('drGender').value = d.gender || '';
     document.getElementById('drActive').checked = d.active !== false;
     document.getElementById('drNote').value = d.note || '';
   } else {
     ['drName','drRole','drPhone','drNote'].forEach(i => document.getElementById(i).value = '');
     document.getElementById('drColor').value = '#2563eb';
     document.getElementById('drLicense').checked = true;
+    document.getElementById('drGender').value = '';
     document.getElementById('drActive').checked = true;
   }
   openModal('driverModal');
@@ -1687,6 +1698,7 @@ function saveDriver() {
     phone: document.getElementById('drPhone').value,
     color: document.getElementById('drColor').value,
     hasLicense: document.getElementById('drLicense').checked,
+    gender: document.getElementById('drGender').value,
     active: document.getElementById('drActive').checked,
     note: document.getElementById('drNote').value
   };
@@ -2220,16 +2232,32 @@ function vColor(name) {
   return VEHICLE_COLORS[name] || '#64748b';
 }
 
+// ▶ 남성 기사만 몰 수 있는 차량 (2026-08-24 회의).
+//   8449는 김대근님 검단 운행이 붙어 있고, 8978은 휠체어 차량이라 여성 기사에게는 무리다.
+const MALE_ONLY_PLATES = ['8449', '8978'];
+function isMaleOnlyVehicle(vehicleName) {
+  return MALE_ONLY_PLATES.some(n => String(vehicleName || '').includes(n));
+}
+
 // 그날 고를 수 있는 기사. 근무표에서 송영 지정이 넘어온 날은 그 사람들만 보여준다.
 // 이미 배정돼 있는 이름은 목록에서 사라지지 않게 남긴다.
-function driverChoices(dstr, current) {
-  const all = (DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false).map(d=>d.name);
+// vehicleName을 주면 그 차량이 요구하는 성별로 한 번 더 좁힌다.
+function driverChoices(dstr, current, vehicleName) {
+  const roster = (DB.drivers||[]).filter(d=>d.active!==false&&d.hasLicense!==false);
+  const all = roster.map(d=>d.name);
   const duty = (DB.transportDuty||{})[dstr];
-  if (!duty) return all;
-  const byId = new Map((DB.drivers||[]).map(d=>[d.id, d.name]));
-  const names = duty.map(id => byId.get(id)).filter(Boolean);
-  if (!names.length) return all;                       // 지정이 비었으면 전원 보여준다
-  if (current && !names.includes(current)) names.push(current);
+  let names = all;
+  if (duty) {
+    const byId = new Map((DB.drivers||[]).map(d=>[d.id, d.name]));
+    const picked = duty.map(id => byId.get(id)).filter(Boolean);
+    if (picked.length) names = picked;                 // 지정이 비었으면 전원 보여준다
+  }
+  // 성별 제약 — 성별을 아직 안 넣은 기사는 막지 않는다(명부가 채워질 때까지 쓰던 대로 쓰게).
+  if (isMaleOnlyVehicle(vehicleName)) {
+    const genderOf = new Map(roster.map(d => [d.name, d.gender || '']));
+    names = names.filter(n => genderOf.get(n) !== 'F');
+  }
+  if (current && !names.includes(current)) names = [...names, current];
   return names;
 }
 
@@ -2297,7 +2325,7 @@ function renderScheduleVehicleCard(vdata, type, dstr, vIdx, runNo, runTotal) {
           <select onchange="changeSchDriver('${dstr}','${type}',${vIdx},this.value)"
             style="font-size:11px;color:#374151;border:1px solid #d1d5db;border-radius:4px;background:#fff;padding:1px 4px;cursor:pointer;max-width:90px">
             <option value="">미배정</option>
-            ${driverChoices(dstr, vdata.driver).map(n=>`<option value="${n}" ${n===vdata.driver?'selected':''}>${n}</option>`).join('')}
+            ${driverChoices(dstr, vdata.driver, vdata.vehicle).map(n=>`<option value="${n}" ${n===vdata.driver?'selected':''}>${n}</option>`).join('')}
           </select>
           <span title="동승자" style="color:#94a3b8">🧑‍🤝‍🧑</span>
           <select onchange="changeSchEscort('${dstr}','${type}',${vIdx},this.value)" title="동승자(보조 탑승)"
