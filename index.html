@@ -169,6 +169,7 @@
   .shift-cell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 34px; border-radius: 5px; font-size: 10px; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.1s; flex-direction: column; gap: 1px; user-select: none; }
   .shift-cell:hover { opacity: 0.82; transform: scale(0.96); }
   .sh-label { font-size: 10px; font-weight: 700; }
+  .sh-duty { font-size: 8.5px; opacity: .82; line-height: 1.1; white-space: nowrap; }
   .sh-time { font-size: 8px; opacity: 0.8; }
   /* 목욕 담당 배지 */
   .bath-badge { position: absolute; top: 1px; right: 1px; min-width: 12px; height: 11px; padding: 0 2px; border-radius: 3px; font-size: 7px; font-weight: 800; line-height: 11px; letter-spacing: -0.3px; color: #fff; background: #1f7a4d; box-shadow: 0 0 0 1px rgba(255,255,255,0.85); pointer-events: none; }
@@ -497,13 +498,15 @@
 
     <div class="legend" style="margin-top:8px;">
       <div class="sidebar-label">범례</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A반 08:00-17:00 (조기등원·송영)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B반 09:00-18:00 (정규)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-ap-bg);border:1px solid var(--shift-ap);"></div>A'반 08:30-17:30 (A반 30분 늦게)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-bp-bg);border:1px solid var(--shift-bp);"></div>B'반 09:30-18:30 (B반 30분 늦게)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-s-bg);border:1px solid var(--shift-s);"></div>송영 08:00-17:00 (운전원은 D반)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C반 10:00-19:00 (오후케어·송영)</div>
+      <div class="legend-item" style="font-weight:700;margin-top:2px;">평일 9개 업무 슬롯</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-a-bg);border:1px solid var(--shift-a);"></div>A1 홀 준비 · A2 등원 7733 — 08:00</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-ap-bg);border:1px solid var(--shift-ap);"></div>A'1 홀 이용자 대응 · A'2 등원 8978 — 08:30</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>B 주방 — 09:00</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-bp-bg);border:1px solid var(--shift-bp);"></div>B' 하원 7733 — 09:30 · B2 홀 지원(여유 인력)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-c-bg);border:1px solid var(--shift-c);"></div>C1 홀 마무리 · C2 하원 8978 · C3 하원 8449 — 10:00</div>
+      <div class="legend-item" style="font-weight:700;margin-top:4px;">그 밖의 근무</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-d-bg);border:1px solid var(--shift-d);"></div>D반 08:00-17:00 (운전원·송영)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--shift-b-bg);border:1px solid var(--shift-b);"></div>근무 09:00-18:00 (사무·방문 — 9슬롯 밖)</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-evening-bg);border:1px solid var(--shift-evening);"></div>E(이브닝) 13:00-22:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-night-bg);border:1px solid var(--shift-night);"></div>N(야간) 22:00-08:00</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--shift-holiday-bg);border:1px solid var(--shift-holiday);"></div>연차 / 반차</div>
@@ -765,7 +768,7 @@
 // ▶ 실제 직원 (2026년 4~6월 근무표 기반)
 // nightShift: 단기보호 주간 야간(E→N) 순환 대상 여부
 const STAFF = [
-  { id:1,  name:'이태욱', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
+  { id:1,  name:'이태욱', role:'물리치료사(팀장)', short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false, slotPool:false },   // 팀장 — 9슬롯 편성 제외
   { id:2,  name:'석혁준', role:'작업치료사',      short:'OT',  type:'ot',     contract:40, color:'#7d3c98', bg:'#f0e6fb', hasLicense:true , annualLeave:15, transDays:0, nightShift:false },
   { id:3,  name:'이의영', role:'간호사',          short:'RN',  type:'nurse',  contract:40, color:'#5b4fcf', bg:'#ede9fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false, retirementDate:'2026-07-31' },   // 8월 근무표에 없음 — 정확한 퇴사일 확인 필요
   { id:4,  name:'김길찬', role:'요양보호사(CW)',  short:'CW',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
@@ -783,18 +786,34 @@ const STAFF = [
   { id:16, name:'노재일', role:'운전원',          short:'운',  type:'driver', contract:40, color:'#7a6b2d', bg:'#f8f5e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:17, name:'전일환', role:'사회복지사(방문요양)', short:'SW', type:'sw', contract:40, color:'#c0672d', bg:'#fdf0e6', hasLicense:true,  annualLeave:15, transDays:0, nightShift:false },
   { id:18, name:'조민경', role:'요양보호사',      short:'요',  type:'care',   contract:40, color:'#2d7a5b', bg:'#e6f5ee', hasLicense:true , annualLeave:5,  transDays:0, nightShift:true  },
-  { id:19, name:'이민옥', role:'물리치료사',      short:'PT',  type:'pt',     contract:40, color:'#2d5f7a', bg:'#e6f0f5', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },
+  { id:19, name:'이민옥', role:'간호조무사',      short:'간호', type:'nurse',  contract:40, color:'#5b4fcf', bg:'#ede9fb', hasLicense:false, annualLeave:15, transDays:0, nightShift:false },   // 엑셀 작성가이드의 '기본: 간호 이민옥'
 ];
 
 // ▶ 근무코드 (실제 리하원 근무 코드 반영)
 const SHIFTS = {
-  'A':  { label:'A반',    time:'08:00-17:00', cls:'shift-a',       hours:9,  isTransport:true  },
-  "A'": { label:"A'반",   time:'08:30-17:30', cls:'shift-ap',      hours:9,  isTransport:false },  // A반보다 30분 늦게
-  'B':  { label:'B반',    time:'09:00-18:00', cls:'shift-b',       hours:9,  isTransport:false },
-  "B'": { label:"B'반",   time:'09:30-18:30', cls:'shift-bp',      hours:9,  isTransport:false },  // B반보다 30분 늦게
-  'C':  { label:'C반',    time:'10:00-19:00', cls:'shift-c',       hours:9,  isTransport:true  },
-  'S':  { label:'송영',   time:'08:00-17:00', cls:'shift-s',       hours:9,  isTransport:true  },  // 송영 근무
+  // ▶ 평일 9개 업무 슬롯 (2026-08-24 2차 회의 · 엑셀 '작성가이드' 시트)
+  //   하루에 이 아홉 자리가 서로 다른 아홉 명으로 채워져야 서비스가 돌아간다.
+  //   같은 A라도 홀 준비인지 등원인지 구분해야 해서 번호를 붙였다.
+  'A1':  { label:'A1',   duty:'홀 준비',        time:'08:00-17:00', cls:'shift-a',  hours:9, isTransport:false },
+  'A2':  { label:'A2',   duty:'등원 7733',      time:'08:00-17:00', cls:'shift-a',  hours:9, isTransport:true  },
+  "A'1": { label:"A'1",  duty:'홀 이용자 대응', time:'08:30-17:30', cls:'shift-ap', hours:9, isTransport:false },
+  "A'2": { label:"A'2",  duty:'등원 8978',      time:'08:30-17:30', cls:'shift-ap', hours:9, isTransport:true  },
+  'B':   { label:'B',    duty:'주방',           time:'09:00-18:00', cls:'shift-b',  hours:9, isTransport:false },
+  "B'":  { label:"B'",   duty:'하원 7733',      time:'09:30-18:30', cls:'shift-bp', hours:9, isTransport:true  },
+  'C1':  { label:'C1',   duty:'홀 마무리',      time:'10:00-19:00', cls:'shift-c',  hours:9, isTransport:false },
+  'C2':  { label:'C2',   duty:'하원 8978',      time:'10:00-19:00', cls:'shift-c',  hours:9, isTransport:true  },
+  'C3':  { label:'C3',   duty:'하원 8449',      time:'10:00-19:00', cls:'shift-c',  hours:9, isTransport:true  },
+  // 인원이 9명을 넘는 날의 여유 인력. 회의에서 말한 '9시 반 출근 홀 지원'.
+  'B2':  { label:'B2',   duty:'홀 지원',        time:'09:30-18:30', cls:'shift-bp', hours:9, isTransport:false },
+  // 9슬롯 밖 — 팀장·사회복지사처럼 홀 편성을 타지 않는 직원의 근무
+  'W':   { label:'근무',  duty:'사무 · 방문',    time:'09:00-18:00', cls:'shift-b',  hours:9, isTransport:false },
+
+  // 슬롯 밖의 근무 — 운전원 전용, 단기보호, 그리고 옛 저장본의 뭉뚱그린 코드
   'D':  { label:'D반',    time:'08:00-17:00', cls:'shift-d',       hours:9,  isTransport:true  },   // 운전원의 송영 근무
+  'A':  { label:'A반',    time:'08:00-17:00', cls:'shift-a',       hours:9,  isTransport:true  },   // 구형 — 슬롯 구분 전
+  "A'": { label:"A'반",   time:'08:30-17:30', cls:'shift-ap',      hours:9,  isTransport:false },  // 구형
+  'C':  { label:'C반',    time:'10:00-19:00', cls:'shift-c',       hours:9,  isTransport:true  },   // 구형
+  'S':  { label:'송영',   time:'08:00-17:00', cls:'shift-s',       hours:9,  isTransport:true  },  // 구형 — 송영 근무
   'E':  { label:'이브닝', time:'13:00-22:00', cls:'shift-evening', hours:9,  isTransport:false },
   'N':  { label:'야간',   time:'22:00-08:00', cls:'shift-night',   hours:10, isTransport:false },
   'O':  { label:'휴무',   time:'',            cls:'shift-off',     hours:0,  isTransport:false },
@@ -1115,6 +1134,43 @@ function buildSatKitchenMap(days) {
 }
 
 // ▶ 자동배치가 돌리는 주간 근무조. 직종별 고정 배치는 두지 않는다.
+// ▶ 평일 9개 업무 슬롯 — 하루에 이 순서대로 서로 다른 아홉 명을 채운다.
+//   prefer  : 그 사람이 그날 나오면 이 자리를 먼저 준다
+//   pair    : 두 사람이 주 단위로 두 자리를 맞바꾼다 (홀 준비 ↔ 홀 마무리)
+//   needsCar: 운전면허가 있어야 맡을 수 있는 송영 자리
+//   토요일·공휴일은 6~7명 축소운영이라 이 규칙을 쓰지 않는다.
+const WEEKDAY_SLOTS = [
+  { code:'A1',  prefer:'모연숙', pair:'C1' },
+  { code:'A2',  needsCar:true },
+  { code:"A'1", prefer:'이민옥' },
+  { code:"A'2", needsCar:true },
+  { code:'B',   prefer:'정윤정' },
+  { code:"B'",  needsCar:true },
+  { code:'C1',  prefer:'한경숙', pair:'A1' },
+  { code:'C2',  needsCar:true },
+  { code:'C3',  prefer:'박상근', needsCar:true },
+];
+const OVERFLOW_SLOT = 'B2';          // 9명을 넘는 날의 여유 인력
+const SLOT_CODES = new Set([...WEEKDAY_SLOTS.map(x => x.code), OVERFLOW_SLOT]);
+
+// 9슬롯 편성 대상 — 홀에서 일하는 직종. 운전원은 D반 전용이고 사회복지사는 사무실이다.
+// 개인별로 staff.slotPool === false 면 뺀다 (팀장처럼 근무표상 근무가 없는 사람).
+const SLOT_TYPES = ['care', 'nurse', 'pt', 'ot'];
+function isSlotStaff(st) {
+  return SLOT_TYPES.includes(st.type) && st.slotPool !== false;
+}
+function slotPoolStaff(days = getMonthDays()) {
+  return getVisibleStaff(days).filter(isSlotStaff);
+}
+
+// 홀 준비(A1) ↔ 홀 마무리(C1) 는 두 사람이 주 단위로 맞바꾼다.
+// 주 번호가 홀수면 뒤바꿔서, 한 사람이 한 자리에 계속 묶이지 않게 한다.
+function slotPreferFor(slot, day) {
+  if (!slot.pair) return slot.prefer;
+  const mate = WEEKDAY_SLOTS.find(x => x.code === slot.pair);
+  return (weekIndexOf(day) % 2 === 0) ? slot.prefer : mate.prefer;
+}
+
 const DAY_SHIFTS = ['A', 'B', 'C'];
 
 // 한 사람의 근무조는 한 주 내내 같다. 매일 A→B→C로 돌면 출퇴근 시간이 날마다
@@ -1232,10 +1288,24 @@ let staffRosterLoaded = false;      // 별도 키에서 명부를 읽었으면 t
 function staffRosterPayload() {
   // transDays는 그 달 근무표에서 매번 계산하는 값이라 명부에 담지 않는다
   return JSON.stringify({
-    version: 1,
+    version: STAFF_ROSTER_VERSION,
     nextId: smNextId,
     staff: STAFF.map(x => { const { transDays, ...rest } = x; return rest; }),
   });
+}
+
+// 명부 판올림. 저장본이 낡았으면 여기서 한 번만 손본다.
+//   v2 (2026-08-24 2차 회의) — 이민옥을 간호(조무)사로, 이태욱을 9슬롯 편성에서 제외.
+//   엑셀 작성가이드의 '재활 1 / 간호 1 / 케어 8 / 주방 1 = 11명' 과 맞추기 위한 것이다.
+const STAFF_ROSTER_VERSION = 2;
+function migrateStaffRoster(list, from) {
+  if (from < 2) {
+    const nurse = list.find(x => x.name === '이민옥');
+    if (nurse && nurse.type === 'pt') Object.assign(nurse, { type:'nurse', role:'간호조무사', short:'간호' });
+    const lead = list.find(x => x.name === '이태욱');
+    if (lead && lead.slotPool === undefined) lead.slotPool = false;
+  }
+  return list;
 }
 
 function applyStaffRoster(raw) {
@@ -1243,7 +1313,8 @@ function applyStaffRoster(raw) {
   try { data = JSON.parse(raw); } catch (e) { return false; }
   if (!data || !Array.isArray(data.staff) || !data.staff.length) return false;
   STAFF.length = 0;
-  data.staff.forEach(x => STAFF.push(Object.assign({ transDays: 0 }, x)));
+  migrateStaffRoster(data.staff, Number(data.version) || 1)
+    .forEach(x => STAFF.push(Object.assign({ transDays: 0 }, x)));
   if (data.nextId) smNextId = Math.max(smNextId, data.nextId);
   staffRosterLoaded = true;
   return true;
@@ -1606,6 +1677,19 @@ function dayIssues(day) {
 
   const dow = getDow(day);
   if (dow >= 1 && dow <= 5) {
+    // 평일 9개 업무 슬롯 — 하나라도 비면 그날 서비스가 안 돌아간다 (2026-08-24 2차 회의)
+    const filled = new Set();
+    STAFF.forEach(x => {
+      if (!isStaffActiveOnDay(x, day)) return;
+      const c = scheduleData[`${x.id}-${day}`];
+      if (c && SLOT_CODES.has(c) && c !== OVERFLOW_SLOT) filled.add(c);
+    });
+    if (filled.size > 0 && filled.size < WEEKDAY_SLOTS.length) {
+      const missing = WEEKDAY_SLOTS.filter(x => !filled.has(x.code));
+      out.push({ code:'slot',
+        text:`업무 슬롯 ${missing.length}자리 공석 — ${missing.map(x => `${x.code}(${SHIFTS[x.code].duty})`).join(', ')}` });
+    }
+
     const off = STAFF.filter(x => isStaffActiveOnDay(x, day)
       && OFF_CODES.includes(scheduleData[`${x.id}-${day}`])).length;
     if (off > MAX_DAILY_OFF) out.push({ code:'off', text:`휴무 ${off}명 (상한 ${MAX_DAILY_OFF}명)` });
@@ -1634,7 +1718,8 @@ function computeCompliance(days = getDays()) {
   let careShortDays = 0, nurseMissDays = 0, swMissDays = 0, therapistMissDays = 0;
   let nightShortDays = 0, restViolations = 0;
   let bathShortDays = 0, offOverDays = 0;
-  const offOverList = [];
+  let slotShortDays = 0, slotCoveredDays = 0;
+  const offOverList = [], slotShortList = [];
 
   days.forEach(d => {
     dayIssues(d).forEach(it => {
@@ -1645,6 +1730,14 @@ function computeCompliance(days = getDays()) {
       if (it.code === 'night')     nightShortDays++;
       if (it.code === 'bath')      bathShortDays++;
       if (it.code === 'off')     { offOverDays++; offOverList.push(`${d}일 ${it.text}`); }
+      if (it.code === 'slot') {
+        // 연장근무를 넣어 둔 날은 '보완'으로 따로 센다. 경고 자체는 지우지 않는다 —
+        // 연장이 그 시간대 정원을 실제로 채워 주지는 않기 때문이다.
+        const ot = dayOvertime(d);
+        slotShortDays++;
+        if (ot.list.length) slotCoveredDays++;
+        slotShortList.push(`${d}일 ${it.text}` + (ot.list.length ? ` → 연장 +${otNum(ot.total)}h 보완` : ''));
+      }
     });
   });
 
@@ -1659,7 +1752,8 @@ function computeCompliance(days = getDays()) {
     });
   });
 
-  return { careShortDays, nurseMissDays, swMissDays, therapistMissDays, nightShortDays, restViolations, bathShortDays, offOverDays, offOverList };
+  return { careShortDays, nurseMissDays, swMissDays, therapistMissDays, nightShortDays, restViolations,
+           bathShortDays, offOverDays, offOverList, slotShortDays, slotCoveredDays, slotShortList };
 }
 
 function renderLawPanel() {
@@ -1667,7 +1761,8 @@ function renderLawPanel() {
   const nightApplies = shortTermWeeks.size > 0;
   const panelOk = c.careShortDays === 0 && c.nurseMissDays === 0 && c.swMissDays === 0 &&
                   c.therapistMissDays === 0 && c.nightShortDays === 0 && c.restViolations === 0 &&
-                  c.bathShortDays === 0 && c.offOverDays === 0;
+                  c.bathShortDays === 0 && c.offOverDays === 0 &&
+                  c.slotShortDays === c.slotCoveredDays;
   const row = (label, bad, okText, badText) =>
     `<div class="law-item"><span>${label}</span><span class="${bad===0?'ok':'ng'}">${bad===0?okText:badText}</span></div>`;
   document.getElementById('law-panel-wrap').innerHTML = `
@@ -1681,6 +1776,13 @@ function renderLawPanel() {
       ${row('물리/작업치료사', c.therapistMissDays, '충족 ✓', c.therapistMissDays + '일 부족 ✗')}
       ${nightApplies ? row('야간 인력(단기보호)', c.nightShortDays, '충족 ✓', c.nightShortDays + '일 부족 ✗') : ''}
       ${row('목욕 인원(최소 2인)', c.bathShortDays, '충족 ✓', c.bathShortDays + '일 부족 ✗')}
+      <div class="law-item" title="${c.slotShortList.join('\n') || '아홉 자리가 모두 채워졌습니다'}">
+        <span>평일 업무 슬롯(9자리)</span>
+        <span class="${c.slotShortDays === 0 ? 'ok' : (c.slotShortDays === c.slotCoveredDays ? 'ok' : 'ng')}">${
+          c.slotShortDays === 0 ? '충족 ✓'
+          : c.slotShortDays === c.slotCoveredDays ? `${c.slotShortDays}일 공석 · 연장 보완 ✓`
+          : `${c.slotShortDays}일 공석${c.slotCoveredDays ? ` (${c.slotCoveredDays}일 보완)` : ''} ✗`}</span>
+      </div>
       <div class="law-item" title="${c.offOverList.join(' · ')}"><span>일일 휴무 상한(2명)</span><span class="${c.offOverDays===0?'ok':'ng'}">${c.offOverDays===0?'초과 없음 ✓':c.offOverDays+'일 초과 ✗'}</span></div>
       ${row('11시간 휴게', c.restViolations, '위반 없음 ✓', c.restViolations + '건 위반 ✗')}
       <div class="law-item" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.08);">
@@ -1711,6 +1813,7 @@ function isToday(day) { const n=new Date(); return n.getFullYear()===currentYear
 function getDailyKey(day) { return `${currentYear}-${currentMonth}-${day}`; }
 function getIsoDate(day) { return `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`; }
 function isServiceDay(day) { return getDow(day) !== 0; } // 일요일만 휴무, 토요일은 서비스 제공
+function isWeekday(day) { const w = getDow(day); return w >= 1 && w <= 5; }
 function getDailyUsers(day) { return Number(dailyUsers[getDailyKey(day)]) || (getDow(day) === 6 ? 20 : 28); }
 // ▶ 장기휴가(육아휴직·병가 등). staff.leaves = [{type, from, to}]
 //   to 가 비어 있으면 복귀일 미정 — 그 뒤로 계속 휴가 중으로 본다.
@@ -1898,10 +2001,12 @@ function renderTable() {
         const info = SHIFTS[sh] || { label: sh, time: '', cls: 'shift-off' };
         const driveBadge = canDrive
           ? `<span class="drive-badge" title="운전 가능 · ${info.label} 송영 시간대">🚗</span>` : '';
+        const cellTip = [info.duty, info.time, canDrive ? '송영 가능' : ''].filter(Boolean).join(' · ');
         td.innerHTML = `
-          <div class="shift-cell ${info.cls}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${canDrive?'송영 가능':''}">
+          <div class="shift-cell ${info.cls}${wishCls}" onclick="onCellClick(${s.id},${d})" title="${cellTip}">
             <span class="sh-label">${info.label}</span>
-            ${info.time ? `<span class="sh-time">${info.time}</span>` : ''}
+            ${info.duty ? `<span class="sh-duty">${info.duty}</span>`
+                        : info.time ? `<span class="sh-time">${info.time}</span>` : ''}
             ${bathBadge}${washBadge}${wishBadge}${driveBadge}${otBadge}
           </div>`;
       } else if (isSunday && !isST) {
@@ -2161,7 +2266,7 @@ function openModal(staffId, day) {
       <div class="shift-opt ${info.cls} ${selectedShift===code?'selected':''}"
            onclick="${disabled?'showToast(\'단기보호 주간으로 설정된 날만 야간/이브닝 선택 가능합니다\',\'warn\')':'selectShift(\''+safeCode+'\', this)'}"
            style="background:var(--shift-${clsKey}-bg);color:var(--shift-${clsKey});${disabledStyle}" ${disabledTitle}>
-        <div class="so-lbl">${info.label}</div>
+        <div class="so-lbl">${info.label}${info.duty ? ` <span style="font-weight:500;opacity:.75">${info.duty}</span>` : ''}</div>
         <div class="so-time">${info.time || (code==='H'?'연차':code==='X'?'대체휴무':HALF_CODES.includes(code)?'반차':'종일 휴무')}</div>
         ${isNightShift&&!isST?'<div style="font-size:9px;margin-top:2px;opacity:0.7;">단기보호 주간만</div>':''}
       </div>`;
@@ -2608,6 +2713,102 @@ function confirmAutoFill() {
 }
 
 // ▶ 실제 근무 패턴 기반 자동배치 (2026년 4~6월 데이터 분석)
+// ▶ 평일 9슬롯 배정 — 자리는 "주 단위"로 정한다.
+//   한 사람이 한 주 내내 같은 자리를 맡아야 출퇴근 시각이 고정된다
+//   ("이번 주 B면 B" — 1차 회의). 날마다 다시 뽑으면 그 요구가 깨진다.
+//
+//   주마다:
+//     1) 지정된 사람(전담·기본)에게 그 자리를 준다
+//     2) 남은 송영 자리는 면허 보유자로 채운다
+//     3) 그래도 남은 자리는 아무나 채운다
+//     4) 자리보다 사람이 많으면 나머지는 그 주 내내 홀 지원(B2)
+//   그 다음 그 주의 평일마다 계획을 적용하고, 주인이 쉬어 빈 자리는
+//   그날 홀 지원으로 남는 사람이 대신 들어간다. 그래도 못 채우면 비워 둔다 —
+//   인원이 모자란 날은 경고로 드러나야 한다.
+function assignWeekdaySlots(days, taken) {
+  const pool = slotPoolStaff();
+  const weeks = {};
+  days.filter(isWeekday).forEach(d => (weeks[weekIndexOf(d)] ||= []).push(d));
+
+  Object.values(weeks).forEach(wdays => {
+    const active = pool.filter(s => wdays.some(d => isStaffActiveOnDay(s, d) && !taken(s.id, d)));
+    if (!active.length) return;
+
+    // 이미 채워진 자리는 다시 나눠 주지 않는다. 달 중간에 직원이 들어와
+    // 자동배치를 다시 돌리면, 남은 사람만 새로 배정되므로 그 사람이 남의 자리에
+    // 겹쳐 앉는 일이 생긴다.
+    const used = new Set();
+    wdays.forEach(d => pool.forEach(s => {
+      if (!isStaffActiveOnDay(s, d) || !taken(s.id, d)) return;
+      const c = scheduleData[`${s.id}-${d}`];
+      if (c && SLOT_CODES.has(c) && c !== OVERFLOW_SLOT) used.add(c);
+    }));
+
+    const left = new Set(active.map(s => s.id));
+    const plan = {};                                    // 근무코드 → 직원 id
+    const byName = n => active.find(s => s.name === n && left.has(s.id));
+    const give = (id, code) => { plan[code] = id; left.delete(id); };
+    const day0 = wdays[0];
+    // 자리가 남으면 뒤에 선 사람이 늘 대체 인력이 된다. 주마다 차례를 돌려
+    // 같은 사람만 계속 자리를 옮겨 다니지 않게 한다.
+    const w = weekIndexOf(day0);
+    const order = active.map((_, i) => active[(i + w) % active.length]);
+    const rest = () => order.filter(s => left.has(s.id));
+
+    const open = [];
+    WEEKDAY_SLOTS.filter(slot => !used.has(slot.code)).forEach(slot => {
+      const want = slotPreferFor(slot, day0);
+      const st = want && byName(want);
+      if (st) give(st.id, slot.code); else open.push(slot);
+    });
+    const carLeft = open.filter(x => x.needsCar);
+    carLeft.forEach(slot => {
+      const st = rest().find(s => s.hasLicense);
+      if (st) { give(st.id, slot.code); slot.filled = true; }
+    });
+    open.filter(x => !x.filled).forEach(slot => {
+      const st = rest()[0];
+      if (st) give(st.id, slot.code);
+    });
+    open.forEach(x => delete x.filled);
+    const spare = rest().map(s => s.id);                // 그 주 내내 홀 지원
+    const cover = {};                                   // 직원 id → 그 주에 대신 맡은 자리
+
+    wdays.forEach(d => {
+      const put = (id, code) => {
+        const st = STAFF.find(x => x.id === id);
+        if (!st || !isStaffActiveOnDay(st, d) || taken(id, d)) return;
+        scheduleData[`${id}-${d}`] = code;
+      };
+      Object.entries(plan).forEach(([code, id]) => put(id, code));
+      spare.forEach(id => put(id, OVERFLOW_SLOT));
+
+      // 주인이 쉬어 빈 자리는 그날 여유 인력으로 메운다
+      const filled = new Set(), idle = [];
+      pool.forEach(s => {
+        if (!isStaffActiveOnDay(s, d)) return;
+        const c = scheduleData[`${s.id}-${d}`];
+        if (c === OVERFLOW_SLOT) idle.push(s);
+        else if (c && SLOT_CODES.has(c)) filled.add(c);
+      });
+      // 대신 들어가는 사람은 그 주 내내 같은 자리를 맡게 한다. 날마다 다른 자리를
+      // 주면 대체 인력만 출퇴근 시각이 흔들린다.
+      WEEKDAY_SLOTS.filter(x => !filled.has(x.code)).forEach(slot => {
+        // filled 는 그날 실제 배치를 보고 만든 것이라 중간 추가 상황도 걸러진다
+        const ok = s2 => !slot.needsCar || s2.hasLicense;
+        let i = idle.findIndex(s2 => ok(s2) && cover[s2.id] === slot.code);
+        if (i < 0) i = idle.findIndex(s2 => ok(s2) && cover[s2.id] === undefined);
+        if (i < 0) i = idle.findIndex(ok);
+        if (i >= 0) {
+          scheduleData[`${idle[i].id}-${d}`] = slot.code;
+          cover[idle[i].id] = slot.code;
+          idle.splice(i, 1);
+        }
+      });
+    });
+  });
+}
+
 function autoFill() {
   cleanRetiredScheduleData();
   const days = getDays();
@@ -2645,7 +2846,6 @@ function autoFill() {
   const offCount = {};               // day → 이미 쉬는 인원
   const bumpOff = d => { offCount[d] = (offCount[d] || 0) + 1; };
   const countOff = d => offCount[d] || 0;
-  const isWeekday = d => { const w = getDow(d); return w >= 1 && w <= 5; };
 
   days.filter(isWeekday).forEach(d => activeStaff.forEach(s => {
     const k = `${s.id}-${d}`;
@@ -2759,9 +2959,13 @@ function autoFill() {
       if (forcedOff[key]) { scheduleData[key] = forcedOff[key]; return; }  // 대체휴무 · 희망휴무
       if (satOff[key]) { scheduleData[key] = 'O'; return; }  // 토요일 로테이션 휴무
 
-      // 운전원만 송영 시간에 맞춘 전용 근무조(D반)를 쓴다.
-      // 그 밖의 직종은 고정 없이 A·B·C를 돌아가며 맡는다.
-      scheduleData[key] = s.type === 'driver' ? 'D' : dayShiftFor(s.id, d);
+      // 운전원은 송영 시간에 맞춘 전용 근무조(D반)를 쓴다.
+      // 홀 직원의 평일 근무는 아래 assignWeekdaySlots() 가 9슬롯으로 채우므로 여기서 비워 둔다.
+      if (s.type === 'driver') { scheduleData[key] = 'D'; return; }
+      if (isSlotStaff(s) && isWeekday(d)) return;                 // 9슬롯 단계로 넘긴다
+      // 홀 편성 밖의 직원(팀장·사회복지사)은 사무 근무로 둔다. A·B·C 를 돌리면
+      // 주방 슬롯 B 와 코드가 겹쳐 누가 주방인지 알 수 없게 된다.
+      scheduleData[key] = isSlotStaff(s) ? dayShiftFor(s.id, d) : 'W';
     });
 
     // 일요일 → 휴무 (토요일은 서비스 제공)
@@ -2772,6 +2976,12 @@ function autoFill() {
       }
     });
   });
+
+  // ─── 1-b단계: 평일 9슬롯 배정 ──────────────────────────────────────
+  //   1단계에서 홀 직원의 평일 칸은 비워 두었다. 여기서 아홉 자리에 앉힌다.
+  //   이미 값이 있거나 단기보호로 잡힌 칸은 건드리지 않는다.
+  assignWeekdaySlots(weekDays, (id, d) =>
+    !!scheduleData[`${id}-${d}`] || shortTermOverride[`${id}-${d}`] !== undefined);
 
   // ─── 2단계: 단기보호 주간 E→N→O 패턴 덮어쓰기 ───────────────────
   Object.entries(shortTermOverride).forEach(([key, shift]) => {
@@ -3171,6 +3381,12 @@ function exportCSV() {
     csv += row.join(',') + '\n';
   });
   csv += '\n당일이용자,' + days.map(d=>getDow(d)===0?'':getDailyUsers(d)).join(',') + '\n';
+
+  // 코드만 있으면 같은 A라도 홀 준비인지 등원인지 알 수 없다 (2026-08-24 2차 회의).
+  // 표는 코드로 두고 뜻풀이를 아래에 붙인다.
+  csv += '\n코드,업무,시간\n';
+  Object.entries(SHIFTS).filter(([, v]) => v.duty)
+    .forEach(([code, v]) => { csv += `${code},${v.duty},${v.time}\n`; });
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3340,6 +3556,15 @@ function renderSmForm(s) {
         <div class="sm-toggle-thumb"></div>
       </label>
     </div>
+    <div class="sm-toggle-row">
+      <span class="sm-toggle-label">🧩 평일 9슬롯 편성 대상 (홀 근무)<br>
+        <span style="font-size:11px;color:var(--text2);font-weight:400;">끄면 평일 자동배치에서 빠집니다 — 팀장처럼 홀 근무를 맡지 않는 경우</span></span>
+      <label class="sm-toggle">
+        <input type="checkbox" id="sf-slotpool" ${s?.slotPool!==false?'checked':''} onchange="smPreviewUpdate()">
+        <div class="sm-toggle-track"></div>
+        <div class="sm-toggle-thumb"></div>
+      </label>
+    </div>
 
     <div style="margin-bottom:18px;">
       <div class="sm-label" style="margin-bottom:6px;">프로필 색상</div>
@@ -3472,6 +3697,7 @@ function smSaveStaff() {
   const leaves = smCollectLeaves();
   const hasLicense = document.getElementById('sf-license').checked;
   const nightShift = document.getElementById('sf-nightshift').checked;
+  const slotPool   = document.getElementById('sf-slotpool').checked;
   const color = panel.dataset.color || '#2d7a5b';
   const bg = panel.dataset.bg || '#e6f5ee';
 
@@ -3480,7 +3706,7 @@ function smSaveStaff() {
 
   if (smEditingId === null) {
     // 신규 추가
-    const newStaff = { id:smNextId++, name, role, short, type, contract, color, bg, hasLicense, annualLeave, transDays:0, nightShift, retirementDate, leaves };
+    const newStaff = { id:smNextId++, name, role, short, type, contract, color, bg, hasLicense, annualLeave, transDays:0, nightShift, slotPool, retirementDate, leaves };
     STAFF.push(newStaff);
     smEditingId = newStaff.id;
     showToast(`✅ ${name}님이 추가되었습니다`, 'ok');
@@ -3488,7 +3714,7 @@ function smSaveStaff() {
     // 수정
     const s = STAFF.find(x=>x.id===smEditingId);
     if (!s) return;
-    Object.assign(s, { name, role, short, type, contract, color, bg, hasLicense, annualLeave, nightShift, retirementDate, leaves });
+    Object.assign(s, { name, role, short, type, contract, color, bg, hasLicense, annualLeave, nightShift, slotPool, retirementDate, leaves });
     const removed = cleanRetiredScheduleData(s);
     showToast(removed ? `💾 ${name}님 정보 저장 · 퇴사일 이후 ${removed}개 배치 제외` : `💾 ${name}님 정보가 수정됐습니다`, 'ok');
   }
