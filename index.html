@@ -414,6 +414,7 @@
     </span>
     <div class="hgroup" title="자동배치 전에 미리 정해 두는 항목 (목욕 담당은 '담당' 화면에 있습니다)">
       <span class="hgroup-label">1. 사전 입력</span>
+      <button class="hbtn" onclick="openUsersModal()">👥 이용자 수</button>
       <button class="hbtn" onclick="openShortTermModal()">🌙 단기보호</button>
       <button class="hbtn" onclick="openSaturdayModal()">📅 주말근무</button>
       <button class="hbtn" id="btn-wish" onclick="toggleWishMode()">🙋 희망휴무</button>
@@ -483,18 +484,13 @@
       <div id="night-assign-preview" style="display:none;margin-top:4px;font-size:10px;"></div>
     </div>
 
-    <!-- 이용자 수 자동채우기 -->
+    <!-- 이용자 수 — 입력은 상단 '1. 사전 입력 › 👥 이용자 수' 한 곳에서 한다 -->
     <div style="margin:0 12px 8px;">
       <div class="sidebar-label" style="margin-bottom:4px;">👥 당일 이용자 수</div>
-      <button class="hbtn" style="width:100%;font-size:11px;padding:6px 0;" onclick="fillUsersFromPrevMonth()">
-        📊 전월 마지막주 기준 입력
+      <button class="hbtn" style="width:100%;font-size:11px;padding:6px 0;" onclick="openUsersModal()">
+        평일 · 토요일 일괄 입력
       </button>
-      <div style="font-size:9px;color:var(--text2);margin-top:3px;">월~금은 전월 마지막 금요일 · 토요일은 전월 마지막 토요일 기준</div>
-      <div style="display:flex;gap:6px;margin-top:8px;">
-        <input id="bulk-user-count" class="user-input" type="number" min="1" max="50" value="28" style="height:28px;text-align:left;padding:0 8px;" title="이번 달 영업일 전체에 적용할 이용자 수">
-        <button class="hbtn primary" style="font-size:11px;padding:6px 9px;white-space:nowrap;" onclick="bulkSetDailyUsers()">월 전체 적용</button>
-      </div>
-      <div style="font-size:9px;color:var(--text2);margin-top:3px;">입력값을 이번 달 월~토 전체에 동일 적용</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:3px;">표 맨 윗줄에서 날짜별로 고칠 수 있습니다 (← → 로 이동)</div>
     </div>
 
     <div id="law-panel-wrap" style="margin-top:auto;"></div>
@@ -605,6 +601,42 @@
     <div class="modal-actions" style="margin-top:14px;">
       <button class="mbtn" onclick="resetSatPlan()">담당 되돌리기</button>
       <button class="mbtn primary" onclick="closePreModal('sat-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 당일 이용자 수 일괄 입력 -->
+<div class="modal-overlay" id="users-modal" style="z-index:1300;" onclick="if(event.target===this)closePreModal('users-modal')">
+  <div class="modal" style="width:460px;max-width:96vw;">
+    <h3>👥 당일 이용자 수</h3>
+    <div class="sub">평일과 토요일 인원을 한 번에 넣습니다. 이 숫자가 필요 인원을 정하므로
+      자동배치 전에 채워야 합니다.<br>특정 날만 다르면 넣은 뒤 표에서 그 칸만 고치세요.</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0 4px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;">
+        <span style="width:110px;font-weight:600;">평일 (월~금)</span>
+        <input id="users-weekday" class="user-input" type="number" min="1" max="50"
+               style="height:30px;width:74px;text-align:left;padding:0 8px;">
+        <span style="color:var(--text2);font-size:12px;">명</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;">
+        <span style="width:110px;font-weight:600;">토요일</span>
+        <input id="users-saturday" class="user-input" type="number" min="1" max="50"
+               style="height:30px;width:74px;text-align:left;padding:0 8px;">
+        <span style="color:var(--text2);font-size:12px;">명</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;">
+        <input type="checkbox" id="users-overwrite" checked style="width:15px;height:15px;">
+        이미 입력된 날짜도 덮어쓰기
+      </label>
+    </div>
+
+    <div id="users-modal-note" style="font-size:11px;color:var(--text2);margin:8px 0 2px;"></div>
+
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="mbtn" onclick="loadPrevMonthIntoUsersModal()">📊 전월 마지막주 기준</button>
+      <button class="mbtn" onclick="closePreModal('users-modal')">닫기</button>
+      <button class="mbtn primary" onclick="applyUsersBulk()">이번 달에 적용</button>
     </div>
   </div>
 </div>
@@ -1966,24 +1998,65 @@ function setDailyUsers(day, val) {
   autoSave();
 }
 
-function bulkSetDailyUsers() {
-  const input = document.getElementById('bulk-user-count');
-  const n = Math.max(1, Math.min(50, parseInt(input?.value, 10) || 28));
-  if (input) input.value = n;
-  let changed = 0;
-  getMonthDays().forEach(d => {
-    if (getDow(d) === 0) return;
-    dailyUsers[getDailyKey(d)] = n;
-    changed++;
+// ▶ 이용자 수 일괄 입력 — 달을 새로 시작할 때 평일·토요일을 한 번에 채운다.
+//   한 칸씩 넣으면 한 달치에 너무 오래 걸린다는 요구로 사전 입력에 넣었다.
+//   여는 순간의 기본값은 이미 들어가 있는 값(최빈값) → 없으면 전월 마지막주 기준.
+function commonUsersFor(dows) {
+  const tally = {};
+  getMonthDays().filter(d => dows.includes(getDow(d))).forEach(d => {
+    const v = dailyUsers[getDailyKey(d)];
+    if (v) tally[v] = (tally[v] || 0) + 1;
   });
-  renderTable();
-  updateStats();
-  renderLawPanel();
-  updateInfoBar();
-  autoSave();
-  showToast(`✅ 이번 달 영업일 ${changed}일 이용자 수를 ${n}명으로 입력했습니다`, 'ok');
+  const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+  return top ? Number(top[0]) : null;
 }
 
+function loadPrevMonthIntoUsersModal() {
+  const fri = getPrevMonthLastDayUsers(5, 28);
+  const sat = getPrevMonthLastDayUsers(6, 20);
+  document.getElementById('users-weekday').value  = fri.value;
+  document.getElementById('users-saturday').value = sat.value;
+  const src = b => (b.fromPrevious && b.day) ? `전월 ${b.month}/${b.day}` : '기본값';
+  showToast(`전월 기준을 넣었습니다 — 평일 ${fri.value}명(${src(fri)}) · 토요일 ${sat.value}명(${src(sat)}). 확인 후 적용을 누르세요`, 'info');
+}
+
+function openUsersModal() {
+  const wd = commonUsersFor([1, 2, 3, 4, 5]) ?? getPrevMonthLastDayUsers(5, 28).value;
+  const sa = commonUsersFor([6])             ?? getPrevMonthLastDayUsers(6, 20).value;
+  document.getElementById('users-weekday').value  = wd;
+  document.getElementById('users-saturday').value = sa;
+  const days = getMonthDays();
+  const nW = days.filter(d => getDow(d) >= 1 && getDow(d) <= 5).length;
+  const nS = days.filter(d => getDow(d) === 6).length;
+  const filled = days.filter(d => getDow(d) !== 0 && dailyUsers[getDailyKey(d)]).length;
+  document.getElementById('users-modal-note').textContent =
+    `${currentMonth}월 — 평일 ${nW}일 · 토요일 ${nS}일 (일요일 제외). 현재 ${filled}일 입력됨.`;
+  document.getElementById('users-modal').classList.add('open');
+}
+
+function applyUsersBulk() {
+  const clamp = v => Math.max(1, Math.min(50, parseInt(v, 10) || 0));
+  const wd = clamp(document.getElementById('users-weekday').value);
+  const sa = clamp(document.getElementById('users-saturday').value);
+  if (!wd || !sa) { showToast('평일과 토요일 인원을 모두 넣어 주세요', 'warn'); return; }
+  const overwrite = document.getElementById('users-overwrite').checked;
+
+  let changed = 0, kept = 0;
+  getMonthDays().forEach(d => {
+    const dw = getDow(d);
+    if (dw === 0) return;                                  // 일요일은 휴무
+    const key = getDailyKey(d);
+    if (!overwrite && dailyUsers[key]) { kept++; return; }
+    dailyUsers[key] = dw === 6 ? sa : wd;
+    changed++;
+  });
+
+  refresh();
+  autoSave();
+  openUsersModal();                                        // 안내 문구를 새 상태로 다시 쓴다
+  showToast(`✅ 평일 ${wd}명 · 토요일 ${sa}명으로 ${changed}일 입력했습니다`
+    + (kept ? ` (이미 입력된 ${kept}일은 그대로 뒀습니다)` : ''), 'ok');
+}
 function getPrevMonthLastDayUsers(targetDow, fallback) {
   let prevYear = currentYear, prevMonth = currentMonth - 1;
   if (prevMonth < 1) { prevMonth = 12; prevYear--; }
@@ -2032,24 +2105,6 @@ function applyUsersFromPrevMonth({ overwrite = false, silent = false } = {}) {
   if (!silent && changed === 0) showToast('이미 모든 영업일에 이용자 수가 입력되어 있습니다', 'warn');
   return { changed, weekdayBase, saturdayBase };
 }
-
-// ─── 전월 마지막 금/토 이용자 수로 이번달 자동입력 ────────────────
-function fillUsersFromPrevMonth() {
-  const result = applyUsersFromPrevMonth({ overwrite: true });
-
-  renderTable();
-  updateStats();
-  renderLawPanel();
-  updateInfoBar();
-  autoSave();
-
-  const fri = result.weekdayBase;
-  const sat = result.saturdayBase;
-  const friSource = fri.fromPrevious && fri.day ? `전월 ${fri.month}/${fri.day}(금)` : '기본값';
-  const satSource = sat.fromPrevious && sat.day ? `전월 ${sat.month}/${sat.day}(토)` : '기본값';
-  showToast(`✅ 이용자 수 재입력 — 평일 ${fri.value}명(${friSource}) · 토요일 ${sat.value}명(${satSource})`, 'ok');
-}
-
 // ── MODAL ────────────────────────────────────────────────────────
 function openModal(staffId, day) {
   const s = STAFF.find(x=>x.id===staffId);
